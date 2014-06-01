@@ -1,0 +1,1 @@
+cat /cp/s4/strait/ibdout.29May/prompts | awk '{if(oldrun==$1) printf "%d ", $2; else printf "\n%d %d ", $1, $2; oldrun=$1;}' | while read  run prompt; do stoptoli9/stoptoli9 /cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run00${run}_Seq010.root $prompt; done | tee stopli9search-spacecut.txt
