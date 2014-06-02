@@ -100,22 +100,25 @@ int main()
 
     const unsigned int noff = 97;
     const char * turnoff[noff] = { 
-      "nev", "trgId", "trgWord", "date", "tref", "trefIV", "trefextIV", "nhitIV", 
-      "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse", "ctnbadch", "ctrho", 
-      "ctphi", "ctR", "ctmqtq", "ctmqtqflag", "ctmqtqall", "ctgoodness", 
-      "ctnbadchIV", "ctnpulseIV", "vctnpulseIV", "vctqIV", "vcttimeIV", "vctnpulse", 
-      "vctq", "vcttime", "pmtmultpe", "pmtmultpe_IV", "IVX", "ctrmsts", "cttrise", 
-      "ctfwhm", "ctt2tot", "cttpeak", "cttmean", "ctIDMuDeltaT", "ctIVMuDeltaT", 
-      "HEMuDeltaT", "ctlightflux", "ctFlagMu", "ctXmuInGC", "ctXmuInIV", "ctXmuOuIV", 
-      "ctqtot", "ctqtotIV", "ctsphericity", "ctaplanarity", "lilike", "qrms", 
-      "qdiff", "timeid", "timeiv", "ctEvisID", "ovtrigid", "ttovtrig", "coinov", 
-      "novhit", "novupxy", "novloxy", "novtrk", "ovupxyx", "ovupxyy", "ovupxyz", 
-      "ovtightupxy", "ovupxylike", "ovloxyx", "ovloxyy", "ovloxyz", "ovtightloxy", 
-      "ovloxylike", "ovtrkx", "ovtrky", "ovtrkth", "ovtrkphi", "ovtrklike", 
-      "ovbadtrk", "ovtighttrk", "hamx", "hamxe", "hamth", "hamphi", "fido_didfit", 
-      "fido_used_ov", "fido_minuit_happiness", "fido_ivlen", "fido_buflen", 
-      "fido_gclen", "fido_targlen", "fido_entrx", "fido_entry", "fido_entrz", 
-      "fido_th", "fido_phi"
+      "nev", "trgId", "trgWord", "date", "tref", "trefIV", "trefextIV",
+      "nhitIV", "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse",
+      "ctnbadch", "ctrho", "ctphi", "ctR", "ctmqtq", "ctmqtqflag",
+      "ctmqtqall", "ctgoodness", "ctnbadchIV", "ctnpulseIV",
+      "vctnpulseIV", "vctqIV", "vcttimeIV", "vctnpulse", "vctq",
+      "vcttime", "pmtmultpe", "pmtmultpe_IV", "IVX", "ctrmsts",
+      "cttrise", "ctfwhm", "ctt2tot", "cttpeak", "cttmean",
+      "ctIDMuDeltaT", "ctIVMuDeltaT", "HEMuDeltaT", "ctlightflux",
+      "ctFlagMu", "ctXmuInGC", "ctXmuInIV", "ctXmuOuIV", "ctqtot",
+      "ctqtotIV", "ctsphericity", "ctaplanarity", "lilike", "qrms", 
+      "qdiff", "timeid", "timeiv", "ctEvisID", "ovtrigid", "ttovtrig",
+      "coinov", "novhit", "novupxy", "novloxy", "novtrk", "ovupxyx",
+      "ovupxyy", "ovupxyz", "ovtightupxy", "ovupxylike", "ovloxyx",
+      "ovloxyy", "ovloxyz", "ovtightloxy", "ovloxylike", "ovtrkx",
+      "ovtrky", "ovtrkth", "ovtrkphi", "ovtrklike", "ovbadtrk",
+      "ovtighttrk", "hamx", "hamxe", "hamth", "hamphi", "fido_didfit", 
+      "fido_used_ov", "fido_minuit_happiness", "fido_ivlen",
+      "fido_buflen", "fido_gclen", "fido_targlen", "fido_entrx",
+      "fido_entry", "fido_entrz", "fido_th", "fido_phi"
     };
 
     for(unsigned int i = 0; i < noff; i++)
