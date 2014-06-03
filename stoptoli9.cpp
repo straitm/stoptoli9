@@ -51,7 +51,8 @@ void stopper_search(dataparts & parts, TTree * const data,
     // and not too long before the Li-9 candidate
     if(prompttime - parts.trgtime > 5e9) return;
 
-    const double mux=parts.fido_endx, muy=parts.fido_endy, muz=parts.fido_endz;
+    const double mux = parts.fido_endx, muy = parts.fido_endy,
+                 muz = parts.fido_endz;
 
     const double li9tomu = sqrt(pow(mux-li9x, 2)
                                +pow(muy-li9y, 2)
