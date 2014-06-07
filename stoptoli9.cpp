@@ -10,18 +10,30 @@
 #include "TError.h"
 
 struct dataparts{
+  float ctEvisID;
   int run;
   bool fido_stop;
   float fido_qiv, fido_qid;
   float fido_chi2;
   float fido_endx, fido_endy, fido_endz;
+  float qdiff, qrms;
   int fido_nidtubes, fido_nivtubes;
   double deltaT;
   double trgtime;
+  float ctmqtqall, ctrmsts;
   float ctX[3];
 };
 
-void stopper_search(dataparts & parts, TTree * const data, 
+static bool lightnoise(const float qrms, const float mqtq,
+                       const float rmsts, const float qdiff)
+{
+  if(mqtq > 0.12 || mqtq < 0) return true;
+  if(qdiff > 30e3) return true;
+  if(rmsts >= 36 && qrms >= 464 - 8*rmsts) return true;
+  return false;
+}
+
+static void stopper_search(dataparts & parts, TTree * const data, 
                     const int prompt)
 {
   if(prompt >= data->GetEntries()){
@@ -48,8 +60,8 @@ void stopper_search(dataparts & parts, TTree * const data,
     if(parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
       continue;
 
-    // and not too long before the Li-9 candidate
-    if(prompttime - parts.trgtime > 5e9) return;
+    // Open up a big window
+    if(prompttime - parts.trgtime > 10e9) return;
 
     const double mux = parts.fido_endx, muy = parts.fido_endy,
                  muz = parts.fido_endz;
@@ -59,16 +71,44 @@ void stopper_search(dataparts & parts, TTree * const data,
                                +pow(muz-li9z, 2));
 
     // And they must be near each other.
-    if(li9tomu > 1000) continue;
+    if(li9tomu > 400) continue;
 
     data->GetEvent(prompt-back+1);
 
     // And must not have a Michel, with loose cuts.
-    if(parts.deltaT < 5500 && parts.fido_qid/8300 > 12) continue;
+    if(parts.deltaT < 5500 &&
+       parts.fido_qid/8300 > 12 && parts.fido_qid/8300 < 1000) continue;
 
-    printf("Muon for %d %d is %d dt %lf ms distance %f at %f %f %f\n",
-           parts.run, prompt, prompt-back,
-           (prompttime - parts.trgtime)/1e6, li9tomu, li9x, li9y, li9z);
+    const double mutime = parts.trgtime;
+
+    unsigned int nneutron = 0;
+    for(back -= 2; back > 0; back--){
+      data->GetEvent(prompt-back);
+
+      // Not more than ~4 nH lifetimes
+      if(parts.trgtime - mutime > 800e3) break;
+
+      // pass light noise
+      if(lightnoise(parts.qrms, parts.ctmqtqall,
+                    parts.ctrmsts, parts.qdiff)) continue;
+
+      // right energy for a neutron capture
+      if(!((parts.ctEvisID > 1.8 && parts.ctEvisID < 2.6) ||
+           (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
+        continue;
+      
+      // near the point the muon stopped
+      if(sqrt(pow(mux - parts.ctX[0], 2)
+             +pow(muy - parts.ctX[1], 2)
+             +pow(muz - parts.ctX[2], 2)) > 600) continue;
+
+      nneutron++;
+    }
+
+    printf("Muon for %d %d is %d dt %lf ms distance %f with "
+           "%u neutrons at %f %f %f\n", parts.run, prompt, prompt-back,
+           (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
+           li9x, li9y, li9z);
 
     break;
   }
@@ -99,19 +139,19 @@ int main()
       exit(1);
     }
 
-    const unsigned int noff = 97;
+    const unsigned int noff = 92;
     const char * turnoff[noff] = { 
       "nev", "trgId", "trgWord", "date", "tref", "trefIV", "trefextIV",
       "nhitIV", "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse",
       "ctnbadch", "ctrho", "ctphi", "ctR", "ctmqtq", "ctmqtqflag",
-      "ctmqtqall", "ctgoodness", "ctnbadchIV", "ctnpulseIV",
+      "ctgoodness", "ctnbadchIV", "ctnpulseIV",
       "vctnpulseIV", "vctqIV", "vcttimeIV", "vctnpulse", "vctq",
-      "vcttime", "pmtmultpe", "pmtmultpe_IV", "IVX", "ctrmsts",
+      "vcttime", "pmtmultpe", "pmtmultpe_IV", "IVX", 
       "cttrise", "ctfwhm", "ctt2tot", "cttpeak", "cttmean",
       "ctIDMuDeltaT", "ctIVMuDeltaT", "HEMuDeltaT", "ctlightflux",
       "ctFlagMu", "ctXmuInGC", "ctXmuInIV", "ctXmuOuIV", "ctqtot",
-      "ctqtotIV", "ctsphericity", "ctaplanarity", "lilike", "qrms", 
-      "qdiff", "timeid", "timeiv", "ctEvisID", "ovtrigid", "ttovtrig",
+      "ctqtotIV", "ctsphericity", "ctaplanarity", "lilike", 
+      "timeid", "timeiv", "ovtrigid", "ttovtrig",
       "coinov", "novhit", "novupxy", "novloxy", "novtrk", "ovupxyx",
       "ovupxyy", "ovupxyz", "ovtightupxy", "ovupxylike", "ovloxyx",
       "ovloxyy", "ovloxyz", "ovtightloxy", "ovloxylike", "ovtrkx",
@@ -127,6 +167,8 @@ int main()
 
     dataparts parts;
     #define SBA(x) data->SetBranchAddress(#x, &parts.x);
+    SBA(qdiff);
+    SBA(ctEvisID);
     SBA(fido_stop);
     SBA(fido_endx);
     SBA(fido_endy);
@@ -138,6 +180,9 @@ int main()
     SBA(fido_nivtubes);
     SBA(deltaT);
     SBA(trgtime);
+    SBA(ctmqtqall);
+    SBA(ctrmsts);
+    SBA(qrms);
     SBA(run);
     data->SetBranchAddress("ctX", parts.ctX);
 
