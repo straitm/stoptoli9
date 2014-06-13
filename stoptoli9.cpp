@@ -73,16 +73,14 @@ static void stopper_search(dataparts & parts, TTree * const data,
     // And they must be near each other.
     if(li9tomu > 400) continue;
 
-    data->GetEvent(prompt-back+1);
-
-    // And must not have a Michel, with loose cuts.
-    if(parts.deltaT < 5500 &&
-       parts.fido_qid/8300 > 12 && parts.fido_qid/8300 < 1000) continue;
-
     const double mutime = parts.trgtime;
 
+    data->GetEvent(prompt-back+1);
+
+    const float miche = parts.deltaT < 5500? parts.ctEvisID:0.;
+
     unsigned int nneutron = 0;
-    for(back -= 2; back > 0; back--){
+    for(back--; back > 0; back--){
       data->GetEvent(prompt-back);
 
       // Not more than ~4 nH lifetimes
@@ -97,18 +95,19 @@ static void stopper_search(dataparts & parts, TTree * const data,
            (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
         continue;
       
-      // near the point the muon stopped
+      // near the point the muon stopped (~97% efficient - doc4450)
       if(sqrt(pow(mux - parts.ctX[0], 2)
              +pow(muy - parts.ctX[1], 2)
-             +pow(muz - parts.ctX[2], 2)) > 600) continue;
+             +pow(muz - parts.ctX[2], 2)) > 1000) continue;
 
       nneutron++;
     }
 
     printf("Muon for %d %d is %d dt %lf ms distance %f with "
-           "%u neutrons at %f %f %f\n", parts.run, prompt, prompt-back,
+           "%u neutrons at %f %f %f michel_e %f\n", parts.run, prompt, prompt-back,
            (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
-           li9x, li9y, li9z);
+           li9x, li9y, li9z, miche);
+    fflush(stdout);
 
     break;
   }
