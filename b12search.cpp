@@ -80,14 +80,33 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
   const float muivdedx =
     parts.fido_qiv/(parts.fido_ivlen-parts.fido_buflen);
 
-  unsigned int nneutron = 0;
+  unsigned int nneutronanydist = 0, ngdneutronanydist = 0;
+  unsigned int nneutronnear = 0, ngdneutronnear = 0;
+
+  double michelt = 0, michele = 0;
+
   for(unsigned int i = 0; i < data->GetEntries(); i++){
     data->GetEntry(muoni+i);
 
-    // Not more than ~4 nH lifetimes
-    if(parts.trgtime - mutime > 800e3) break;
-
     if(parts.run != murun) break; // Stop at run boundaries
+
+    const double dt = parts.trgtime - mutime;
+
+    // For any uncut Michels or (hopefully) prompt gammas from muon
+    // capture, record the time and energy. Note that if we are
+    // operating on my microdsts, this will not pick up triggers with E
+    // < 0.4MeV in the ID or light noise. I'm going to allow IV energy
+    // since these may be very close to the muon event. Note also that
+    // this "Michel" might also be counted as a neutron if it is 
+    // after 500ns.
+    if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0)
+         michele = parts.ctEvisID, michelt = dt;
+
+    // Skip past retriggers and whatnot, like DC3rdPub
+    if(dt < 500) continue;
+
+    // Not more than ~4 nH lifetimes
+    if(dt > 800e3) break;
 
     // pass light noise
     if(lightnoise(parts.qrms, parts.ctmqtqall,
@@ -98,63 +117,96 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
          (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
       continue;
     
-    // Do *not* require any particular position.
+    const bool near = sqrt(pow(mux - parts.ctX[0], 2)+
+                           pow(muy - parts.ctX[1], 2)+
+                           pow(muz - parts.ctX[2], 2)) < 800; 
 
-    nneutron++;
+    const bool gd = parts.ctEvisID > 4.0 && parts.ctEvisID < 10
+                 && parts.trgtime - mutime < 150e3;
+
+    nneutronanydist++;
+    if(gd) ngdneutronanydist++;
+    if(near) nneutronnear++;
+    if(gd && near) ngdneutronnear++;
   }
 
   unsigned int got = 0;
 
-  double b12x[2], b12y[2], b12z[2];
+  // positions of putative isotope decays
+  double ix[2], iy[2], iz[2];
 
+  double lastmuontime = 0; 
   for(unsigned int i = muoni+1; i < data->GetEntries(); i++){
     data->GetEntry(i);  
 
     if(parts.run != murun) break; // Stop at run boundaries
 
-    const double b12time = parts.trgtime; 
-    const double dt_ms = (b12time - mutime)/1e6;
+    const double itime = parts.trgtime; 
+    const double dt_ms = (itime - mutime)/1e6;
     
-    if(dt_ms < 1) continue; // Go past all H neutron captures
+    // Require at least 500us since the last muon so we don't count
+    // neutrons as isotope decays
+    if(itime - lastmuontime < 500e3) goto end;
+
+    if(dt_ms < 1) goto end; // Go past all H neutron captures
 
     if(dt_ms > maxtime) break; // Stop looking
 
     // Ignore low energy accidentals and H-neutrons
-    if(parts.ctEvisID < minenergy) continue;
+    if(parts.ctEvisID < minenergy) goto end;
 
     // Ignore events above the end point + res
-    if(parts.ctEvisID > maxenergy) continue;
+    if(parts.ctEvisID > maxenergy) goto end;
 
     // No IV, OV energy
-    if(parts.fido_qiv > 1000) continue;
-    if(parts.coinov) continue;
+    if(parts.fido_qiv > 1000) goto end;
+    if(parts.coinov) goto end;
 
     // pass light noise
     if(lightnoise(parts.qrms, parts.ctmqtqall,
-                  parts.ctrmsts, parts.qdiff)) continue;
+                  parts.ctrmsts, parts.qdiff)) goto end;
 
-    b12x[got] = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
-    b12y[got] = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
-    b12z[got] = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
+    ix[got] = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
+    iy[got] = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
+    iz[got] = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
 
-    const double dist = got == 0? sqrt(pow(mux-b12x[0], 2)
-                                      +pow(muy-b12y[0], 2)
-                                      +pow(muz-b12z[0], 2)):
-                                  sqrt(pow(b12x[1]-b12x[0], 2)
-                                      +pow(b12y[1]-b12y[0], 2)
-                                      +pow(b12z[1]-b12z[0], 2));
+    {
+      // Record distance to previous selected event, not always to muon
+      const double dist = got == 0?
+        sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
+        sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
-    // And they must be near each other.
-    if(dist > 800) continue;
+      // And they must be near each other.
+      if(dist > 800) goto end;
 
-    printf("B-12_for %d %d %d is %d dt %lf dist %f energy %f "
-           "b12_at %f %f %f chi2,ivdedx: %f %f neutrons %d ",
-           parts.run, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
-           parts.ctEvisID, b12x[got], b12y[got], b12z[got], murchi2,
-           muivdedx, nneutron);
-    got++;
+      // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:ngdnear:ngd:nnear:n:miche:micht
+      printf("B-12_for %d %d %d is %d dt %lf dist %f energy %f decay_at"
+             " %f %f %f chi2,ivdedx: %f %f neutrons %d %d %d %d michel "
+             "%lf %lf ",
+             parts.run, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
+             parts.ctEvisID, ix[got], iy[got], iz[got], murchi2,
+             muivdedx, ngdneutronnear, ngdneutronanydist,
+                         nneutronnear,  nneutronanydist,
+             michele, michelt);
+      got++;
 
-    if(got >= 2) break;
+      if(got >= 2) break;
+    }
+
+    end:
+
+    // Note the time of this event if it is a muon. Note that if using
+    // my microdsts, only events with ID energy are in the input files,
+    // so this only selects muons that cross the ID, which I think is
+    // fine.
+    data->GetBranch("coinov")->GetEntry(i);
+    data->GetBranch("fido_qiv")->GetEntry(i);
+
+    if(parts.coinov || parts.fido_qiv > 5000){
+      data->GetBranch("trgtime")->GetEntry(i);
+      lastmuontime = parts.trgtime;
+    }
+
   }
   if(got){
     printf("\n");
@@ -162,24 +214,60 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
   }
 }
 
+static double geteortime(dataparts & parts, TTree * const data,
+                         const unsigned int start)
+{
+  TBranch * const runbr = data->GetBranch("run");
+  TBranch * const timbr = data->GetBranch("trgtime");
+
+  runbr->GetEntry(start);
+  const int run = parts.run;
+  double eortime = 0;
+
+  for(int e = start; e < data->GetEntries(); e++){
+    runbr->GetEntry(e);
+    if(run == parts.run){
+      timbr->GetEntry(e);
+      eortime = parts.trgtime;
+    }
+    else{
+      break;
+    }
+  }
+ 
+  return eortime;
+}
+
 static void search(dataparts & parts, TTree * const data)
 {
-  data->GetBranch("trgtime")->GetEntry(data->GetEntries()-1);
-  const double eortime = parts.trgtime;
-
   double lastmuontime = 0; 
+  double eortime = 0;
 
+  int run = 0;
+
+  TBranch * const runbr = data->GetBranch("run");
+  TBranch * const timbr = data->GetBranch("trgtime");
+  TBranch * const stpbr = data->GetBranch("fido_stop");
+  
   for(unsigned int mi = 0; mi < data->GetEntries()-1; mi++){
-    data->GetBranch("fido_stop")->GetEntry(mi);
+    runbr->GetEntry(mi);
+
+    if(parts.run != run){
+      run = parts.run;
+      lastmuontime = 0; // Assume a muon right before the run started.
+      eortime = geteortime(parts, data, mi);
+    }
+
+    stpbr->GetEntry(mi);
 
     // Must be reasonably sure that it's a stopper
     if(!parts.fido_stop) goto end;
 
-    data->GetBranch("trgtime")->GetEntry(mi);
+    timbr->GetEntry(mi);
 
     // Don't use a muon that is within our search window length from the
     // end of the run
-    if(eortime - parts.trgtime < maxtime) break;
+    if(eortime - parts.trgtime < maxtime) continue;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons from the previous one as belonging to this one.
@@ -197,6 +285,9 @@ static void search(dataparts & parts, TTree * const data)
     data->GetEntry(mi+1);
 
     // And must not have a Michel, loose cuts
+    // XXX Does this risk cutting signal when the capture is followed
+    // by a prompt gamma from nuclear de-excitation?  B-12 has levels up
+    // to 15MeV, but it seems unlikely to get all 15MeV.
     if(parts.deltaT < 5500 && parts.ctEvisID > 12) goto end;
 
     data->GetEntry(mi);
@@ -204,6 +295,7 @@ static void search(dataparts & parts, TTree * const data)
 
     end:
 
+    // See note above for same code.
     data->GetBranch("coinov")->GetEntry(mi);
     data->GetBranch("fido_qiv")->GetEntry(mi);
 
