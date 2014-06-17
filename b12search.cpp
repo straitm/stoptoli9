@@ -18,6 +18,7 @@ struct dataparts{
   float fido_chi2;
   float fido_endx, fido_endy, fido_endz;
   int fido_nidtubes, fido_nivtubes;
+  float fido_ivlen, fido_buflen;
   double deltaT;
   double trgtime;
   float ctX[3];
@@ -25,7 +26,7 @@ struct dataparts{
   float qrms, qdiff;
 };
 
-static const unsigned int noff = 90;
+static const unsigned int noff = 88;
 static const char * turnoff[noff] = { 
   "nev", "trgWord", "date", "tref", "trefIV", "trefextIV",
   "nhitIV", "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse",
@@ -43,11 +44,18 @@ static const char * turnoff[noff] = {
   "ovloxyy", "ovloxyz", "ovtightloxy", "ovloxylike", "ovtrkx",
   "ovtrky", "ovtrkth", "ovtrkphi", "ovtrklike", "ovbadtrk",
   "ovtighttrk", "hamx", "hamxe", "hamth", "hamphi", "fido_didfit", 
-  "fido_used_ov", "fido_minuit_happiness", "fido_ivlen",
-  "fido_buflen", "fido_gclen", "fido_targlen", "fido_entrx",
+  "fido_used_ov", "fido_minuit_happiness", 
+  "fido_gclen", "fido_targlen", "fido_entrx",
   "fido_entry", "fido_entrz", "fido_th", "fido_phi"
 };
 
+
+static double maxtime = 1000;
+static double minenergy = 4;
+static double maxenergy = 14;
+
+// True if this is light noise. If the variables aren't filled, i.e. all
+// zeros, then this will return false.
 static bool lightnoise(const float qrms, const float mqtq,
                        const float rmsts, const float qdiff)
 {
@@ -56,7 +64,6 @@ static bool lightnoise(const float qrms, const float mqtq,
   if(rmsts >= 36 && qrms >= 464 - 8*rmsts) return true;
   return false;
 }
-
 
 static void searchfrommuon(dataparts & parts, TTree * const data,
                            const unsigned int muoni)
@@ -70,9 +77,36 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
   const bool mucoinov = parts.coinov;
   const float murchi2 =
     parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6);
-  const float mufidoqiv = parts.fido_qiv;
+  const float muivdedx =
+    parts.fido_qiv/(parts.fido_ivlen-parts.fido_buflen);
+
+  unsigned int nneutron = 0;
+  for(unsigned int i = 0; i < data->GetEntries(); i++){
+    data->GetEntry(muoni+i);
+
+    // Not more than ~4 nH lifetimes
+    if(parts.trgtime - mutime > 800e3) break;
+
+    if(parts.run != murun) break; // Stop at run boundaries
+
+    // pass light noise
+    if(lightnoise(parts.qrms, parts.ctmqtqall,
+                  parts.ctrmsts, parts.qdiff)) continue;
+
+    // right energy for a neutron capture
+    if(!((parts.ctEvisID > 1.8 && parts.ctEvisID < 2.6) ||
+         (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
+      continue;
+    
+    // Do *not* require any particular position.
+
+    nneutron++;
+  }
 
   unsigned int got = 0;
+
+  double b12x[2], b12y[2], b12z[2];
+
   for(unsigned int i = muoni+1; i < data->GetEntries(); i++){
     data->GetEntry(i);  
 
@@ -83,12 +117,15 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
     
     if(dt_ms < 1) continue; // Go past all H neutron captures
 
-    if(dt_ms > 1000) break; // Stop looking after lots of b12 lifetimes
+    if(dt_ms > maxtime) break; // Stop looking
 
     // Ignore low energy accidentals and H-neutrons
-    if(parts.ctEvisID < 3) continue;
+    if(parts.ctEvisID < minenergy) continue;
 
-    // No IV energy
+    // Ignore events above the end point + res
+    if(parts.ctEvisID > maxenergy) continue;
+
+    // No IV, OV energy
     if(parts.fido_qiv > 1000) continue;
     if(parts.coinov) continue;
 
@@ -96,23 +133,25 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
     if(lightnoise(parts.qrms, parts.ctmqtqall,
                   parts.ctrmsts, parts.qdiff)) continue;
 
-    // Go up high enough to also get B-8, Li-8 end points of 17 and 16.
-    if(parts.ctEvisID > 20) continue;
+    b12x[got] = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
+    b12y[got] = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
+    b12z[got] = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
 
-    const double b12x = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
-                 b12y = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
-                 b12z = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
-
-    const double b12tomu = sqrt(pow(mux-b12x, 2)
-                               +pow(muy-b12y, 2)
-                               +pow(muz-b12z, 2));
+    const double dist = got == 0? sqrt(pow(mux-b12x[0], 2)
+                                      +pow(muy-b12y[0], 2)
+                                      +pow(muz-b12z[0], 2)):
+                                  sqrt(pow(b12x[1]-b12x[0], 2)
+                                      +pow(b12y[1]-b12y[0], 2)
+                                      +pow(b12z[1]-b12z[0], 2));
 
     // And they must be near each other.
-    if(b12tomu > 800) continue;
+    if(dist > 800) continue;
 
-    printf("B-12_for %d %d %d is %d dt %lf distance %f energy %f b12_at %f %f %f chi2,qiv: %f %f ",
-        parts.run, mutrgid, mucoinov, parts.trgId, dt_ms, b12tomu, parts.ctEvisID, b12x, b12y, b12z,
-        murchi2, mufidoqiv);
+    printf("B-12_for %d %d %d is %d dt %lf dist %f energy %f "
+           "b12_at %f %f %f chi2,ivdedx: %f %f neutrons %d ",
+           parts.run, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
+           parts.ctEvisID, b12x[got], b12y[got], b12z[got], murchi2,
+           muivdedx, nneutron);
     got++;
 
     if(got >= 2) break;
@@ -125,36 +164,70 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
 
 static void search(dataparts & parts, TTree * const data)
 {
+  data->GetBranch("trgtime")->GetEntry(data->GetEntries()-1);
+  const double eortime = parts.trgtime;
+
+  double lastmuontime = 0; 
+
   for(unsigned int mi = 0; mi < data->GetEntries()-1; mi++){
     data->GetBranch("fido_stop")->GetEntry(mi);
 
     // Must be reasonably sure that it's a stopper
-    if(!parts.fido_stop) continue;
+    if(!parts.fido_stop) goto end;
+
+    data->GetBranch("trgtime")->GetEntry(mi);
+
+    // Don't use a muon that is within our search window length from the
+    // end of the run
+    if(eortime - parts.trgtime < maxtime) break;
+
+    // Require at least 500us since the last muon so we don't count
+    // neutrons from the previous one as belonging to this one.
+    if(parts.trgtime - lastmuontime < 500e3) goto end;
 
     data->GetEntry(mi);
 
-    if(parts.fido_qiv < 5000) continue;
-    if(parts.fido_qid/8300 > 700) continue;
+    if(parts.fido_qiv < 5000) goto end;
+    if(parts.fido_qid/8300 > 700) goto end;
     if(parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
-      continue;
+      goto end;
 
-    if(parts.fido_nidtubes+parts.fido_nivtubes < 30) continue;
+    if(parts.fido_nidtubes+parts.fido_nivtubes < 30) goto end;
 
     data->GetEntry(mi+1);
 
     // And must not have a Michel, loose cuts
-    if(parts.deltaT < 5500 && parts.ctEvisID > 12) continue;
+    if(parts.deltaT < 5500 && parts.ctEvisID > 12) goto end;
 
     data->GetEntry(mi);
     searchfrommuon(parts, data, mi);
+
+    end:
+
+    data->GetBranch("coinov")->GetEntry(mi);
+    data->GetBranch("fido_qiv")->GetEntry(mi);
+
+    if(parts.coinov || parts.fido_qiv > 5000){
+      data->GetBranch("trgtime")->GetEntry(mi);
+      lastmuontime = parts.trgtime;
+    }
   }
 }
 
 int main(int argc, char ** argv)
 {
+  if(argc < 5){
+    fprintf(stderr, "b12search maxtime minenergy maxenergy files...\n");
+    exit(1);
+  }
+
+  maxtime = atof(argv[1]);
+  minenergy = atof(argv[2]);
+  maxenergy = atof(argv[3]);
+
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
-  for(int i = 1; i < argc; i++){
+  for(int i = 4; i < argc; i++){
     TFile * const infile = new TFile(argv[i], "read");
 
     if(!infile || infile->IsZombie()){
@@ -185,6 +258,8 @@ int main(int argc, char ** argv)
     SBA(fido_chi2);
     SBA(fido_nidtubes);
     SBA(fido_nivtubes);
+    SBA(fido_ivlen);
+    SBA(fido_buflen);
     SBA(deltaT);
     SBA(trgtime);
     SBA(run);
