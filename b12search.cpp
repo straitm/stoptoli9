@@ -13,14 +13,16 @@ struct dataparts{
   bool coinov;
   int run, trgId;
   float ctmqtqall, ctrmsts;
-  bool fido_stop;
   float fido_qiv, fido_qid;
-  float fido_chi2;
-  float fido_endx, fido_endy, fido_endz;
-  float fido_entrx, fido_entry, fido_entrz;
-  float fido_gclen;
   int fido_nidtubes, fido_nivtubes;
-  float fido_ivlen, fido_buflen;
+
+  int ids_didfit;
+  float ids_chi2;
+  float ids_end_x, ids_end_y, ids_end_z;
+  float ids_entr_x, ids_entr_y, ids_entr_z;
+  float ids_gclen;
+  float ids_ivlen, ids_buflen;
+
   double deltaT;
   double trgtime;
   float ctX[3];
@@ -28,8 +30,11 @@ struct dataparts{
   float qrms, qdiff;
 };
 
-static const unsigned int noff = 84;
+static const unsigned int noff = 95;
 static const char * turnoff[noff] = { 
+  "fido_stop", "fido_chi2", "fido_endx", "fido_endy", "fido_endz",
+  "fido_entrx", "fido_entry", "fido_entrz", "fido_gclen",
+  "fido_ivlen", "fido_gclen",
   "nev", "trgWord", "date", "tref", "trefIV", "trefextIV",
   "nhitIV", "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse",
   "ctnbadch", "ctrho", "ctphi", "ctR", "ctmqtq", "ctmqtqflag",
@@ -66,32 +71,34 @@ static bool lightnoise(const float qrms, const float mqtq,
   return false;
 }
 
-static void searchfrommuon(dataparts & parts, TTree * const data,
+static void searchfrommuon(dataparts & parts, TTree * const chtree,
+                           TTree * const fitree,
                            const unsigned int muoni)
 {
   const double mutime = parts.trgtime;
-  const double entr_mux = parts.fido_entrx,
-               entr_muy = parts.fido_entry,
-               entr_muz = parts.fido_entrz;
-  const double mux = parts.fido_endx,
-               muy = parts.fido_endy,
-               muz = parts.fido_endz-170./3400.*(1700-parts.fido_endz);
-  const float gclen = parts.fido_gclen;
+  const double entr_mux = parts.ids_entr_x,
+               entr_muy = parts.ids_entr_y,
+               entr_muz = parts.ids_entr_z;
+  const double mux = parts.ids_end_x,
+               muy = parts.ids_end_y,
+               muz = parts.ids_end_z-170./3400.*(1700-parts.ids_end_z);
+  const float gclen = parts.ids_gclen;
   const int mutrgid = parts.trgId;
   const int murun = parts.run;
   const bool mucoinov = parts.coinov;
   const float murchi2 =
-    parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6);
+    parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6);
   const float muivdedx =
-    parts.fido_qiv/(parts.fido_ivlen-parts.fido_buflen);
+    parts.fido_qiv/(parts.ids_ivlen-parts.ids_buflen);
 
   unsigned int nneutronanydist = 0, ngdneutronanydist = 0;
   unsigned int nneutronnear = 0, ngdneutronnear = 0;
 
   double michelt = 0, michele = 0;
 
-  for(unsigned int i = 1; i < data->GetEntries(); i++){
-    data->GetEntry(muoni+i);
+  for(unsigned int i = 1; i < chtree->GetEntries(); i++){
+    chtree->GetEntry(muoni+i);
+    fitree->GetEntry(muoni+i);
 
     if(parts.run != murun) break; // Stop at run boundaries
 
@@ -141,8 +148,9 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
   double ix[2], iy[2], iz[2];
 
   double lastmuontime = 0; 
-  for(unsigned int i = muoni+1; i < data->GetEntries(); i++){
-    data->GetEntry(i);  
+  for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
+    chtree->GetEntry(i);  
+    fitree->GetEntry(i);  
 
     if(parts.run != murun) break; // Stop at run boundaries
 
@@ -207,11 +215,11 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
     // my microdsts, only events with ID energy are in the input files,
     // so this only selects muons that cross the ID, which I think is
     // fine.
-    data->GetBranch("coinov")->GetEntry(i);
-    data->GetBranch("fido_qiv")->GetEntry(i);
+    chtree->GetBranch("coinov")->GetEntry(i);
+    chtree->GetBranch("fido_qiv")->GetEntry(i);
 
     if(parts.coinov || parts.fido_qiv > 5000){
-      data->GetBranch("trgtime")->GetEntry(i);
+      chtree->GetBranch("trgtime")->GetEntry(i);
       lastmuontime = parts.trgtime;
     }
 
@@ -222,17 +230,17 @@ static void searchfrommuon(dataparts & parts, TTree * const data,
   }
 }
 
-static double geteortime(dataparts & parts, TTree * const data,
+static double geteortime(dataparts & parts, TTree * const chtree,
                          const unsigned int start)
 {
-  TBranch * const runbr = data->GetBranch("run");
-  TBranch * const timbr = data->GetBranch("trgtime");
+  TBranch * const runbr = chtree->GetBranch("run");
+  TBranch * const timbr = chtree->GetBranch("trgtime");
 
   runbr->GetEntry(start);
   const int run = parts.run;
   double eortime = 0;
 
-  for(int e = start; e < data->GetEntries(); e++){
+  for(int e = start; e < chtree->GetEntries(); e++){
     runbr->GetEntry(e);
     if(run == parts.run){
       timbr->GetEntry(e);
@@ -246,42 +254,43 @@ static double geteortime(dataparts & parts, TTree * const data,
   return eortime;
 }
 
-static void search(dataparts & parts, TTree * const data)
+static void search(dataparts & parts, TTree * const chtree,
+                   TTree * const fitree)
 {
   double lastmuontime = 0; 
   double eortime = 0;
 
   int run = 0;
 
-  TBranch * const runbr = data->GetBranch("run");
-  TBranch * const timbr = data->GetBranch("trgtime");
-  TBranch * const stpbr = data->GetBranch("fido_stop");
+  TBranch * const runbr = chtree->GetBranch("run");
+  TBranch * const timbr = chtree->GetBranch("trgtime");
+
   
-  for(unsigned int mi = 0; mi < data->GetEntries()-1; mi++){
+  for(unsigned int mi = 0; mi < chtree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
 
     if(parts.run != run){
       run = parts.run;
       lastmuontime = 0; // Assume a muon right before the run started.
-      eortime = geteortime(parts, data, mi);
+      eortime = geteortime(parts, chtree, mi);
     }
 
-    stpbr->GetEntry(mi);
+    fitree->GetEntry(mi);
 
-    // Must be reasonably sure that it's a stopper
-    if(!parts.fido_stop) goto end;
+    // Must be possible that it's a stopper
+    if(!parts.ids_didfit) goto end;
 
     timbr->GetEntry(mi);
 
     // Don't use a muon that is within our search window length from the
     // end of the run
-    if(eortime - parts.trgtime < maxtime) continue;
+    if((eortime - parts.trgtime)/1e6 < maxtime) continue;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons from the previous one as belonging to this one.
     if(parts.trgtime - lastmuontime < 500e3) goto end;
 
-    data->GetEntry(mi);
+    chtree->GetEntry(mi);
 
     // XXX are these biasing me?
     //if(parts.fido_qiv < 5000) goto end;
@@ -291,16 +300,16 @@ static void search(dataparts & parts, TTree * const data)
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 30) goto end;
 
-    searchfrommuon(parts, data, mi);
+    searchfrommuon(parts, chtree, fitree, mi);
 
     end:
 
     // See note above for same code.
-    data->GetBranch("coinov")->GetEntry(mi);
-    data->GetBranch("fido_qiv")->GetEntry(mi);
+    chtree->GetBranch("coinov")->GetEntry(mi);
+    chtree->GetBranch("fido_qiv")->GetEntry(mi);
 
     if(parts.coinov || parts.fido_qiv > 5000){
-      data->GetBranch("trgtime")->GetEntry(mi);
+      chtree->GetBranch("trgtime")->GetEntry(mi);
       lastmuontime = parts.trgtime;
     }
   }
@@ -308,8 +317,9 @@ static void search(dataparts & parts, TTree * const data)
 
 int main(int argc, char ** argv)
 {
-  if(argc < 5){
-    fprintf(stderr, "b12search maxtime minenergy maxenergy files...\n");
+  if(argc < 6 && argc%2 != 0){
+    fprintf(stderr, "b12search maxtime[ms] minenergy maxenergy "
+                    "[cheetah file, fido file]*\n");
     exit(1);
   }
 
@@ -319,60 +329,90 @@ int main(int argc, char ** argv)
 
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
-  for(int i = 4; i < argc; i++){
-    TFile * const infile = new TFile(argv[i], "read");
+  for(int i = 4; i < argc; i+=2){
+    TFile * const chfile = new TFile(argv[i], "read");
+    TFile * const fifile = new TFile(argv[i+1], "read");
 
-    if(!infile || infile->IsZombie()){
+    if(!chfile || chfile->IsZombie()){
       fprintf(stderr, "I couldn't read %s\n", argv[i]);
       errcode |= 1;
       continue;
     }
 
-    TTree * const data = (TTree *)infile->Get("data");
-    if(!data){
-      fprintf(stderr, "%s doesn't have a data tree!\n", argv[i]);
+    TTree * const chtree = (TTree *)chfile->Get("data");
+    if(!chtree){
+      fprintf(stderr, "%s lacks a \"data\" tree!\n", argv[i]);
       errcode |= 2;
       continue;
     }
 
+    if(!fifile || fifile->IsZombie()){
+      fprintf(stderr, "I couldn't read %s\n", argv[i+1]);
+      errcode |= 4;
+      continue;
+    }
+
+    TTree * const fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
+    if(!fitree){
+      fprintf(stderr, "%s lacks a RecoMuonFIDOInfoTree!\n", argv[i+1]);
+      errcode |= 8;
+      continue;
+    }
+
+    if(chtree->GetEntries() != fitree->GetEntries()){
+      fprintf(stderr,
+              "%s,\n%s:\ncheetah has %ld entries, but fido has %ld\n",
+              argv[i], argv[i+1],
+              long(chtree->GetEntries()), long(fitree->GetEntries()));
+      errcode |= 0x10;
+      continue;
+    }
+
+    fitree->SetMakeClass(1);
+
     for(unsigned int i = 0; i < noff; i++)
-      data->SetBranchStatus(turnoff[i], 0);
+      chtree->SetBranchStatus(turnoff[i], 0);
+
+    fitree->SetBranchStatus("*", 0);
 
     dataparts parts;
     memset(&parts, 0, sizeof(parts));
-    #define SBA(x) data->SetBranchAddress(#x, &parts.x);
-    SBA(fido_stop);
-    SBA(fido_endx);
-    SBA(fido_endy);
-    SBA(fido_endz);
-    SBA(fido_entrx);
-    SBA(fido_entry);
-    SBA(fido_entrz);
-    SBA(fido_gclen);
-    SBA(fido_qiv);
-    SBA(fido_qid);
-    SBA(fido_chi2);
-    SBA(fido_nidtubes);
-    SBA(fido_nivtubes);
-    SBA(fido_ivlen);
-    SBA(fido_buflen);
-    SBA(deltaT);
-    SBA(trgtime);
-    SBA(run);
-    SBA(trgId);
-    SBA(ctmqtqall);
-    SBA(ctrmsts);
-    SBA(coinov);
-    SBA(ctEvisID);
-    SBA(qrms);
-    SBA(qdiff);
-    if(data->SetBranchAddress("ctX", parts.ctX) < 0)
-      data->SetBranchAddress("ctX[3]", parts.ctX);
+    #define cSBA(x) chtree->SetBranchAddress(#x, &parts.x);
+    #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
+                    fitree->SetBranchAddress(#x, &parts.x);
+    fSBA(ids_didfit);
+    fSBA(ids_end_x);
+    fSBA(ids_end_y);
+    fSBA(ids_end_z);
+    fSBA(ids_entr_x);
+    fSBA(ids_entr_y);
+    fSBA(ids_entr_z);
+    fSBA(ids_gclen);
+    fSBA(ids_chi2);
+    fSBA(ids_ivlen);
+    fSBA(ids_buflen);
 
-    search(parts, data);
+    cSBA(fido_nidtubes);
+    cSBA(fido_nivtubes);
+    cSBA(fido_qiv);
+    cSBA(fido_qid);
+    cSBA(deltaT);
+    cSBA(trgtime);
+    cSBA(run);
+    cSBA(trgId);
+    cSBA(ctmqtqall);
+    cSBA(ctrmsts);
+    cSBA(coinov);
+    cSBA(ctEvisID);
+    cSBA(qrms);
+    cSBA(qdiff);
+    if(chtree->SetBranchAddress("ctX", parts.ctX) < 0)
+      chtree->SetBranchAddress("ctX[3]", parts.ctX);
+
+    search(parts, chtree, fitree);
   
-    delete data;
-    delete infile;
+    delete chtree;
+    delete chfile;
   }
   return errcode;
 }
