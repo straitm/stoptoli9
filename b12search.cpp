@@ -264,7 +264,7 @@ static void search(dataparts & parts, TTree * const chtree,
 
   TBranch * const runbr = chtree->GetBranch("run");
   TBranch * const timbr = chtree->GetBranch("trgtime");
-
+  TBranch * const stpbr = fitree->GetBranch("ids_didfit");
   
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
@@ -275,7 +275,7 @@ static void search(dataparts & parts, TTree * const chtree,
       eortime = geteortime(parts, chtree, mi);
     }
 
-    fitree->GetEntry(mi);
+    stpbr->GetEntry(mi);
 
     // Must be possible that it's a stopper
     if(!parts.ids_didfit) goto end;
@@ -300,6 +300,7 @@ static void search(dataparts & parts, TTree * const chtree,
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 30) goto end;
 
+    fitree->GetEntry(mi);
     searchfrommuon(parts, chtree, fitree, mi);
 
     end:
@@ -330,33 +331,36 @@ int main(int argc, char ** argv)
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
   for(int i = 4; i < argc; i+=2){
+    fputs(".", stderr);
     TFile * const chfile = new TFile(argv[i], "read");
     TFile * const fifile = new TFile(argv[i+1], "read");
+    dataparts parts;
+    TTree * chtree = NULL, * fitree = NULL;
 
     if(!chfile || chfile->IsZombie()){
       fprintf(stderr, "I couldn't read %s\n", argv[i]);
       errcode |= 1;
-      continue;
+      goto cleanup;
     }
 
-    TTree * const chtree = (TTree *)chfile->Get("data");
+    chtree = (TTree *)chfile->Get("data");
     if(!chtree){
       fprintf(stderr, "%s lacks a \"data\" tree!\n", argv[i]);
       errcode |= 2;
-      continue;
+      goto cleanup;
     }
 
     if(!fifile || fifile->IsZombie()){
       fprintf(stderr, "I couldn't read %s\n", argv[i+1]);
       errcode |= 4;
-      continue;
+      goto cleanup;
     }
 
-    TTree * const fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
+    fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
     if(!fitree){
       fprintf(stderr, "%s lacks a RecoMuonFIDOInfoTree!\n", argv[i+1]);
       errcode |= 8;
-      continue;
+      goto cleanup;
     }
 
     if(chtree->GetEntries() != fitree->GetEntries()){
@@ -365,7 +369,7 @@ int main(int argc, char ** argv)
               argv[i], argv[i+1],
               long(chtree->GetEntries()), long(fitree->GetEntries()));
       errcode |= 0x10;
-      continue;
+      goto cleanup;
     }
 
     fitree->SetMakeClass(1);
@@ -375,7 +379,6 @@ int main(int argc, char ** argv)
 
     fitree->SetBranchStatus("*", 0);
 
-    dataparts parts;
     memset(&parts, 0, sizeof(parts));
     #define cSBA(x) chtree->SetBranchAddress(#x, &parts.x);
     #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
@@ -410,9 +413,13 @@ int main(int argc, char ** argv)
       chtree->SetBranchAddress("ctX[3]", parts.ctX);
 
     search(parts, chtree, fitree);
+
+    cleanup:
   
-    delete chtree;
-    delete chfile;
+    if(fitree) delete fitree;
+    if(fifile) delete fifile;
+    if(chtree) delete chtree;
+    if(chfile) delete chfile;
   }
   return errcode;
 }
