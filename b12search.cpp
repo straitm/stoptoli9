@@ -338,34 +338,34 @@ int main(int argc, char ** argv)
     TTree * chtree = NULL, * fitree = NULL;
 
     if(!chfile || chfile->IsZombie()){
-      fprintf(stderr, "I couldn't read %s\n", argv[i]);
+      fprintf(stderr, "\nI couldn't read %s\n", argv[i]);
       errcode |= 1;
       goto cleanup;
     }
 
     chtree = (TTree *)chfile->Get("data");
     if(!chtree){
-      fprintf(stderr, "%s lacks a \"data\" tree!\n", argv[i]);
+      fprintf(stderr, "\n%s lacks a \"data\" tree!\n", argv[i]);
       errcode |= 2;
       goto cleanup;
     }
 
     if(!fifile || fifile->IsZombie()){
-      fprintf(stderr, "I couldn't read %s\n", argv[i+1]);
+      fprintf(stderr, "\nI couldn't read %s\n", argv[i+1]);
       errcode |= 4;
       goto cleanup;
     }
 
     fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
     if(!fitree){
-      fprintf(stderr, "%s lacks a RecoMuonFIDOInfoTree!\n", argv[i+1]);
+      fprintf(stderr, "\n%s lacks a RecoMuonFIDOInfoTree!\n", argv[i+1]);
       errcode |= 8;
       goto cleanup;
     }
 
     if(chtree->GetEntries() != fitree->GetEntries()){
       fprintf(stderr,
-              "%s,\n%s:\ncheetah has %ld entries, but fido has %ld\n",
+              "\n%s,\n%s:\ncheetah has %ld entries, but fido has %ld\n",
               argv[i], argv[i+1],
               long(chtree->GetEntries()), long(fitree->GetEntries()));
       errcode |= 0x10;
