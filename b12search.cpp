@@ -31,28 +31,102 @@ struct dataparts{
 };
 
 static const unsigned int noff = 95;
-static const char * turnoff[noff] = { 
-  "fido_stop", "fido_chi2", "fido_endx", "fido_endy", "fido_endz",
-  "fido_entrx", "fido_entry", "fido_entrz", "fido_gclen",
-  "fido_ivlen", "fido_gclen",
-  "nev", "trgWord", "date", "tref", "trefIV", "trefextIV",
-  "nhitIV", "nhit", "ctq", "ctnpe", "ctqIV", "ctnpeIV", "ctnpulse",
-  "ctnbadch", "ctrho", "ctphi", "ctR", "ctmqtq", "ctmqtqflag",
-  "ctgoodness", "ctnbadchIV", "ctnpulseIV",
-  "vctnpulseIV", "vctqIV", "vcttimeIV", "vctnpulse", "vctq",
-  "vcttime", "pmtmultpe", "pmtmultpe_IV", "IVX", 
-  "cttrise", "ctfwhm", "ctt2tot", "cttpeak", "cttmean",
-  "ctIDMuDeltaT", "ctIVMuDeltaT", "HEMuDeltaT", "ctlightflux",
-  "ctFlagMu", "ctXmuInGC", "ctXmuInIV", "ctXmuOuIV", "ctqtot",
-  "ctqtotIV", "ctsphericity", "ctaplanarity", "lilike", 
-  "timeid", "timeiv", "ovtrigid", "ttovtrig",
-  "novhit", "novupxy", "novloxy", "novtrk", "ovupxyx",
-  "ovupxyy", "ovupxyz", "ovtightupxy", "ovupxylike", "ovloxyx",
-  "ovloxyy", "ovloxyz", "ovtightloxy", "ovloxylike", "ovtrkx",
-  "ovtrky", "ovtrkth", "ovtrkphi", "ovtrklike", "ovbadtrk",
-  "ovtighttrk", "hamx", "hamxe", "hamth", "hamphi", "fido_didfit", 
-  "fido_used_ov", "fido_minuit_happiness", "fido_targlen",
-  "fido_th", "fido_phi"
+static const char * turnoff[noff] = {
+"ctaplanarity",
+"ctFlagMu",
+"ctfwhm",
+"ctgoodness",
+"ctIDMuDeltaT",
+"ctIVMuDeltaT",
+"ctlightflux",
+"ctmqtq",
+"ctmqtqflag",
+"ctnbadch",
+"ctnbadchIV",
+"ctnpe",
+"ctnpeIV",
+"ctnpulse",
+"ctnpulseIV",
+"ctphi",
+"ctq",
+"ctqIV",
+"ctqtot",
+"ctqtotIV",
+"ctR",
+"ctrho",
+"ctsphericity",
+"ctt2tot",
+"cttmean",
+"cttpeak",
+"cttrise",
+"ctXmuInGC",
+"ctXmuInIV",
+"ctXmuOuIV",
+"date",
+"fido_chi2",
+"fido_didfit",
+"fido_endx",
+"fido_endy",
+"fido_endz",
+"fido_entrx",
+"fido_entry",
+"fido_entrz",
+"fido_gclen",
+"fido_gclen",
+"fido_ivlen",
+"fido_minuit_happiness",
+"fido_phi"
+"fido_stop",
+"fido_targlen",
+"fido_th",
+"fido_used_ov",
+"hamphi",
+"hamth",
+"hamx",
+"hamxe",
+"HEMuDeltaT",
+"IVX",
+"lilike",
+"nev",
+"nhit",
+"nhitIV",
+"novhit",
+"novloxy",
+"novtrk",
+"novupxy",
+"ovbadtrk",
+"ovloxylike",
+"ovloxyx",
+"ovloxyy",
+"ovloxyz",
+"ovtightloxy",
+"ovtighttrk",
+"ovtightupxy",
+"ovtrigid",
+"ovtrklike",
+"ovtrkphi",
+"ovtrkth",
+"ovtrkx",
+"ovtrky",
+"ovupxylike",
+"ovupxyx",
+"ovupxyy",
+"ovupxyz",
+"pmtmultpe",
+"pmtmultpe_IV",
+"timeid",
+"timeiv",
+"tref",
+"trefextIV",
+"trefIV",
+"trgWord",
+"ttovtrig",
+"vctnpulse",
+"vctnpulseIV",
+"vctq",
+"vctqIV",
+"vcttime",
+"vcttimeIV",
 };
 
 
@@ -108,7 +182,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // capture, record the time and energy. Note that if we are
     // operating on my microdsts, this will not pick up triggers with E
     // < 0.4MeV in the ID or light noise. I'm going to allow IV energy
-    // since these may be very close to the muon event. Note that we 
+    // since these may be very close to the muon event. Note that we
     // will often count this Michel as a neutron also, so don't double
     // count by accident.
     if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0)
@@ -128,10 +202,10 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     if(!((parts.ctEvisID > 1.8 && parts.ctEvisID < 2.6) ||
          (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
       continue;
-    
+
     const bool near = sqrt(pow(mux - parts.ctX[0], 2)+
                            pow(muy - parts.ctX[1], 2)+
-                           pow(muz - parts.ctX[2], 2)) < 800; 
+                           pow(muz - parts.ctX[2], 2)) < 800;
 
     const bool gd = parts.ctEvisID > 4.0 && parts.ctEvisID < 10
                  && parts.trgtime - mutime < 150e3;
@@ -147,16 +221,16 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
-  double lastmuontime = 0; 
+  double lastmuontime = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
-    chtree->GetEntry(i);  
-    fitree->GetEntry(i);  
+    chtree->GetEntry(i);
+    fitree->GetEntry(i);
 
     if(parts.run != murun) break; // Stop at run boundaries
 
-    const double itime = parts.trgtime; 
+    const double itime = parts.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
-    
+
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
     if(itime - lastmuontime < 500e3) goto end;
@@ -230,6 +304,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   }
 }
 
+/* Gets the time of the end of the run */
 static double geteortime(dataparts & parts, TTree * const chtree,
                          const unsigned int start)
 {
@@ -250,14 +325,14 @@ static double geteortime(dataparts & parts, TTree * const chtree,
       break;
     }
   }
- 
+
   return eortime;
 }
 
 static void search(dataparts & parts, TTree * const chtree,
                    TTree * const fitree)
 {
-  double lastmuontime = 0; 
+  double lastmuontime = 0;
   double eortime = 0;
 
   int run = 0;
@@ -265,7 +340,7 @@ static void search(dataparts & parts, TTree * const chtree,
   TBranch * const runbr = chtree->GetBranch("run");
   TBranch * const timbr = chtree->GetBranch("trgtime");
   TBranch * const stpbr = fitree->GetBranch("ids_didfit");
-  
+
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
 
@@ -415,7 +490,7 @@ int main(int argc, char ** argv)
     search(parts, chtree, fitree);
 
     cleanup:
-  
+
     if(fitree) delete fitree;
     if(fifile) delete fifile;
     if(chtree) delete chtree;
