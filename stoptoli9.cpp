@@ -75,7 +75,7 @@ const char * turnoff[noff] = {
 "fido_gclen",
 "fido_ivlen",
 "fido_minuit_happiness",
-"fido_phi"
+"fido_phi",
 "fido_targlen",
 "fido_th",
 "fido_used_ov",
