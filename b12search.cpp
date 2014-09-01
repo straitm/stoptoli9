@@ -75,7 +75,7 @@ static const char * turnoff[noff] = {
 "fido_gclen",
 "fido_ivlen",
 "fido_minuit_happiness",
-"fido_phi"
+"fido_phi",
 "fido_stop",
 "fido_targlen",
 "fido_th",
@@ -126,7 +126,7 @@ static const char * turnoff[noff] = {
 "vctq",
 "vctqIV",
 "vcttime",
-"vcttimeIV",
+"vcttimeIV"
 };
 
 
@@ -396,6 +396,9 @@ int main(int argc, char ** argv)
   if(argc < 6 && argc%2 != 0){
     fprintf(stderr, "b12search maxtime[ms] minenergy maxenergy "
                     "[cheetah file, fido file]*\n");
+    fprintf(stderr, "To check files only, use\n"
+                    "checkb12search foo foo foo "
+                    "[cheetah file, fido file]*\n");
     exit(1);
   }
 
@@ -411,6 +414,7 @@ int main(int argc, char ** argv)
     TFile * const fifile = new TFile(argv[i+1], "read");
     dataparts parts;
     TTree * chtree = NULL, * fitree = NULL;
+
 
     if(!chfile || chfile->IsZombie()){
       fprintf(stderr, "\nI couldn't read %s\n", argv[i]);
@@ -433,7 +437,7 @@ int main(int argc, char ** argv)
 
     fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
     if(!fitree){
-      fprintf(stderr, "\n%s lacks a RecoMuonFIDOInfoTree!\n", argv[i+1]);
+      fprintf(stderr,"\n%s lacks a RecoMuonFIDOInfoTree!\n",argv[i+1]);
       errcode |= 8;
       goto cleanup;
     }
@@ -446,6 +450,8 @@ int main(int argc, char ** argv)
       errcode |= 0x10;
       goto cleanup;
     }
+
+    if(!strcmp(argv[0], "checkb12search")) goto cleanup;
 
     fitree->SetMakeClass(1);
 
