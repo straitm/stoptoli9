@@ -225,6 +225,8 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
 int main()
 {
+  gErrorIgnoreLevel = kError;
+  unsigned int errcode = 0;
   std::string line;
   while(std::getline(std::cin, line)){
     std::stringstream ss(line);
@@ -244,23 +246,27 @@ int main()
 
     if(!cinfile || cinfile->IsZombie()){
       fprintf(stderr, "I couldn't read cheetah run %d\n", run);
+      errcode |= 0x01;
       goto cleanup;
     }
 
     if(!finfile || finfile->IsZombie()){
       fprintf(stderr, "I couldn't read fido run %d\n", run);
+      errcode |= 0x02;
       goto cleanup;
     }
 
     ctree = (TTree *)cinfile->Get("data");
     if(!ctree){
       fprintf(stderr, "Run %d lacks a data tree!\n", run);
+      errcode |= 0x04;
       goto cleanup;
     }
 
     ftree = (TTree *)finfile->Get("RecoMuonFIDOInfoTree");
     if(!ftree){
       fprintf(stderr, "Run %d lacks a RecoMuonFIDOInfoTree!\n", run);
+      errcode |= 0x08;
       goto cleanup;
     }
 
@@ -269,6 +275,7 @@ int main()
               "Run %d: cheetah has %ld entries, but fido has %ld\n",
               run,
               long(ctree->GetEntries()), long(ftree->GetEntries()));
+      errcode |= 0x10;
       goto cleanup;
     }
 
@@ -320,4 +327,7 @@ int main()
 
   }
 
+  if(errcode != 0) fprintf(stderr, "Errors encountered, see above\n");
+
+  return errcode;
 }
