@@ -52,12 +52,12 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       continue;
 
-    if(parts.ids_end_z > -1786+35) continue;
+    if(parts.ids_end_z < -1786+35) continue;
 
     if(parts.ids_entr_z > 11500 -
        62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) continue;
 
-    if(parts.ids_chi2-parts.id_chi2 > 80) continue;
+    if(parts.ids_chi2-parts.id_chi2 > 800) continue;
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) continue;
 

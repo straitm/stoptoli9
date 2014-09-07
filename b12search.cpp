@@ -252,22 +252,23 @@ static void search(dataparts & parts, TTree * const chtree,
 
     if(parts.fido_qid/8300 > 700) goto end;
 
+    fitree->GetEntry(mi); // note
+
     if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
       goto end;
 
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       goto end;
 
-    if(parts.ids_end_z > -1786+35) goto end;
+    if(parts.ids_end_z < -1786+35) goto end;
 
     if(parts.ids_entr_z > 11500 -
        62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
-    if(parts.ids_chi2-parts.id_chi2 > 80) goto end;
+    if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
 
-    fitree->GetEntry(mi);
     searchfrommuon(parts, chtree, fitree, mi);
 
     end:
