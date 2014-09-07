@@ -9,125 +9,7 @@
 #include "TFile.h"
 #include "TError.h"
 
-struct dataparts{
-  bool coinov;
-  int run, trgId;
-  float ctmqtqall, ctrmsts;
-  float fido_qiv, fido_qid;
-  int fido_nidtubes, fido_nivtubes;
-
-  int ids_didfit;
-  float ids_chi2;
-  float ids_end_x, ids_end_y, ids_end_z;
-  float ids_entr_x, ids_entr_y, ids_entr_z;
-  float ids_gclen;
-  float ids_ivlen, ids_buflen;
-
-  double deltaT;
-  double trgtime;
-  float ctX[3];
-  float ctEvisID;
-  float qrms, qdiff;
-};
-
-const unsigned int noff = 95;
-const char * turnoff[noff] = {
-"ctaplanarity",
-"ctFlagMu",
-"ctfwhm",
-"ctgoodness",
-"ctIDMuDeltaT",
-"ctIVMuDeltaT",
-"ctlightflux",
-"ctmqtq",
-"ctmqtqflag",
-"ctnbadch",
-"ctnbadchIV",
-"ctnpe",
-"ctnpeIV",
-"ctnpulse",
-"ctnpulseIV",
-"ctphi",
-"ctq",
-"ctqIV",
-"ctqtot",
-"ctqtotIV",
-"ctR",
-"ctrho",
-"ctsphericity",
-"ctt2tot",
-"cttmean",
-"cttpeak",
-"cttrise",
-"ctXmuInGC",
-"ctXmuInIV",
-"ctXmuOuIV",
-"date",
-"fido_buflen",
-"fido_chi2",
-"fido_didfit",
-"fido_endx",
-"fido_endy",
-"fido_endz",
-"fido_entrx",
-"fido_entry",
-"fido_entrz",
-"fido_gclen",
-"fido_ivlen",
-"fido_minuit_happiness",
-"fido_phi",
-"fido_targlen",
-"fido_th",
-"fido_used_ov",
-"hamphi",
-"hamth",
-"hamx",
-"hamxe",
-"HEMuDeltaT",
-"IVX",
-"lilike",
-"nev",
-"nhit",
-"nhitIV",
-"novhit",
-"novloxy",
-"novtrk",
-"novupxy",
-"ovbadtrk",
-"ovloxylike",
-"ovloxyx",
-"ovloxyy",
-"ovloxyz",
-"ovtightloxy",
-"ovtighttrk",
-"ovtightupxy",
-"ovtrigid",
-"ovtrklike",
-"ovtrkphi",
-"ovtrkth",
-"ovtrkx",
-"ovtrky",
-"ovupxylike",
-"ovupxyx",
-"ovupxyy",
-"ovupxyz",
-"pmtmultpe",
-"pmtmultpe_IV",
-"timeid",
-"timeiv",
-"tref",
-"trefextIV",
-"trefIV",
-"trgId",
-"trgWord",
-"ttovtrig",
-"vctnpulse",
-"vctnpulseIV",
-"vctq",
-"vctqIV",
-"vcttime",
-"vcttimeIV",
-};
+#include "search.h"
 
 static bool lightnoise(const float qrms, const float mqtq,
                        const float rmsts, const float qdiff)
@@ -162,12 +44,22 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     // Must be possible that it's a stopper
     if(!parts.ids_didfit) continue;
 
-    // Within possible muons, may want to clean up, but not sure how yet
-    /*if(parts.fido_qiv < 5000) continue;
-      if(parts.fido_qid/8300 > 700) continue;
-      if(parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6)>10)
-        continue;
-    */
+    if(parts.fido_qiv < 5000) continue;
+    if(parts.fido_qid/8300 > 700) continue;
+    if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6)>10)
+      continue;
+
+    if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
+      continue;
+
+    if(parts.ids_end_z > -1786+35) continue;
+
+    if(parts.ids_entr_z > 11500 -
+       62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) continue;
+
+    if(parts.ids_chi2-parts.id_chi2 > 80) continue;
+
+    if(parts.fido_nidtubes+parts.fido_nivtubes < 6) continue;
 
     // Open up a big window
     if(prompttime - parts.trgtime > 10e9) return;
@@ -299,6 +191,9 @@ int main()
     fSBA(ids_chi2);
     fSBA(ids_ivlen);
     fSBA(ids_buflen);
+    fSBA(id_chi2);
+    fSBA(id_ivlen);
+    fSBA(id_buflen);
 
     SBA(qdiff);
     SBA(ctEvisID);

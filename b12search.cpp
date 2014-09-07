@@ -9,126 +9,7 @@
 #include "TFile.h"
 #include "TError.h"
 
-struct dataparts{
-  bool coinov;
-  int run, trgId;
-  float ctmqtqall, ctrmsts;
-  float fido_qiv, fido_qid;
-  int fido_nidtubes, fido_nivtubes;
-
-  int ids_didfit;
-  float ids_chi2;
-  float ids_end_x, ids_end_y, ids_end_z;
-  float ids_entr_x, ids_entr_y, ids_entr_z;
-  float ids_gclen;
-  float ids_ivlen, ids_buflen;
-
-  double deltaT;
-  double trgtime;
-  float ctX[3];
-  float ctEvisID;
-  float qrms, qdiff;
-};
-
-static const unsigned int noff = 95;
-static const char * turnoff[noff] = {
-"ctaplanarity",
-"ctFlagMu",
-"ctfwhm",
-"ctgoodness",
-"ctIDMuDeltaT",
-"ctIVMuDeltaT",
-"ctlightflux",
-"ctmqtq",
-"ctmqtqflag",
-"ctnbadch",
-"ctnbadchIV",
-"ctnpe",
-"ctnpeIV",
-"ctnpulse",
-"ctnpulseIV",
-"ctphi",
-"ctq",
-"ctqIV",
-"ctqtot",
-"ctqtotIV",
-"ctR",
-"ctrho",
-"ctsphericity",
-"ctt2tot",
-"cttmean",
-"cttpeak",
-"cttrise",
-"ctXmuInGC",
-"ctXmuInIV",
-"ctXmuOuIV",
-"date",
-"fido_chi2",
-"fido_didfit",
-"fido_endx",
-"fido_endy",
-"fido_endz",
-"fido_entrx",
-"fido_entry",
-"fido_entrz",
-"fido_gclen",
-"fido_gclen",
-"fido_ivlen",
-"fido_minuit_happiness",
-"fido_phi",
-"fido_stop",
-"fido_targlen",
-"fido_th",
-"fido_used_ov",
-"hamphi",
-"hamth",
-"hamx",
-"hamxe",
-"HEMuDeltaT",
-"IVX",
-"lilike",
-"nev",
-"nhit",
-"nhitIV",
-"novhit",
-"novloxy",
-"novtrk",
-"novupxy",
-"ovbadtrk",
-"ovloxylike",
-"ovloxyx",
-"ovloxyy",
-"ovloxyz",
-"ovtightloxy",
-"ovtighttrk",
-"ovtightupxy",
-"ovtrigid",
-"ovtrklike",
-"ovtrkphi",
-"ovtrkth",
-"ovtrkx",
-"ovtrky",
-"ovupxylike",
-"ovupxyx",
-"ovupxyy",
-"ovupxyz",
-"pmtmultpe",
-"pmtmultpe_IV",
-"timeid",
-"timeiv",
-"tref",
-"trefextIV",
-"trefIV",
-"trgWord",
-"ttovtrig",
-"vctnpulse",
-"vctnpulseIV",
-"vctq",
-"vctqIV",
-"vcttime",
-"vcttimeIV"
-};
-
+#include "search.h"
 
 static double maxtime = 1000;
 static double minenergy = 4;
@@ -367,13 +248,24 @@ static void search(dataparts & parts, TTree * const chtree,
 
     chtree->GetEntry(mi);
 
-    // XXX are these biasing me?
-    //if(parts.fido_qiv < 5000) goto end;
-    //if(parts.fido_qid/8300 > 700) goto end;
-    //if(parts.fido_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
-    //  goto end;
+    if(parts.fido_qiv < 5000) goto end;
 
-    if(parts.fido_nidtubes+parts.fido_nivtubes < 30) goto end;
+    if(parts.fido_qid/8300 > 700) goto end;
+
+    if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
+      goto end;
+
+    if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
+      goto end;
+
+    if(parts.ids_end_z > -1786+35) goto end;
+
+    if(parts.ids_entr_z > 11500 -
+       62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
+
+    if(parts.ids_chi2-parts.id_chi2 > 80) goto end;
+
+    if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
 
     fitree->GetEntry(mi);
     searchfrommuon(parts, chtree, fitree, mi);
@@ -451,7 +343,7 @@ int main(int argc, char ** argv)
       goto cleanup;
     }
 
-    if(!strcmp(argv[0], "checkb12search")) goto cleanup;
+    if(!strcmp(basename(argv[0]), "checkb12search")) goto cleanup;
 
     fitree->SetMakeClass(1);
 
@@ -475,6 +367,9 @@ int main(int argc, char ** argv)
     fSBA(ids_chi2);
     fSBA(ids_ivlen);
     fSBA(ids_buflen);
+    fSBA(id_chi2);
+    fSBA(id_ivlen);
+    fSBA(id_buflen);
 
     cSBA(fido_nidtubes);
     cSBA(fido_nivtubes);
