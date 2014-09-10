@@ -28,7 +28,8 @@ static bool lightnoise(const float qrms, const float mqtq,
 
 static void searchfrommuon(dataparts & parts, TTree * const chtree,
                            TTree * const fitree,
-                           const unsigned int muoni)
+                           const unsigned int muoni,
+                           const bool is_be12search)
 {
   const double mutime = parts.trgtime;
   const double entr_mux = parts.ids_entr_x,
@@ -152,16 +153,20 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
       printf("iso_for %d %d %d is %d dt %lf dist %f energy %f decay_at"
              " %f %f %f muon_at %f %f %f chi2,ivdedx: %f %f "
              "neutrons %d %d %d %d michel "
-             "%lf %lf morefido %f %f %f %f ",
+             "%lf %lf morefido %f %f %f %f%c",
              murun, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
              parts.ctEvisID, ix[got], iy[got], iz[got], mux, muy, muz,
              murchi2,
              muivdedx, ngdneutronnear, ngdneutronanydist,
                          nneutronnear,  nneutronanydist,
-             michele, michelt, gclen, entr_mux, entr_muy, entr_muz);
+             michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
+             is_be12search?' ':'\n');
       got++;
 
-      if(got >= 2) break;
+      // If searching for be12, stop when we get 2 decays; these
+      // are printed on the same line. Otherwise, keep going up to 
+      // the time limit and put each on its own line.
+      if(got >= 2 && is_be12search) break;
     }
 
     end:
@@ -180,7 +185,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
   }
   if(got){
-    printf("\n");
+    if(is_be12search) printf("\n");
     fflush(stdout);
   }
 }
@@ -211,7 +216,7 @@ static double geteortime(dataparts & parts, TTree * const chtree,
 }
 
 static void search(dataparts & parts, TTree * const chtree,
-                   TTree * const fitree)
+                   TTree * const fitree, const bool is_be12search)
 {
   double lastmuontime = 0;
   double eortime = 0;
@@ -273,7 +278,7 @@ static void search(dataparts & parts, TTree * const chtree,
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
 
-    searchfrommuon(parts, chtree, fitree, mi);
+    searchfrommuon(parts, chtree, fitree, mi, is_be12search);
 
     end:
 
@@ -291,17 +296,28 @@ static void search(dataparts & parts, TTree * const chtree,
 int main(int argc, char ** argv)
 {
   if(argc < 6 && argc%2 != 0){
-    fprintf(stderr, "b12search maxtime[ms] minenergy maxenergy "
-                    "[cheetah file, fido file]*\n");
-    fprintf(stderr, "To check files only, use\n"
-                    "checkb12search foo foo foo "
-                    "[cheetah file, fido file]*\n");
+    fprintf(stderr,
+            "b12search maxtime[ms] minenergy maxenergy "
+            "[cheetah file, fido file]*\n\n");
+
+    fprintf(stderr,
+            "To run the be12 search, looking for exactly two decays:\n"
+            "be12search maxtime[ms] minenergy maxenergy "
+            "[cheetah file, fido file]*\n\n");
+
+    fprintf(stderr,
+            "To check files only, use\n"
+            "checkb12search foo foo foo "
+            "[cheetah file, fido file]*\n");
+
     exit(1);
   }
 
   maxtime = atof(argv[1]);
   minenergy = atof(argv[2]);
   maxenergy = atof(argv[3]);
+
+  const bool is_be12search = !strcmp(basename(argv[0]), "be12search");
 
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
@@ -395,7 +411,7 @@ int main(int argc, char ** argv)
     if(chtree->SetBranchAddress("ctX", parts.ctX) < 0)
       chtree->SetBranchAddress("ctX[3]", parts.ctX);
 
-    search(parts, chtree, fitree);
+    search(parts, chtree, fitree, is_be12search);
 
     cleanup:
 
