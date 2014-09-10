@@ -267,6 +267,10 @@ static void search(dataparts & parts, TTree * const chtree,
 
     if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
 
+    if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
+       pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
+      goto end;
+
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
 
     searchfrommuon(parts, chtree, fitree, mi);
@@ -361,6 +365,8 @@ int main(int argc, char ** argv)
     fSBA(ids_end_x);
     fSBA(ids_end_y);
     fSBA(ids_end_z);
+    fSBA(id_entr_x);
+    fSBA(id_entr_y);
     fSBA(ids_entr_x);
     fSBA(ids_entr_y);
     fSBA(ids_entr_z);
