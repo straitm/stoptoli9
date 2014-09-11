@@ -27,7 +27,6 @@ static bool lightnoise(const float qrms, const float mqtq,
 }
 
 static void searchfrommuon(dataparts & parts, TTree * const chtree,
-                           TTree * const fitree,
                            const unsigned int muoni,
                            const bool is_be12search)
 {
@@ -52,12 +51,28 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
   double michelt = 0, michele = 0;
 
-  for(unsigned int i = 1; i < chtree->GetEntries(); i++){
-    chtree->GetEntry(muoni+i);
-    fitree->GetEntry(muoni+i);
+  TBranch 
+    * const runbr      = chtree->GetBranch("run"),
+    * const coinovbr   = chtree->GetBranch("coinov"),
+    * const trgIdbr    = chtree->GetBranch("trgId"),
+    * const ctXbr      = chtree->GetBranch("ctX"),
+    * const qrmsbr     = chtree->GetBranch("qrms"),
+    * const ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
+    * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
+    * const qdiffbr    = chtree->GetBranch("qdiff"),
+    * const fido_qivbr = chtree->GetBranch("fido_qiv"),
+    * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
+    * const trgtimebr  = chtree->GetBranch("trgtime");
 
+  for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
+
+#ifdef MULTIRUNFILES
+    runbr->GetEntry(i);
     if(parts.run != murun) break; // Stop at run boundaries
+#endif
 
+    trgtimebr->GetEntry(i);
+    coinovbr->GetEntry(i);
     const double dt = parts.trgtime - mutime;
 
     // For any uncut Michels or (hopefully) prompt gammas from muon
@@ -67,8 +82,10 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // since these may be very close to the muon event. Note that we
     // will often count this Michel as a neutron also, so don't double
     // count by accident.
-    if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0)
+    if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0){
+      ctEvisIDbr->GetEntry(i);
       michele = parts.ctEvisID, michelt = dt;
+    }
 
     // Skip past retriggers and whatnot, like DC3rdPub
     if(dt < 500) continue;
@@ -76,15 +93,22 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // Not more than ~4 nH lifetimes
     if(dt > 800e3) break;
 
+    qrmsbr->GetEntry(i);
+    ctmqtqallbr->GetEntry(i);
+    ctrmstsbr->GetEntry(i);
+    qdiffbr->GetEntry(i);
+
     // pass light noise
     if(lightnoise(parts.qrms, parts.ctmqtqall,
                   parts.ctrmsts, parts.qdiff)) continue;
 
+    ctEvisIDbr->GetEntry(i);
     // right energy for a neutron capture
     if(!((parts.ctEvisID > 1.8 && parts.ctEvisID < 2.6) ||
          (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
       continue;
 
+    ctXbr->GetEntry(i);
     const bool near = sqrt(pow(mux - parts.ctX[0], 2)+
                            pow(muy - parts.ctX[1], 2)+
                            pow(muz - parts.ctX[2], 2)) < 800;
@@ -103,24 +127,13 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
-  TBranch 
-  * coinovbr   = chtree->GetBranch("coinov"),
-  * trgIdbr    = chtree->GetBranch("trgId"),
-  * ctXbr      = chtree->GetBranch("ctX"),
-  * qrmsbr     = chtree->GetBranch("qrms"),
-  * ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
-  * ctrmstsbr  = chtree->GetBranch("ctrmsts"),
-  * qdiffbr    = chtree->GetBranch("qdiff"),
-  * fido_qivbr = chtree->GetBranch("fido_qiv"),
-  * ctEvisIDbr = chtree->GetBranch("ctEvisID"),
-  * trgtimebr  = chtree->GetBranch("trgtime"),
-  * runbr      = chtree->GetBranch("run");
-
   double lastmuontime = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
-    runbr->GetEntry(i);
 
+#ifdef MULTIRUNFILES
+    runbr->GetEntry(i);
     if(parts.run != murun) break; // Stop at run boundaries
+#endif
 
     trgtimebr->GetEntry(i);
 
@@ -176,6 +189,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
       if(dist > 800) goto end;
 
       trgIdbr->GetEntry(i);
+      runbr->GetEntry(i);
 
       // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
       // ngdnear:ngd:nnear:n:miche:micht
@@ -251,9 +265,28 @@ static void search(dataparts & parts, TTree * const chtree,
 
   int run = 0;
 
-  TBranch * const runbr = chtree->GetBranch("run");
-  TBranch * const timbr = chtree->GetBranch("trgtime");
-  TBranch * const stpbr = fitree->GetBranch("ids_didfit");
+
+  TBranch * const runbr           = chtree->GetBranch("run");
+  TBranch * const trgtimebr       = chtree->GetBranch("trgtime");
+  TBranch * const coinovbr        = chtree->GetBranch("coinov");
+  TBranch * const fido_qivbr      = chtree->GetBranch("fido_qiv");
+  TBranch * const fido_qidbr      = chtree->GetBranch("fido_qid");
+  TBranch * const fido_nidtubesbr = chtree->GetBranch("fido_nidtubes");
+  TBranch * const fido_nivtubesbr = chtree->GetBranch("fido_nivtubes");
+
+  TBranch * const ids_didfitbr = fitree->GetBranch("ids_didfit");
+  TBranch * const id_buflenbr  = fitree->GetBranch("id_buflen");
+  TBranch * const id_chi2br    = fitree->GetBranch("id_chi2");
+  TBranch * const id_entr_xbr  = fitree->GetBranch("id_entr_x");
+  TBranch * const id_entr_ybr  = fitree->GetBranch("id_entr_y");
+  TBranch * const id_ivlenbr   = fitree->GetBranch("id_ivlen");
+  TBranch * const ids_chi2br   = fitree->GetBranch("ids_chi2");
+  TBranch * const ids_end_xbr  = fitree->GetBranch("ids_end_x");
+  TBranch * const ids_end_ybr  = fitree->GetBranch("ids_end_y");
+  TBranch * const ids_end_zbr  = fitree->GetBranch("ids_end_z");
+  TBranch * const ids_entr_xbr = fitree->GetBranch("ids_entr_x");
+  TBranch * const ids_entr_ybr = fitree->GetBranch("ids_entr_y");
+  TBranch * const ids_entr_zbr = fitree->GetBranch("ids_entr_z");
 
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
@@ -264,12 +297,12 @@ static void search(dataparts & parts, TTree * const chtree,
       eortime = geteortime(parts, chtree, mi);
     }
 
-    stpbr->GetEntry(mi);
+    ids_didfitbr->GetEntry(mi);
 
     // Must be possible that it's a stopper
     if(!parts.ids_didfit) goto end;
 
-    timbr->GetEntry(mi);
+    trgtimebr->GetEntry(mi);
 
     // Don't use a muon that is within our search window length from the
     // end of the run
@@ -279,43 +312,67 @@ static void search(dataparts & parts, TTree * const chtree,
     // neutrons from the previous one as belonging to this one.
     if(parts.trgtime - lastmuontime < 500e3) goto end;
 
-    chtree->GetEntry(mi);
+    fido_qivbr->GetEntry(mi);
 
     if(parts.fido_qiv < 5000) goto end;
 
+    fido_qidbr->GetEntry(mi);
+
     if(parts.fido_qid/8300 > 700) goto end;
 
-    fitree->GetEntry(mi); // note
+    ids_chi2br->GetEntry(mi);
+    fido_nivtubesbr->GetEntry(mi);
+    fido_nidtubesbr->GetEntry(mi);
 
     if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
       goto end;
 
+    ids_end_xbr->GetEntry(mi);
+    ids_end_ybr->GetEntry(mi);
+
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       goto end;
 
+    ids_end_zbr->GetEntry(mi);
+
     if(parts.ids_end_z < -1786+35) goto end;
+
+    ids_entr_zbr->GetEntry(mi);
+    id_ivlenbr->GetEntry(mi);
+    id_buflenbr->GetEntry(mi);
 
     if(parts.ids_entr_z > 11500 -
        62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
+    id_chi2br->GetEntry(mi);
+    ids_chi2br->GetEntry(mi);
+
     if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+
+    id_entr_xbr->GetEntry(mi);
+    id_entr_ybr->GetEntry(mi);
+    ids_entr_xbr->GetEntry(mi);
+    ids_entr_ybr->GetEntry(mi);
 
     if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
        pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
       goto end;
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
+ 
+    chtree->GetEntry(mi);
+    fitree->GetEntry(mi);
 
-    searchfrommuon(parts, chtree, fitree, mi, is_be12search);
+    searchfrommuon(parts, chtree, mi, is_be12search);
 
     end:
 
     // See note above for same code.
-    chtree->GetBranch("coinov")->GetEntry(mi);
-    chtree->GetBranch("fido_qiv")->GetEntry(mi);
+    coinovbr->GetEntry(mi);
+    fido_qivbr->GetEntry(mi);
 
     if(parts.coinov || parts.fido_qiv > 5000){
-      chtree->GetBranch("trgtime")->GetEntry(mi);
+      trgtimebr->GetEntry(mi);
       lastmuontime = parts.trgtime;
     }
   }
