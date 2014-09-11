@@ -103,12 +103,26 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
+  TBranch 
+  * coinovbr   = chtree->GetBranch("coinov"),
+  * trgIdbr    = chtree->GetBranch("trgId"),
+  * ctXbr      = chtree->GetBranch("ctX"),
+  * qrmsbr     = chtree->GetBranch("qrms"),
+  * ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
+  * ctrmstsbr  = chtree->GetBranch("ctrmsts"),
+  * qdiffbr    = chtree->GetBranch("qdiff"),
+  * fido_qivbr = chtree->GetBranch("fido_qiv"),
+  * ctEvisIDbr = chtree->GetBranch("ctEvisID"),
+  * trgtimebr  = chtree->GetBranch("trgtime"),
+  * runbr      = chtree->GetBranch("run");
+
   double lastmuontime = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
-    chtree->GetEntry(i);
-    fitree->GetEntry(i);
+    runbr->GetEntry(i);
 
     if(parts.run != murun) break; // Stop at run boundaries
+
+    trgtimebr->GetEntry(i);
 
     const double itime = parts.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
@@ -121,32 +135,47 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
     if(dt_ms > maxtime) break; // Stop looking
 
+    ctEvisIDbr->GetEntry(i);
+
     // Ignore low energy accidentals and H-neutrons
     if(parts.ctEvisID < minenergy) goto end;
 
     // Ignore events above the end point + res
     if(parts.ctEvisID > maxenergy) goto end;
-
+    
+    fido_qivbr->GetEntry(i);
     // No IV, OV energy
     if(parts.fido_qiv > 1000) goto end;
+
+    coinovbr->GetEntry(i);
     if(parts.coinov) goto end;
+
+    qrmsbr->GetEntry(i);
+    ctmqtqallbr->GetEntry(i);
+    ctrmstsbr->GetEntry(i);
+    qdiffbr->GetEntry(i);
 
     // pass light noise
     if(lightnoise(parts.qrms, parts.ctmqtqall,
                   parts.ctrmsts, parts.qdiff)) goto end;
+
+    ctXbr->GetEntry(i);
 
     ix[got] = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
     iy[got] = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
     iz[got] = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
 
     {
-      // Record distance to previous selected event, not always to muon
-      const double dist = got == 0?
+      // If the be12 search, record distance to previous selected event,
+      // not always to muon, otherwise always to the muon.
+      const double dist = got == 0 || !is_be12search?
         sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And they must be near each other.
       if(dist > 800) goto end;
+
+      trgIdbr->GetEntry(i);
 
       // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
       // ngdnear:ngd:nnear:n:miche:micht
@@ -161,12 +190,13 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
                          nneutronnear,  nneutronanydist,
              michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
              is_be12search?' ':'\n');
-      got++;
+      
+      // If searching for be12, use the ix/iy/iz arrays and stop when we
+      // get 2 decays; these are printed on the same line. Otherwise,
+      // keep going up to the time limit and put each on its own line.
+      if(is_be12search) got++;
 
-      // If searching for be12, stop when we get 2 decays; these
-      // are printed on the same line. Otherwise, keep going up to 
-      // the time limit and put each on its own line.
-      if(got >= 2 && is_be12search) break;
+      if(got >= 2) break;
     }
 
     end:
@@ -175,17 +205,15 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // my microdsts, only events with ID energy are in the input files,
     // so this only selects muons that cross the ID, which I think is
     // fine.
-    chtree->GetBranch("coinov")->GetEntry(i);
-    chtree->GetBranch("fido_qiv")->GetEntry(i);
+    coinovbr->GetEntry(i);
+    fido_qivbr->GetEntry(i);
 
-    if(parts.coinov || parts.fido_qiv > 5000){
-      chtree->GetBranch("trgtime")->GetEntry(i);
+    if(parts.coinov || parts.fido_qiv > 5000)
       lastmuontime = parts.trgtime;
-    }
 
   }
   if(got){
-    if(is_be12search) printf("\n");
+    printf("\n");
     fflush(stdout);
   }
 }
@@ -321,6 +349,9 @@ int main(int argc, char ** argv)
 
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
+
+  fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
+
   for(int i = 4; i < argc; i+=2){
     fputs(".", stderr);
     TFile * const chfile = new TFile(argv[i], "read");
