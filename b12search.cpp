@@ -46,10 +46,10 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   const float muivdedx =
     parts.fido_qiv/(parts.ids_ivlen-parts.ids_buflen);
 
-  unsigned int nneutronanydist = 0, ngdneutronanydist = 0;
-  unsigned int nneutronnear = 0, ngdneutronnear = 0;
+  unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
+  unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
 
-  double michelt = 0, michele = 0;
+  double michelt = 0, michele = 0, michdist = 0;
 
   TBranch 
     * const runbr      = chtree->GetBranch("run"),
@@ -63,6 +63,16 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     * const fido_qivbr = chtree->GetBranch("fido_qiv"),
     * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
     * const trgtimebr  = chtree->GetBranch("trgtime");
+    
+  
+  double deadtime = 0;
+  for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
+    trgtimebr->GetEntry(i);
+    if(parts.trgtime-mutime < 6000) continue;
+    deadtime = parts.trgtime-mutime;
+    break;
+  }
+
 
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
@@ -80,11 +90,16 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // operating on my microdsts, this will not pick up triggers with E
     // < 0.4MeV in the ID or light noise. I'm going to allow IV energy
     // since these may be very close to the muon event. Note that we
-    // will often count this Michel as a neutron also, so don't double
-    // count by accident.
+    // will often count this Michel as a neutron also for the zeroth
+    // element of the count arrays (but not the first), so don't double
+    // count by accident.  
     if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0){
       ctEvisIDbr->GetEntry(i);
+      ctXbr->GetEntry(i);
       michele = parts.ctEvisID, michelt = dt;
+      michdist = sqrt(pow(mux-parts.ctX[0], 2) +
+                      pow(muy-parts.ctX[1], 2) +
+                      pow(muz-parts.ctX[2], 2));
     }
 
     // Skip past retriggers and whatnot, like DC3rdPub
@@ -116,13 +131,20 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     const bool gd = parts.ctEvisID > 4.0 && parts.ctEvisID < 10
                  && parts.trgtime - mutime < 150e3;
 
-    nneutronanydist++;
-    if(gd) ngdneutronanydist++;
-    if(near) nneutronnear++;
-    if(gd && near) ngdneutronnear++;
+    const bool alsoamichel = dt < 5500;
+    nneutronanydist[0]++;
+    if(gd) ngdneutronanydist[0]++;
+    if(near) nneutronnear[0]++;
+    if(gd && near) ngdneutronnear[0]++;
+    if(!alsoamichel){
+      nneutronanydist[1]++;
+      if(gd) ngdneutronanydist[1]++;
+      if(near) nneutronnear[1]++;
+      if(gd && near) ngdneutronnear[1]++;
+    }
   }
 
-  unsigned int got = 0;
+  unsigned int got = 0, printed = 0;
 
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
@@ -146,7 +168,24 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
     if(dt_ms < 1) goto end; // Go past all H neutron captures
 
-    if(dt_ms > maxtime) break; // Stop looking
+    if(dt_ms > maxtime){ // stop looking
+      if(printed == 0)
+        // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
+        // ngdnear:ngd:nnear:n:miche:micht
+        printf("iso_for %d %d %d is 0 dt 0 dist 0 e 0 decay_at"
+               " 0 0 0 mu_at %f %f %f chi,ivdedx: %f %f "
+               "n %d %d %d %d nlate %d %d %d %d michel "
+               "%lf %.0lf morefido %f %f %f %f deadt,michd %.0f %f\n",
+               murun, mutrgid, mucoinov, mux, muy, muz,
+               murchi2, muivdedx,
+               ngdneutronnear[0], ngdneutronanydist[0],
+               nneutronnear[0],  nneutronanydist[0],
+               ngdneutronnear[1], ngdneutronanydist[1],
+               nneutronnear[1],  nneutronanydist[1],
+               michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
+               deadtime, michdist);
+      break;
+    }
 
     ctEvisIDbr->GetEntry(i);
 
@@ -193,17 +232,20 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
       // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
       // ngdnear:ngd:nnear:n:miche:micht
-      printf("iso_for %d %d %d is %d dt %lf dist %f energy %f decay_at"
-             " %f %f %f muon_at %f %f %f chi2,ivdedx: %f %f "
-             "neutrons %d %d %d %d michel "
-             "%lf %lf morefido %f %f %f %f%c",
+      printf("iso_for %d %d %d is %d dt %lf dist %f e %f decay_at"
+             " %f %f %f mu_at %f %f %f chi,ivdedx: %f %f "
+             "n %d %d %d %d nlate %d %d %d %d michel "
+             "%lf %.0lf morefido %f %f %f %f deadt,michd %.0f %f%c",
              murun, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
              parts.ctEvisID, ix[got], iy[got], iz[got], mux, muy, muz,
-             murchi2,
-             muivdedx, ngdneutronnear, ngdneutronanydist,
-                         nneutronnear,  nneutronanydist,
+             murchi2, muivdedx,
+             ngdneutronnear[0], ngdneutronanydist[0],
+             nneutronnear[0],  nneutronanydist[0],
+             ngdneutronnear[1], ngdneutronanydist[1],
+             nneutronnear[1],  nneutronanydist[1],
              michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-             is_be12search?' ':'\n');
+             deadtime, michdist, is_be12search?' ':'\n');
+      printed++;
       
       // If searching for be12, use the ix/iy/iz arrays and stop when we
       // get 2 decays; these are printed on the same line. Otherwise,
