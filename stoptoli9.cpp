@@ -70,6 +70,8 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
     const double mux = parts.ids_end_x, muy = parts.ids_end_y,
                  muz = parts.ids_end_z;
+    const double imux = parts.ids_entr_x, imuy = parts.ids_entr_y,
+                 imuz = parts.ids_entr_z;
 
     const double li9tomu = sqrt(pow(mux-li9x, 2)
                                +pow(muy-li9y, 2)
@@ -84,6 +86,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     ctree->GetEvent(prompt-back+1);
 
     const float miche = parts.deltaT < 5500? parts.ctEvisID:0.;
+    const float micht = parts.deltaT < 5500? parts.deltaT:0.;
 
     unsigned int nneutron = 0;
     for(back--; back > 0; back--){
@@ -110,13 +113,13 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     }
 
     printf("Muon_for %d %d is %d dt %lf dist %f n "
-           "%u at %f %f %f michel_e %f gclen %f\n",
+           "%u at %f %f %f mu_at %f %f %f mu_start %f %f %f, "
+           "michel %f %f gclen %f\n",
            parts.run, prompt, prompt-back,
            (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
-           li9x, li9y, li9z, miche, gclen);
+           li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz, 
+           miche, micht, gclen);
     fflush(stdout);
-
-    break;
   }
 }
 
