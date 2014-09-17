@@ -79,6 +79,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     if(li9tomu > 400) continue;
 
     const double mutime = parts.trgtime;
+    const double gclen = parts.ids_gclen;
 
     ctree->GetEvent(prompt-back+1);
 
@@ -108,11 +109,11 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       nneutron++;
     }
 
-    printf("Muon for %d %d is %d dt %lf ms distance %f with "
-           "%u neutrons at %f %f %f michel_e %f\n",
+    printf("Muon_for %d %d is %d dt %lf dist %f n "
+           "%u at %f %f %f michel_e %f gclen %f\n",
            parts.run, prompt, prompt-back,
            (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
-           li9x, li9y, li9z, miche);
+           li9x, li9y, li9z, miche, gclen);
     fflush(stdout);
 
     break;
