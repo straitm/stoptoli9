@@ -54,10 +54,13 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
     if(parts.ids_end_z < -1786+35) continue;
 
-    if(parts.ids_entr_z > 11500 -
-       62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) continue;
+    const double dedxslant = parts.ids_entr_z
+      + 62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen);
 
-    if(parts.ids_chi2-parts.id_chi2 > 800) continue;
+    if(dedxslant > 11500) continue;
+
+    const double chi2qual = parts.ids_chi2-parts.id_chi2;
+    if(chi2qual > 800) continue;
 
     if(parts.fido_nidtubes+parts.fido_nivtubes < 6) continue;
 
@@ -78,7 +81,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
                                +pow(muz-li9z, 2));
 
     // And they must be near each other.
-    if(li9tomu > 400) continue;
+    if(li9tomu > 800) continue;
 
     const double mutime = parts.trgtime;
     const double gclen = parts.ids_gclen;
@@ -89,8 +92,8 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     const float micht = parts.deltaT < 5500? parts.deltaT:0.;
 
     unsigned int nneutron = 0;
-    for(back--; back > 0; back--){
-      ctree->GetEvent(prompt-back);
+    for(int forward = 1; back-forward > 0; forward++){
+      ctree->GetEvent(prompt-back+forward);
 
       // Not more than ~4 nH lifetimes
       if(parts.trgtime - mutime > 800e3) break;
@@ -114,11 +117,11 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
     printf("Muon_for %d %d is %d dt %lf dist %f n "
            "%u at %f %f %f mu_at %f %f %f mu_start %f %f %f, "
-           "michel %f %f gclen %f\n",
+           "michel %f %f gclen %f stopqual %f %f\n",
            parts.run, prompt, prompt-back,
            (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
            li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz, 
-           miche, micht, gclen);
+           miche, micht, gclen, chi2qual, dedxslant);
     fflush(stdout);
   }
 }

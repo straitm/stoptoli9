@@ -14,3 +14,6 @@ b12search: b12search.cpp search.h
 
 stoptoli9: stoptoli9.cpp search.h
 	g++ -O2 -o stoptoli9 stoptoli9.cpp `root-config --libs --cflags` -Wall -Wextra
+
+clean: 
+	rm stoptoli9 b12search nsearch fissionsearch microdst

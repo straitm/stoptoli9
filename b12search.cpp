@@ -46,6 +46,11 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   const float muivdedx =
     parts.fido_qiv/(parts.ids_ivlen-parts.ids_buflen);
 
+  const float mufqid = parts.fido_qid,
+              mufqiv = parts.fido_qiv,
+              muctqid = parts.ctq,
+              muctqiv = parts.ctqIV;
+
   unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
 
@@ -65,11 +70,13 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     * const trgtimebr  = chtree->GetBranch("trgtime");
     
   
-  double deadtime = 0;
+  double deadtime = 0, nondeadenergy = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
     trgtimebr->GetEntry(i);
+    ctEvisIDbr->GetEntry(i);
     if(parts.trgtime-mutime < 6000) continue;
     deadtime = parts.trgtime-mutime;
+    nondeadenergy = parts.ctEvisID;
     break;
   }
 
@@ -175,7 +182,8 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
         printf("iso_for %d %d %d is 0 dt 0 dist 0 e 0 decay_at"
                " 0 0 0 mu_at %f %f %f chi,ivdedx: %f %f "
                "n %d %d %d %d nlate %d %d %d %d michel "
-               "%lf %.0lf morefido %f %f %f %f deadt,michd %.0f %f\n",
+               "%lf %.0lf morefido %f %f %f %f deadt,deade,michd %.0f %f %f "
+               "%f %f %f %f\n",
                murun, mutrgid, mucoinov, mux, muy, muz,
                murchi2, muivdedx,
                ngdneutronnear[0], ngdneutronanydist[0],
@@ -183,7 +191,8 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
                ngdneutronnear[1], ngdneutronanydist[1],
                nneutronnear[1],  nneutronanydist[1],
                michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-               deadtime, michdist);
+               deadtime, nondeadenergy, michdist,
+               mufqid, mufqiv, muctqid, muctqiv);
       break;
     }
 
@@ -235,7 +244,8 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
       printf("iso_for %d %d %d is %d dt %lf dist %f e %f decay_at"
              " %f %f %f mu_at %f %f %f chi,ivdedx: %f %f "
              "n %d %d %d %d nlate %d %d %d %d michel "
-             "%lf %.0lf morefido %f %f %f %f deadt,michd %.0f %f%c",
+             "%lf %.0lf morefido %f %f %f %f deadt,deade,michd %.0f %f %f "
+             "%f %f %f %f%c",
              murun, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
              parts.ctEvisID, ix[got], iy[got], iz[got], mux, muy, muz,
              murchi2, muivdedx,
@@ -244,7 +254,8 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
              ngdneutronnear[1], ngdneutronanydist[1],
              nneutronnear[1],  nneutronanydist[1],
              michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-             deadtime, michdist, is_be12search?' ':'\n');
+             deadtime, nondeadenergy, michdist, mufqid, mufqiv, muctqid, muctqiv,
+             is_be12search?' ':'\n');
       printed++;
       
       // If searching for be12, use the ix/iy/iz arrays and stop when we
@@ -304,9 +315,7 @@ static void search(dataparts & parts, TTree * const chtree,
 {
   double lastmuontime = 0;
   double eortime = 0;
-
   int run = 0;
-
 
   TBranch * const runbr           = chtree->GetBranch("run");
   TBranch * const trgtimebr       = chtree->GetBranch("trgtime");
@@ -528,6 +537,8 @@ int main(int argc, char ** argv)
     cSBA(fido_nivtubes);
     cSBA(fido_qiv);
     cSBA(fido_qid);
+    cSBA(ctq);
+    cSBA(ctqIV);
     cSBA(deltaT);
     cSBA(trgtime);
     cSBA(run);
