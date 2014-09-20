@@ -84,7 +84,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     if(li9tomu > 800) continue;
 
     const double mutime = parts.trgtime;
-    const double gclen = parts.ids_gclen;
+    const double fidoqid = parts.fido_qid;
 
     ctree->GetEvent(prompt-back+1);
 
@@ -117,11 +117,11 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
     printf("Muon_for %d %d is %d dt %lf dist %f n "
            "%u at %f %f %f mu_at %f %f %f mu_start %f %f %f, "
-           "michel %f %f gclen %f stopqual %f %f\n",
+           "michel %f %f fidoqid %f stopqual %f %f\n",
            parts.run, prompt, prompt-back,
            (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
            li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz, 
-           miche, micht, gclen, chi2qual, dedxslant);
+           miche, micht, fidoqid, chi2qual, dedxslant);
     fflush(stdout);
   }
 }
@@ -200,7 +200,6 @@ int main()
     fSBA(ids_entr_x);
     fSBA(ids_entr_y);
     fSBA(ids_entr_z);
-    fSBA(ids_gclen);
     fSBA(ids_chi2);
     fSBA(ids_ivlen);
     fSBA(ids_buflen);
