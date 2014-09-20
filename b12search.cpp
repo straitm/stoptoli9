@@ -28,7 +28,8 @@ static bool lightnoise(const float qrms, const float mqtq,
 
 static void searchfrommuon(dataparts & parts, TTree * const chtree,
                            const unsigned int muoni,
-                           const bool is_be12search)
+                           const bool is_be12search,
+                           const double timeleft)
 {
   const double mutime = parts.trgtime;
   const double entr_mux = parts.ids_entr_x,
@@ -177,13 +178,11 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
     if(dt_ms > maxtime){ // stop looking
       if(printed == 0)
-        // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
-        // ngdnear:ngd:nnear:n:miche:micht
-        printf("iso_for %d %d %d is 0 dt 0 dist 0 e 0 decay_at"
-               " 0 0 0 mu_at %f %f %f chi,ivdedx: %f %f "
-               "n %d %d %d %d nlate %d %d %d %d michel "
-               "%lf %.0lf morefido %f %f %f %f deadt,deade,michd %.0f %f %f "
-               "%f %f %f %f\n",
+        printf("%d %d %d 0 0 0 0 "
+               "0 0 0 %f %f %f %f %f "
+               "%d %d %d %d %d %d %d %d "
+               "%lf %.0lf %f %f %f %f %.0f %f %f "
+               "%f %f %f %f %f\n",
                murun, mutrgid, mucoinov, mux, muy, muz,
                murchi2, muivdedx,
                ngdneutronnear[0], ngdneutronanydist[0],
@@ -192,7 +191,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
                nneutronnear[1],  nneutronanydist[1],
                michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
                deadtime, nondeadenergy, michdist,
-               mufqid, mufqiv, muctqid, muctqiv);
+               mufqid, mufqiv, muctqid, muctqiv, timeleft);
       break;
     }
 
@@ -239,13 +238,11 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
 
-      // run:itrig:coinov:mutrig:dt:dist:e:x:y:z:foo:chi2:ivdedx:
-      // ngdnear:ngd:nnear:n:miche:micht
-      printf("iso_for %d %d %d is %d dt %lf dist %f e %f decay_at"
-             " %f %f %f mu_at %f %f %f chi,ivdedx: %f %f "
-             "n %d %d %d %d nlate %d %d %d %d michel "
-             "%lf %.0lf morefido %f %f %f %f deadt,deade,michd %.0f %f %f "
-             "%f %f %f %f%c",
+      printf("%d %d %d %d %lf %f %f "
+             "%f %f %f %f %f %f %f %f "
+             "%d %d %d %d %d %d %d %d "
+             "%lf %.0lf %f %f %f %f %.0f %f %f "
+             "%f %f %f %f %f%c",
              murun, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
              parts.ctEvisID, ix[got], iy[got], iz[got], mux, muy, muz,
              murchi2, muivdedx,
@@ -254,7 +251,9 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
              ngdneutronnear[1], ngdneutronanydist[1],
              nneutronnear[1],  nneutronanydist[1],
              michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-             deadtime, nondeadenergy, michdist, mufqid, mufqiv, muctqid, muctqiv,
+             deadtime, nondeadenergy, michdist,
+             mufqid, mufqiv, muctqid, muctqiv,
+             timeleft,
              is_be12search?' ':'\n');
       printed++;
       
@@ -355,10 +354,6 @@ static void search(dataparts & parts, TTree * const chtree,
 
     trgtimebr->GetEntry(mi);
 
-    // Don't use a muon that is within our search window length from the
-    // end of the run
-    if((eortime - parts.trgtime)/1e6 < maxtime) continue;
-
     // Require at least 500us since the last muon so we don't count
     // neutrons from the previous one as belonging to this one.
     if(parts.trgtime - lastmuontime < 500e3) goto end;
@@ -414,8 +409,10 @@ static void search(dataparts & parts, TTree * const chtree,
     chtree->GetEntry(mi);
     fitree->GetEntry(mi);
 
-    searchfrommuon(parts, chtree, mi, is_be12search);
-
+    searchfrommuon(parts, chtree, mi, is_be12search, 
+    // Record how much time is left to the end of the run so that we can
+    // exclude events that are too close when analyzing.
+                             (eortime - parts.trgtime)/1e6);
     end:
 
     // See note above for same code.
@@ -459,6 +456,11 @@ int main(int argc, char ** argv)
   int errcode = 0;
 
   fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
+
+  printf("run:mutrig:ovcoin:trig:dt:dist:e:dx:dy:dz:mx:my:mz:chi2:"
+         "ivdedx:ngdnear:ngd:nnear:n:latengdnear:latengd:latennear:"
+         "laten:miche:micht:gclen:fex:fey:fez:deadt:deade:michd:fq:"
+         "fqiv:cq:cqiv:timeleft\n");
 
   for(int i = 4; i < argc; i+=2){
     fputs(".", stderr);
