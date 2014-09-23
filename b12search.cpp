@@ -67,10 +67,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
     * const qdiffbr    = chtree->GetBranch("qdiff"),
     * const fido_qivbr = chtree->GetBranch("fido_qiv"),
-    * const fido_qidbr = chtree->GetBranch("fido_qid"),
     * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
     * const trgtimebr  = chtree->GetBranch("trgtime");
-    
   
   double deadtime = 0, nondeadenergy = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
@@ -170,8 +168,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
-    const double ttlastvalid = (itime - lastvalidtime)/1e6;
-    const double ttlastmuon = (itime - lastmuontime)/1e6;
+    const double ttlastvalid=lastvalidtime?(itime-lastvalidtime)/1e6:-1;
+    const double ttlastmuon =lastmuontime? (itime-lastmuontime )/1e6:-1;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
@@ -274,9 +272,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // fine.
     coinovbr->GetEntry(i);
     fido_qivbr->GetEntry(i);
-    fido_qidbr->GetEntry(i);
+    ctEvisIDbr->GetEntry(i);
 
-    if(bits.coinov || bits.fido_qiv > 5000 || bits.fido_qid/8300 > 60)
+    if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
 
     // Note the time of this even if it is valid, which for me means
@@ -286,6 +284,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     ctrmstsbr->GetEntry(i);
     qdiffbr->GetEntry(i);
     ctEvisIDbr->GetEntry(i);
+
     if(!lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff)
        && bits.ctEvisID > 0.4)
       lastvalidtime = bits.trgtime;
