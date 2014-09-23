@@ -26,31 +26,31 @@ static bool lightnoise(const float qrms, const float mqtq,
   return false;
 }
 
-static void searchfrommuon(dataparts & parts, TTree * const chtree,
+static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            const unsigned int muoni,
                            const bool is_be12search,
                            const double timeleft)
 {
-  const double mutime = parts.trgtime;
-  const double entr_mux = parts.ids_entr_x,
-               entr_muy = parts.ids_entr_y,
-               entr_muz = parts.ids_entr_z;
-  const double mux = parts.ids_end_x,
-               muy = parts.ids_end_y,
-               muz = parts.ids_end_z-170./3400.*(1700-parts.ids_end_z);
-  const float gclen = parts.ids_gclen;
-  const int mutrgid = parts.trgId;
-  const int murun = parts.run;
-  const bool mucoinov = parts.coinov;
+  const double mutime = bits.trgtime;
+  const double entr_mux = bits.ids_entr_x,
+               entr_muy = bits.ids_entr_y,
+               entr_muz = bits.ids_entr_z;
+  const double mux = bits.ids_end_x,
+               muy = bits.ids_end_y,
+               muz = bits.ids_end_z-170./3400.*(1700-bits.ids_end_z);
+  const float gclen = bits.ids_gclen;
+  const int mutrgid = bits.trgId;
+  const int murun = bits.run;
+  const bool mucoinov = bits.coinov;
   const float murchi2 =
-    parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6);
+    bits.ids_chi2/(bits.fido_nidtubes+bits.fido_nivtubes-6);
   const float muivdedx =
-    parts.fido_qiv/(parts.ids_ivlen-parts.ids_buflen);
+    bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen);
 
-  const float mufqid = parts.fido_qid,
-              mufqiv = parts.fido_qiv,
-              muctqid = parts.ctq,
-              muctqiv = parts.ctqIV;
+  const float mufqid = bits.fido_qid,
+              mufqiv = bits.fido_qiv,
+              muctqid = bits.ctq,
+              muctqiv = bits.ctqIV;
 
   unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
@@ -67,6 +67,7 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
     * const qdiffbr    = chtree->GetBranch("qdiff"),
     * const fido_qivbr = chtree->GetBranch("fido_qiv"),
+    * const fido_qidbr = chtree->GetBranch("fido_qid"),
     * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
     * const trgtimebr  = chtree->GetBranch("trgtime");
     
@@ -75,9 +76,9 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
     trgtimebr->GetEntry(i);
     ctEvisIDbr->GetEntry(i);
-    if(parts.trgtime-mutime < 6000) continue;
-    deadtime = parts.trgtime-mutime;
-    nondeadenergy = parts.ctEvisID;
+    if(bits.trgtime-mutime < 6000) continue;
+    deadtime = bits.trgtime-mutime;
+    nondeadenergy = bits.ctEvisID;
     break;
   }
 
@@ -86,12 +87,12 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
 
 #ifdef MULTIRUNFILES
     runbr->GetEntry(i);
-    if(parts.run != murun) break; // Stop at run boundaries
+    if(bits.run != murun) break; // Stop at run boundaries
 #endif
 
     trgtimebr->GetEntry(i);
     coinovbr->GetEntry(i);
-    const double dt = parts.trgtime - mutime;
+    const double dt = bits.trgtime - mutime;
 
     // For any uncut Michels or (hopefully) prompt gammas from muon
     // capture, record the time and energy. Note that if we are
@@ -101,13 +102,13 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // will often count this Michel as a neutron also for the zeroth
     // element of the count arrays (but not the first), so don't double
     // count by accident.  
-    if(dt < 5500 && !parts.coinov && michelt == 0 && michele == 0){
+    if(dt < 5500 && !bits.coinov && michelt == 0 && michele == 0){
       ctEvisIDbr->GetEntry(i);
       ctXbr->GetEntry(i);
-      michele = parts.ctEvisID, michelt = dt;
-      michdist = sqrt(pow(mux-parts.ctX[0], 2) +
-                      pow(muy-parts.ctX[1], 2) +
-                      pow(muz-parts.ctX[2], 2));
+      michele = bits.ctEvisID, michelt = dt;
+      michdist = sqrt(pow(mux-bits.ctX[0], 2) +
+                      pow(muy-bits.ctX[1], 2) +
+                      pow(muz-bits.ctX[2], 2));
     }
 
     // Skip past retriggers and whatnot, like DC3rdPub
@@ -122,22 +123,22 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     qdiffbr->GetEntry(i);
 
     // pass light noise
-    if(lightnoise(parts.qrms, parts.ctmqtqall,
-                  parts.ctrmsts, parts.qdiff)) continue;
+    if(lightnoise(bits.qrms, bits.ctmqtqall,
+                  bits.ctrmsts, bits.qdiff)) continue;
 
     ctEvisIDbr->GetEntry(i);
     // right energy for a neutron capture
-    if(!((parts.ctEvisID > 1.8 && parts.ctEvisID < 2.6) ||
-         (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
+    if(!((bits.ctEvisID > 1.8 && bits.ctEvisID < 2.6) ||
+         (bits.ctEvisID > 4.0 && bits.ctEvisID < 10 )))
       continue;
 
     ctXbr->GetEntry(i);
-    const bool near = sqrt(pow(mux - parts.ctX[0], 2)+
-                           pow(muy - parts.ctX[1], 2)+
-                           pow(muz - parts.ctX[2], 2)) < 800;
+    const bool near = sqrt(pow(mux - bits.ctX[0], 2)+
+                           pow(muy - bits.ctX[1], 2)+
+                           pow(muz - bits.ctX[2], 2)) < 800;
 
-    const bool gd = parts.ctEvisID > 4.0 && parts.ctEvisID < 10
-                 && parts.trgtime - mutime < 150e3;
+    const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
+                 && bits.trgtime - mutime < 150e3;
 
     const bool alsoamichel = dt < 5500;
     nneutronanydist[0]++;
@@ -157,58 +158,69 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
-  double lastmuontime = 0;
+  double lastmuontime = 0, lastvalidtime = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
 #ifdef MULTIRUNFILES
     runbr->GetEntry(i);
-    if(parts.run != murun) break; // Stop at run boundaries
+    if(bits.run != murun) break; // Stop at run boundaries
 #endif
 
     trgtimebr->GetEntry(i);
 
-    const double itime = parts.trgtime;
+    const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
+    const double ttlastvalid = (itime - lastvalidtime)/1e6;
+    const double ttlastmuon = (itime - lastmuontime)/1e6;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
-    if(itime - lastmuontime < 500e3) goto end;
+    if(ttlastmuon < 0.5) goto end;
 
     if(dt_ms < 1) goto end; // Go past all H neutron captures
 
     if(dt_ms > maxtime){ // stop looking
       if(printed == 0)
-        printf("%d %d %d 0 0 0 0 "
-               "0 0 0 %f %f %f %f %f "
-               "%d %d %d %d %d %d %d %d "
-               "%lf %.0lf %f %f %f %f %.0f %f %f "
-               "%f %f %f %f %f\n",
-               murun, mutrgid, mucoinov, mux, muy, muz,
-               murchi2, muivdedx,
-               ngdneutronnear[0], ngdneutronanydist[0],
-               nneutronnear[0],  nneutronanydist[0],
-               ngdneutronnear[1], ngdneutronanydist[1],
-               nneutronnear[1],  nneutronanydist[1],
-               michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-               deadtime, nondeadenergy, michdist,
-               mufqid, mufqiv, muctqid, muctqiv, timeleft);
+        // NOTE-luckplan
+        printf("0 0 0 0 0 0 0 "
+               #define LATEFORM \
+               "%d %d %d " \
+               "%f %f %f %f %f " \
+               "%d %d %d %d %d %d %d %d " \
+               "%lf %.0lf %f %f %f %f %.0f %f %f " \
+               "%f %f %f %f %f %f %f"
+               LATEFORM
+               "\n",
+               /* 0, 0, 0, 0, 0, 0, 0, */
+               #define LATEVARS \
+               murun, mutrgid, mucoinov, \
+               mux, muy, muz, murchi2, muivdedx, \
+               ngdneutronnear[0], ngdneutronanydist[0], \
+               nneutronnear[0],  nneutronanydist[0], \
+               ngdneutronnear[1], ngdneutronanydist[1], \
+               nneutronnear[1],  nneutronanydist[1], \
+               michele, michelt, gclen, entr_mux, entr_muy, entr_muz, \
+               deadtime, nondeadenergy, michdist, \
+               mufqid, mufqiv, muctqid, muctqiv, \
+               timeleft, ttlastvalid, ttlastmuon
+              LATEVARS);
       break;
     }
 
     ctEvisIDbr->GetEntry(i);
 
     // Ignore low energy accidentals and H-neutrons
-    if(parts.ctEvisID < minenergy) goto end;
+    if(bits.ctEvisID < minenergy) goto end;
 
     // Ignore events above the end point + res
-    if(parts.ctEvisID > maxenergy) goto end;
+    if(bits.ctEvisID > maxenergy) goto end;
     
     fido_qivbr->GetEntry(i);
     // No IV, OV energy
-    if(parts.fido_qiv > 1000) goto end;
+    if(bits.fido_qiv > 1000) goto end;
 
     coinovbr->GetEntry(i);
-    if(parts.coinov) goto end;
+    if(bits.coinov) goto end;
 
     qrmsbr->GetEntry(i);
     ctmqtqallbr->GetEntry(i);
@@ -216,14 +228,14 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     qdiffbr->GetEntry(i);
 
     // pass light noise
-    if(lightnoise(parts.qrms, parts.ctmqtqall,
-                  parts.ctrmsts, parts.qdiff)) goto end;
+    if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
+      goto end;
 
     ctXbr->GetEntry(i);
 
-    ix[got] = parts.ctX[0]*(0.970+0.013*parts.ctEvisID),
-    iy[got] = parts.ctX[1]*(0.970+0.013*parts.ctEvisID),
-    iz[got] = parts.ctX[2]*(0.985+0.005*parts.ctEvisID);
+    ix[got] = bits.ctX[0]*(0.970+0.013*bits.ctEvisID),
+    iy[got] = bits.ctX[1]*(0.970+0.013*bits.ctEvisID),
+    iz[got] = bits.ctX[2]*(0.985+0.005*bits.ctEvisID);
 
     {
       // If the be12 search, record distance to previous selected event,
@@ -238,22 +250,11 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
 
-      printf("%d %d %d %d %lf %f %f "
-             "%f %f %f %f %f %f %f %f "
-             "%d %d %d %d %d %d %d %d "
-             "%lf %.0lf %f %f %f %f %.0f %f %f "
-             "%f %f %f %f %f%c",
-             murun, mutrgid, mucoinov, parts.trgId, dt_ms, dist,
-             parts.ctEvisID, ix[got], iy[got], iz[got], mux, muy, muz,
-             murchi2, muivdedx,
-             ngdneutronnear[0], ngdneutronanydist[0],
-             nneutronnear[0],  nneutronanydist[0],
-             ngdneutronnear[1], ngdneutronanydist[1],
-             nneutronnear[1],  nneutronanydist[1],
-             michele, michelt, gclen, entr_mux, entr_muy, entr_muz,
-             deadtime, nondeadenergy, michdist,
-             mufqid, mufqiv, muctqid, muctqiv,
-             timeleft,
+      // NOTE-luckplan
+      printf("%d %lf %f %f %f %f %f " LATEFORM "%c",
+             bits.trgId, dt_ms, dist,
+             bits.ctEvisID, ix[got], iy[got], iz[got],
+             LATEVARS,
              is_be12search?' ':'\n');
       printed++;
       
@@ -273,10 +274,21 @@ static void searchfrommuon(dataparts & parts, TTree * const chtree,
     // fine.
     coinovbr->GetEntry(i);
     fido_qivbr->GetEntry(i);
+    fido_qidbr->GetEntry(i);
 
-    if(parts.coinov || parts.fido_qiv > 5000)
-      lastmuontime = parts.trgtime;
+    if(bits.coinov || bits.fido_qiv > 5000 || bits.fido_qid/8300 > 60)
+      lastmuontime = bits.trgtime;
 
+    // Note the time of this even if it is valid, which for me means
+    // not light noise and at least 0.4 MeV
+    qrmsbr->GetEntry(i);
+    ctmqtqallbr->GetEntry(i);
+    ctrmstsbr->GetEntry(i);
+    qdiffbr->GetEntry(i);
+    ctEvisIDbr->GetEntry(i);
+    if(!lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff)
+       && bits.ctEvisID > 0.4)
+      lastvalidtime = bits.trgtime;
   }
   if(got){
     printf("\n");
@@ -457,10 +469,15 @@ int main(int argc, char ** argv)
 
   fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
 
-  printf("run:mutrig:ovcoin:trig:dt:dist:e:dx:dy:dz:mx:my:mz:chi2:"
-         "ivdedx:ngdnear:ngd:nnear:n:latengdnear:latengd:latennear:"
-         "laten:miche:micht:gclen:fex:fey:fez:deadt:deade:michd:fq:"
-         "fqiv:cq:cqiv:timeleft\n");
+  // NOTE-luckplan
+  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:"
+         "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
+         "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
+         "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
+         "fex/F:fey/F:fez/F:deadt/F:"
+         "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
+         "ttlastvalid/F:ttlastmuon/F"
+         "\n");
 
   for(int i = 4; i < argc; i+=2){
     fputs(".", stderr);
