@@ -178,7 +178,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
-  double lastmuontime = 0, lastvalidtime = 0;
+  double lastmuontime = mutime, lastvalidtime = mutime;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
 #ifdef MULTIRUNFILES
@@ -190,8 +190,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
-    const double ttlastvalid=lastvalidtime?(itime-lastvalidtime)/1e6:-1;
-    const double ttlastmuon =lastmuontime? (itime-lastmuontime )/1e6:-1;
+    const double ttlastvalid=(itime-lastvalidtime)/1e6;
+    const double ttlastmuon =(itime-lastmuontime )/1e6;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
