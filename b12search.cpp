@@ -26,6 +26,28 @@ static bool lightnoise(const float qrms, const float mqtq,
   return false;
 }
 
+static double fidocorrz(const double z)
+{
+  return -86.2      
+          +1.0396   *     z
+          +4.14e-05 * pow(z, 2)
+          -3.32e-08 * pow(z, 3)
+          -1.02e-10 * pow(z, 4)
+          +7.49e-14 * pow(z, 5)
+          +6.17e-17 * pow(z, 6)
+          -3.56e-20 * pow(z, 7)
+          -1.01e-23 * pow(z, 8)
+          +3.84e-27 * pow(z, 9);
+}
+
+static double fidocorrxy(const double xy)
+{
+  return  2.76
+          +1.0116 *       xy
+          -1.64e-06 * pow(xy, 2)
+          +1.91e-08 * pow(xy, 3);
+}
+
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            const unsigned int muoni,
                            const bool is_be12search,
@@ -35,9 +57,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = bits.ids_end_x,
-               muy = bits.ids_end_y,
-               muz = bits.ids_end_z-170./3400.*(1700-bits.ids_end_z);
+  const double mux = fidocorrxy(bits.ids_end_x),
+               muy = fidocorrxy(bits.ids_end_y),
+               muz = fidocorrz(bits.ids_end_z);
   const float gclen = bits.ids_gclen;
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
@@ -485,7 +507,6 @@ int main(int argc, char ** argv)
     dataparts parts;
     TTree * chtree = NULL, * fitree = NULL;
 
-
     if(!chfile || chfile->IsZombie()){
       fprintf(stderr, "\nI couldn't read %s\n", argv[i]);
       errcode |= 1;
@@ -530,10 +551,17 @@ int main(int argc, char ** argv)
 
     fitree->SetBranchStatus("*", 0);
 
+    // Tried different settings, this is the best
+    fitree->SetCacheSize(10000000);
+    chtree->SetCacheSize(10000000);
+    chtree->AddBranchToCache("*");
+
     memset(&parts, 0, sizeof(parts));
     #define cSBA(x) chtree->SetBranchAddress(#x, &parts.x);
     #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
-                    fitree->SetBranchAddress(#x, &parts.x);
+                    fitree->SetBranchAddress(#x, &parts.x); \
+                    fitree->AddBranchToCache(#x);
+ 
     fSBA(ids_didfit);
     fSBA(ids_end_x);
     fSBA(ids_end_y);
