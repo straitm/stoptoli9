@@ -15,39 +15,6 @@ static double maxtime = 1000;
 static double minenergy = 4;
 static double maxenergy = 14;
 
-// True if this is light noise. If the variables aren't filled, i.e. all
-// zeros, then this will return false.
-static bool lightnoise(const float qrms, const float mqtq,
-                       const float rmsts, const float qdiff)
-{
-  if(mqtq > 0.12 || mqtq < 0) return true;
-  if(qdiff > 30e3) return true;
-  if(rmsts >= 36 && qrms >= 464 - 8*rmsts) return true;
-  return false;
-}
-
-static double fidocorrz(const double z)
-{
-  return -86.2      
-          +1.0396   *     z
-          +4.14e-05 * pow(z, 2)
-          -3.32e-08 * pow(z, 3)
-          -1.02e-10 * pow(z, 4)
-          +7.49e-14 * pow(z, 5)
-          +6.17e-17 * pow(z, 6)
-          -3.56e-20 * pow(z, 7)
-          -1.01e-23 * pow(z, 8)
-          +3.84e-27 * pow(z, 9);
-}
-
-static double fidocorrxy(const double xy)
-{
-  return  2.76
-          +1.0116 *       xy
-          -1.64e-06 * pow(xy, 2)
-          +1.91e-08 * pow(xy, 3);
-}
-
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            const unsigned int muoni,
                            const bool is_be12search,
@@ -126,9 +93,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       ctEvisIDbr->GetEntry(i);
       ctXbr->GetEntry(i);
       michele = bits.ctEvisID, michelt = dt;
-      michdist = sqrt(pow(mux-bits.ctX[0], 2) +
-                      pow(muy-bits.ctX[1], 2) +
-                      pow(muz-bits.ctX[2], 2));
+      michdist =
+        sqrt(pow(mux-bamacorrxy(bits.ctX[0], bits.ctEvisID), 2) +
+             pow(muy-bamacorrxy(bits.ctX[1], bits.ctEvisID), 2) +
+             pow(muz-bamacorrz( bits.ctX[2], bits.ctEvisID), 2));
     }
 
     // Skip past retriggers and whatnot, like DC3rdPub
@@ -153,9 +121,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       continue;
 
     ctXbr->GetEntry(i);
-    const bool near = sqrt(pow(mux - bits.ctX[0], 2)+
-                           pow(muy - bits.ctX[1], 2)+
-                           pow(muz - bits.ctX[2], 2)) < 800;
+    const bool near =
+      sqrt(pow(mux - bamacorrxy(bits.ctX[0], bits.ctEvisID), 2)+
+           pow(muy - bamacorrxy(bits.ctX[1], bits.ctEvisID), 2)+
+           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 800;
 
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
@@ -253,9 +222,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     ctXbr->GetEntry(i);
 
-    ix[got] = bits.ctX[0]*(0.970+0.013*bits.ctEvisID),
-    iy[got] = bits.ctX[1]*(0.970+0.013*bits.ctEvisID),
-    iz[got] = bits.ctX[2]*(0.985+0.005*bits.ctEvisID);
+    ix[got] = bamacorrxy(bits.ctX[0], bits.ctEvisID),
+    iy[got] = bamacorrxy(bits.ctX[1], bits.ctEvisID),
+    iz[got] = bamacorrz( bits.ctX[2], bits.ctEvisID);
 
     {
       // If the be12 search, record distance to previous selected event,
@@ -409,11 +378,13 @@ static void search(dataparts & parts, TTree * const chtree,
     ids_end_xbr->GetEntry(mi);
     ids_end_ybr->GetEntry(mi);
 
+    // This correctly uses the *uncorrected* position
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       goto end;
 
     ids_end_zbr->GetEntry(mi);
 
+    // This correctly uses the *uncorrected* position
     if(parts.ids_end_z < -1786+35) goto end;
 
     ids_entr_zbr->GetEntry(mi);

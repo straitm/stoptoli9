@@ -11,15 +11,6 @@
 
 #include "search.h"
 
-static bool lightnoise(const float qrms, const float mqtq,
-                       const float rmsts, const float qdiff)
-{
-  if(mqtq > 0.12 || mqtq < 0) return true;
-  if(qdiff > 30e3) return true;
-  if(rmsts >= 36 && qrms >= 464 - 8*rmsts) return true;
-  return false;
-}
-
 static void stopper_search(dataparts & parts, TTree * const ctree,
                            TTree * const ftree, const int prompt)
 {
@@ -32,9 +23,9 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
   ctree->GetEntry(prompt);
   const double prompttime = parts.trgtime;
-  const double li9x=parts.ctX[0],
-               li9y=parts.ctX[1],
-               li9z=parts.ctX[2];
+  const double li9x=bamacorrxy(parts.ctX[0], parts.ctEvisID),
+               li9y=bamacorrxy(parts.ctX[1], parts.ctEvisID),
+               li9z=bamacorrz( parts.ctX[2], parts.ctEvisID);
 
   for(int back = 1; ; back++){
     if(prompt-back < 0) return;
@@ -49,9 +40,11 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6)>10)
       continue;
 
+    // This correctly uses the *uncorrected* position
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       continue;
 
+    // This correctly uses the *uncorrected* position
     if(parts.ids_end_z < -1786+35) continue;
 
     const double dedxslant = parts.ids_entr_z
@@ -71,9 +64,11 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     // Open up a big window
     if(prompttime - parts.trgtime > 10e9) return;
 
-    const double mux = parts.ids_end_x, muy = parts.ids_end_y,
-                 muz = parts.ids_end_z;
-    const double imux = parts.ids_entr_x, imuy = parts.ids_entr_y,
+    const double mux = fidocorrxy(parts.ids_end_x),
+                 muy = fidocorrxy(parts.ids_end_y),
+                 muz = fidocorrz( parts.ids_end_z);
+    const double imux = parts.ids_entr_x,
+                 imuy = parts.ids_entr_y,
                  imuz = parts.ids_entr_z;
 
     const double li9tomu = sqrt(pow(mux-li9x, 2)
@@ -108,9 +103,10 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
         continue;
 
       // near the point the muon stopped (~97% efficient - doc4450)
-      if(sqrt(pow(mux - parts.ctX[0], 2)
-             +pow(muy - parts.ctX[1], 2)
-             +pow(muz - parts.ctX[2], 2)) > 1000) continue;
+      if(sqrt(pow(mux - bamacorrxy(parts.ctX[0], parts.ctEvisID), 2)
+             +pow(muy - bamacorrxy(parts.ctX[1], parts.ctEvisID), 2)
+             +pow(muz - bamacorrz( parts.ctX[2], parts.ctEvisID), 2))
+         > 1000) continue;
 
       nneutron++;
     }
