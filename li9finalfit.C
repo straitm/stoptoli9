@@ -4,11 +4,11 @@
 
   TTree tg("t", "t");
   TTree th("t", "t");
-  tg.ReadFile("li9-20140925.Gd.ntuple");
-  th.ReadFile("li9-20140925.H.ntuple");
+  tg.ReadFile("li9-20140925-earlymich.Gd.ntuple");
+  th.ReadFile("li9-20140925-earlymich.H.ntuple");
 
-  tg.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", "dist < 300 && miche < 12");
-  tg.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", "dist < 300 && miche < 12");
+  tg.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", "dist < 300  && miche < 12 && !earlymich");
+  tg.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", "dist < 300  && miche < 12 && !earlymich");
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.FixParameter(1, 0.1783);
@@ -33,13 +33,14 @@
 
   hdispg->Draw("e");
 
-  th.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", "dist < 300 && miche < 12");
-  th.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", "dist < 300 && miche < 12");
+  th.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", "dist < 300  && miche < 12 && !earlymich");
+  th.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", "dist < 300  && miche < 12 && !earlymich");
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.FixParameter(1, 0.1783);
   ee.FixParameter(3, 0.1191);
   ee.FixParameter(2, 0);
+  ee.SetParLimits(0, 0, 10);
 
   hfitg->Fit("ee", "le", "");
 
@@ -57,10 +58,10 @@
     ee.SetParameter(i, ee->GetParameter(i)*hdispg.GetBinWidth(1)/
                                            hfitg.GetBinWidth(1));
 
-  th.Draw("dt/1000 >> hfitb(10000, 0.001, 10)", "dist < 300 && miche < 12");
-  th.Draw("dt/1000 >> hdispb(50, 0.001, 10.001)", "dist < 300 && miche < 12");
-  tg.Draw("dt/1000 >> +hfitb", "dist < 300 && miche < 12");
-  tg.Draw("dt/1000 >> +hdispb", "dist < 300 && miche < 12");
+  th.Draw("dt/1000 >> hfitb(10000, 0.001, 10)", "dist < 300  && miche < 12 && !earlymich");
+  th.Draw("dt/1000 >> hdispb(50, 0.001, 10.001)", "dist < 300  && miche < 12 && !earlymich");
+  tg.Draw("dt/1000 >> +hfitb", "dist < 300  && miche < 12 && !earlymich");
+  tg.Draw("dt/1000 >> +hdispb", "dist < 300  && miche < 12 && !earlymich");
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.FixParameter(1, 0.1783);
@@ -81,7 +82,7 @@
   const double Ncorrlo = sqrt((Nrawglo/Geff)**2 + (Nrawhlo/Heff)**2);
 
   printf("%s\n--> Sum using summed quadrature errors:\n", RED);
-  printf("Both Nraw = %.2f +%f %f%s\n", Ncorr , Ncorrup , Ncorrlo, CLR);
+  printf("Both with eff = %.2f +%f %f%s\n", Ncorr , Ncorrup , Ncorrlo, CLR);
 
   TF1 eedisp("eedisp", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   eedisp.FixParameter(1, 0.1783);
@@ -90,14 +91,16 @@
 
 
   TF1 ee2("ee2",
-    Form("(([0]*%f-[2]*%f)*exp(-x*log(2)/0.1783) + [1])*(x < 10) + "
-    "([2]*%f*exp(-(x-9.999)*log(2)/0.1783) + [3])*(x >= 10)",
-     Heff, Heff, Geff), 0, 20);
+    Form("(([0]-[2])*%f*exp(-    x    *log(2)/0.1783)+[1])*(x < 10) +"
+         "(   [2]   *%f*exp(-(x-9.999)*log(2)/0.1783)+[3])*(x >=10)",
+         Heff, Geff), 0, 20);
   ee2.SetParameters(1, 1, 1, 1);
   ee2->SetNpx(400);
   ee2->SetLineColor(kRed);
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", "dist < 300 && miche < 12");
-  tg.Draw("dt/1000+9.999 >> +h2fit", "dist < 300 && miche < 12");
+  ee2->SetParLimits(0, 0, 10);
+  ee2->SetParLimits(2, 0, 10);
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", "dist < 300  && miche < 12 && !earlymich");
+  tg.Draw("dt/1000+9.999 >> +h2fit", "dist < 300  && miche < 12 && !earlymich");
   h2fit->Fit("ee2", "le", "", 0, 20);
 
   e->SetParameter(0, ee2->GetParameter(0));
@@ -108,16 +111,30 @@
   const double N2rawlo = e->Integral(0, 10)/h2fit.GetBinWidth(1) / ee2.GetParameter(0) * gMinuit.fErn[0];
 
   printf("%s Joint fit = %.2f +%f %f%s\n", RED, N2raw, N2rawup , N2rawlo, CLR);
+  const double toprob = 1. / (357*489.509) / 0.508 / 0.852;
+  printf("%s Joint fit to prob = %.2g +%g %g%s\n", RED, N2raw*toprob, N2rawup*toprob , N2rawlo*toprob, CLR);
 
   for(int i = 0; i <= 4; i+=2)
     eedisp.SetParameter(i, ee->GetParameter(i)*hdispg.GetBinWidth(1)/
                                                 hfitb.GetBinWidth(1));
 
+  TF1 ee2s("ee2s",
+    Form("([0]*%f*exp(-    x    *log(2)/0.1783)+[1])*(x < 10) +"
+         "([2]*%f*exp(-(x-9.999)*log(2)/0.1783)+[3])*(x >=10)",
+         Heff, Geff), 0, 20);
+  ee2s.SetParameters(1, 1, 1, 1);
+  ee2s->SetLineColor(kRed);
+  ee2s->SetParLimits(0, 0, 10);
+  ee2s->SetParLimits(2, 0, 10);
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", "dist < 300  && miche < 12 && !earlymich");
+  tg.Draw("dt/1000+9.999 >> +h2fit", "dist < 300  && miche < 12 && !earlymich");
+  h2fit->Fit("ee2s", "l", "", 0, 20);
+
   const double bestlike = gMinuit.fAmin;
 
-  ee2.FixParameter(0, 0);
-  ee2.FixParameter(2, 0);
-  h2fit->Fit("ee2", "l");
+  ee2s.FixParameter(0, 0);
+  ee2s.FixParameter(2, 0);
+  h2fit->Fit("ee2s", "l");
 
   const double nulllike = gMinuit.fAmin;
 
@@ -155,4 +172,13 @@
   // Just for looks:
   hdispb->Draw("e");
   eedisp.Draw("Same");
+
+/*
+  TCanvas c2;
+
+  th.Draw("miche >> michs(60, 0, 60)", "dt < 1000 && dist < 300  && !earlymich");  
+  tg.Draw("miche >> +michs           ", "dt < 1000 && dist < 300  && !earlymich");  
+
+  michs.Draw("e");
+*/
 }
