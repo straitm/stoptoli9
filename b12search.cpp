@@ -1,8 +1,11 @@
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include <sstream>
+#include <vector>
+using std::vector;
 #include <iostream>
 
 #include "TTree.h"
@@ -14,6 +17,91 @@
 static double maxtime = 1000;
 static double minenergy = 4;
 static double maxenergy = 14;
+
+struct cart{
+  double x, y, z;
+};
+
+
+struct track{
+  float x0, y0, z0, x1, y1, z1;
+  double tim;
+};
+
+static track maketrack(const float x0, const float y0, const float z0,
+                       const float x1, const float y1, const float z1,
+                       const float tim)
+{
+  track t;
+  t.x0 = x0;
+  t.y0 = y0;
+  t.z0 = z0;
+  t.x1 = x1;
+  t.y1 = y1;
+  t.z1 = z1;
+  t.tim = tim;
+  return t;
+}
+
+static float ptol(const track & t, const float x, const float y,
+                  const float z)
+{
+  cart entr, exit, point;
+  entr.x = t.x0;
+  entr.y = t.y0;
+  entr.z = t.z0;
+
+  exit.x = t.x1;
+  exit.y = t.y1;
+  exit.z = t.z1;
+
+  point.x = x;
+  point.y = y;
+  point.z = z;
+
+  cart eten;
+  {
+    cart ete;
+    ete.x = entr.x - exit.x;
+    ete.y = entr.y - exit.y;
+    ete.z = entr.z - exit.z;
+
+    eten.x = ete.x/sqrt(ete.x*ete.x+ete.y*ete.y+ete.z*ete.z);
+    eten.y = ete.y/sqrt(ete.x*ete.x+ete.y*ete.y+ete.z*ete.z);
+    eten.z = ete.z/sqrt(ete.x*ete.x+ete.y*ete.y+ete.z*ete.z);
+  }
+
+  cart etp;
+  etp.x = entr.x - point.x;
+  etp.y = entr.y - point.y;
+  etp.z = entr.z - point.z;
+
+  const double detca = fabs(eten.x*etp.x + eten.y*etp.y + eten.z*etp.z);
+
+  cart closest_app;
+  
+  closest_app.x = entr.x - eten.x*detca;
+  closest_app.y = entr.y - eten.y*detca;
+  closest_app.z = entr.z - eten.z*detca;
+
+  return sqrt(pow(closest_app.x - point.x, 2) +
+              pow(closest_app.y - point.y, 2) +
+              pow(closest_app.z - point.z, 2));
+}
+
+static float lb12like(const vector<track> & ts, const float x,
+                      const float y, const float z, const float dtim)
+{
+  float llike = -1000;
+  for(unsigned int i = 0; i < ts.size(); i++){
+    const float dist = ptol(ts[i], x, y, z);
+    const double dt_ns = dtim - ts[i].tim;
+    const float thisllike = (-dist/690.) /* econover thesis */
+                          + (-dt_ns*log(2)/20.20e6);
+    if(thisllike > llike) llike = thisllike;
+  }
+  return llike;
+}
 
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            const unsigned int muoni,
@@ -56,7 +144,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
     * const qdiffbr    = chtree->GetBranch("qdiff"),
     * const fido_qivbr = chtree->GetBranch("fido_qiv"),
-    * const fido_qidbr = chtree->GetBranch("fido_qid"),
+    * const fido_didfitbr=chtree->GetBranch("fido_didfit"),
+    * const fido_entrxbr=chtree->GetBranch("fido_entrx"),
+    * const fido_entrybr=chtree->GetBranch("fido_entry"),
+    * const fido_entrzbr=chtree->GetBranch("fido_entrz"),
+    * const fido_endxbr= chtree->GetBranch("fido_endx"),
+    * const fido_endybr= chtree->GetBranch("fido_endy"),
+    * const fido_endzbr= chtree->GetBranch("fido_endz"),
     * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
     * const trgtimebr  = chtree->GetBranch("trgtime");
   
@@ -150,6 +244,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
   double lastmuontime = mutime, lastgcmuontime = mutime,
          lastvalidtime = mutime;
+
+  vector<track> tmuons;
+
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
 #ifdef MULTIRUNFILES
@@ -174,13 +271,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(dt_ms > maxtime){ // stop looking
       if(printed == 0)
         // NOTE-luckplan
-        printf("0 0 0 0 0 0 0 "
+        printf("0 0 0 0 0 0 0 0 "
                #define LATEFORM \
                "%d %d %d " \
                "%f %f %f %f %f " \
                "%d %d %d %d %d %d %d %d " \
                "%lf %.0lf %f %f %f %f %.0f %f %f " \
-               "%f %f %f %f %f %f %f %f %f"
+               "%f %f %f %f %f %f %f %f"
                LATEFORM
                "\n",
                /* 0, 0, 0, 0, 0, 0, 0, */
@@ -244,9 +341,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       runbr->GetEntry(i);
 
       // NOTE-luckplan
-      printf("%d %lf %f %f %f %f %f " LATEFORM "%c",
+      printf("%d %lf %f %f %f %f %f %f " LATEFORM "%c",
              bits.trgId, dt_ms, dist,
              bits.ctEvisID, ix[got], iy[got], iz[got],
+             lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime),
              LATEVARS,
              is_be12search?' ':'\n');
       printed++;
@@ -267,7 +365,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // fine.
     coinovbr->GetEntry(i);
     fido_qivbr->GetEntry(i);
-    fido_qidbr->GetEntry(i);
+    fido_didfitbr->GetEntry(i);
     ctEvisIDbr->GetEntry(i);
 
     if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
@@ -275,6 +373,20 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     if(bits.fido_qiv > 5000 && bits.ctEvisID > 60)
       lastgcmuontime = bits.trgtime;
+
+    if(bits.fido_didfit){
+      fido_entrxbr->GetEntry(i);
+      fido_entrybr->GetEntry(i);
+      fido_entrzbr->GetEntry(i);
+      fido_endxbr ->GetEntry(i);
+      fido_endybr ->GetEntry(i);
+      fido_endzbr ->GetEntry(i);
+
+      tmuons.push_back(maketrack(
+        bits.fido_entrx, bits.fido_entry, bits.fido_entrz,
+        bits.fido_endx, bits.fido_endy, bits.fido_endz,
+        bits.trgtime));
+    }
 
     // Note the time of this even if it is valid, which for me means
     // not light noise and at least 0.4 MeV
@@ -470,7 +582,7 @@ int main(int argc, char ** argv)
   fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
 
   // NOTE-luckplan
-  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:"
+  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:"
          "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
          "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
@@ -562,6 +674,13 @@ int main(int argc, char ** argv)
     cSBA(fido_nivtubes);
     cSBA(fido_qiv);
     cSBA(fido_qid);
+    cSBA(fido_didfit);
+    cSBA(fido_entrx);
+    cSBA(fido_entry);
+    cSBA(fido_entrz);
+    cSBA(fido_endx);
+    cSBA(fido_endy);
+    cSBA(fido_endz);
     cSBA(ctq);
     cSBA(ctqIV);
     cSBA(deltaT);
