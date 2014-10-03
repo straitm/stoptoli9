@@ -149,7 +149,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double ix[2], iy[2], iz[2];
 
   double lastmuontime = mutime, lastgcmuontime = mutime,
-         lastHEmuontime = mutime, lastvalidtime = mutime;
+         lastvalidtime = mutime;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
 #ifdef MULTIRUNFILES
@@ -164,7 +164,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const double ttlastvalid =(itime-lastvalidtime  )/1e6;
     const double ttlastmuon  =(itime-lastmuontime   )/1e6;
     const double ttlastgcmuon=(itime-lastgcmuontime )/1e6;
-    const double ttlastHEmuon=(itime-lastHEmuontime )/1e6;
 
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
@@ -196,7 +195,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                deadtime, nondeadenergy, michdist, \
                mufqid, mufqiv, muctqid, muctqiv, \
                timeleft, ttlastvalid, ttlastmuon, \
-               ttlastgcmuon, ttlastHEmuon
+               ttlastgcmuon
               LATEVARS);
       break;
     }
@@ -276,9 +275,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     if(bits.fido_qiv > 5000 && bits.ctEvisID > 60)
       lastgcmuontime = bits.trgtime;
-
-    if(bits.fido_qiv > 5000 && bits.fido_qid/8300 > 700)
-      lastHEmuontime = bits.trgtime;
 
     // Note the time of this even if it is valid, which for me means
     // not light noise and at least 0.4 MeV
@@ -480,7 +476,7 @@ int main(int argc, char ** argv)
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
          "fex/F:fey/F:fez/F:deadt/F:"
          "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
-         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:ttlastHEmuon/F"
+         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F"
          "\n");
 
   for(int i = 4; i < argc; i+=2){
