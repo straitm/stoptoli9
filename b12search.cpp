@@ -770,6 +770,9 @@ static float getlike(const float dist, const int nneut)
   //value of background joint-pdf
   const float bkgtot  = bkgnn*bkgdist;
 
+  // I think this number is pretty meaningless, since it is tuned for
+  // the amount of li-9 and IBD, but maybe as long as the results are
+  // reasonable spread between 0 and 1, it is ok.
   const float prior_ratio  = 1/(17.7 * 10.5 * maxdtmu * 1e-9); 
 
   //multiply by prior probabilities
