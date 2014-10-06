@@ -11,6 +11,7 @@ using std::vector;
 #include "TTree.h"
 #include "TFile.h"
 #include "TError.h"
+#include "TH1.h"
 
 #include "search.h"
 
@@ -26,11 +27,12 @@ struct cart{
 struct track{
   float x0, y0, z0, x1, y1, z1;
   double tim;
+  int nn;
 };
 
 static track maketrack(const float x0, const float y0, const float z0,
                        const float x1, const float y1, const float z1,
-                       const float tim)
+                       const float tim, const int nn)
 {
   track t;
   t.x0 = x0;
@@ -40,6 +42,7 @@ static track maketrack(const float x0, const float y0, const float z0,
   t.y1 = y1;
   t.z1 = z1;
   t.tim = tim;
+  t.nn = nn;
   return t;
 }
 
@@ -89,18 +92,772 @@ static float ptol(const track & t, const float x, const float y,
               pow(closest_app.z - point.z, 2));
 }
 
-static float lb12like(const vector<track> & ts, const float x,
-                      const float y, const float z, const float dtim)
+static TH1D *numNeutrons_sig = new TH1D("numNeutrons_sig","signal pdf for neutron multiplicity",100,0,100);
+static TH1D *muondist_sig = new TH1D("muondist_sig","signal pdf for muon distance to prompt",100,0,5000);
+static TH1D *muondist_bkg = new TH1D("muondist_bkg","background pdf for muon distance to prompt",100,0,5000);
+static TH1D *numNeutrons_bkg = new TH1D("numNeutrons_bkg","background pdf for neutron multiplicity",100,0,100);
+
+static bool makelikehists()
 {
-  float llike = -1000;
-  for(unsigned int i = 0; i < ts.size(); i++){
-    const float dist = ptol(ts[i], x, y, z);
-    const double dt_ns = dtim - ts[i].tim;
-    const float thisllike = (-dist/690.) /* econover thesis */
-                          + (-dt_ns*log(2)/20.20e6);
-    if(thisllike > llike) llike = thisllike;
+  numNeutrons_sig->SetBinContent(1,0.472182);
+  numNeutrons_sig->SetBinContent(2,0.121737);
+  numNeutrons_sig->SetBinContent(3,0.0680238);
+  numNeutrons_sig->SetBinContent(4,0.042191);
+  numNeutrons_sig->SetBinContent(5,0.0321467);
+  numNeutrons_sig->SetBinContent(6,0.0265928);
+  numNeutrons_sig->SetBinContent(7,0.0219013);
+  numNeutrons_sig->SetBinContent(8,0.0178575);
+  numNeutrons_sig->SetBinContent(9,0.0155109);
+  numNeutrons_sig->SetBinContent(10,0.0136559);
+  numNeutrons_sig->SetBinContent(11,0.0117729);
+  numNeutrons_sig->SetBinContent(12,0.0100698);
+  numNeutrons_sig->SetBinContent(13,0.00962837);
+  numNeutrons_sig->SetBinContent(14,0.00815992);
+  numNeutrons_sig->SetBinContent(15,0.00779329);
+  numNeutrons_sig->SetBinContent(16,0.00677208);
+  numNeutrons_sig->SetBinContent(17,0.0067463);
+  numNeutrons_sig->SetBinContent(18,0.00669468);
+  numNeutrons_sig->SetBinContent(19,0.00511838);
+  numNeutrons_sig->SetBinContent(20,0.00501392);
+  numNeutrons_sig->SetBinContent(21,0.0047788);
+  numNeutrons_sig->SetBinContent(22,0.00506879);
+  numNeutrons_sig->SetBinContent(23,0.00459626);
+  numNeutrons_sig->SetBinContent(24,0.00393987);
+  numNeutrons_sig->SetBinContent(25,0.00362445);
+  numNeutrons_sig->SetBinContent(26,0.00299376);
+  numNeutrons_sig->SetBinContent(27,0.00328325);
+  numNeutrons_sig->SetBinContent(28,0.00288926);
+  numNeutrons_sig->SetBinContent(29,0.00199572);
+  numNeutrons_sig->SetBinContent(30,0.0025481);
+  numNeutrons_sig->SetBinContent(31,0.00254815);
+  numNeutrons_sig->SetBinContent(32,0.00223273);
+  numNeutrons_sig->SetBinContent(33,0.00186534);
+  numNeutrons_sig->SetBinContent(34,0.00170763);
+  numNeutrons_sig->SetBinContent(35,0.00181245);
+  numNeutrons_sig->SetBinContent(36,0.0015763);
+  numNeutrons_sig->SetBinContent(37,0.00183914);
+  numNeutrons_sig->SetBinContent(38,0.00136589);
+  numNeutrons_sig->SetBinContent(39,0.00131332);
+  numNeutrons_sig->SetBinContent(40,0.00128749);
+  numNeutrons_sig->SetBinContent(41,0.00118208);
+  numNeutrons_sig->SetBinContent(42,0.000945698);
+  numNeutrons_sig->SetBinContent(43,0.000604091);
+  numNeutrons_sig->SetBinContent(44,0.000604091);
+  numNeutrons_sig->SetBinContent(45,0.000604091);
+  numNeutrons_sig->SetBinContent(46,0.000604091);
+  numNeutrons_sig->SetBinContent(47,0.000604091);
+  numNeutrons_sig->SetBinContent(48,0.000604091);
+  numNeutrons_sig->SetBinContent(49,0.000604091);
+  numNeutrons_sig->SetBinContent(50,0.000604091);
+  numNeutrons_sig->SetBinContent(51,0.000604091);
+  numNeutrons_sig->SetBinContent(52,0.000604091);
+  numNeutrons_sig->SetBinContent(53,0.000604091);
+  numNeutrons_sig->SetBinContent(54,0.000604091);
+  numNeutrons_sig->SetBinContent(55,0.000604091);
+  numNeutrons_sig->SetBinContent(56,0.000604091);
+  numNeutrons_sig->SetBinContent(57,0.000604091);
+  numNeutrons_sig->SetBinContent(58,0.000604091);
+  numNeutrons_sig->SetBinContent(59,0.000604091);
+  numNeutrons_sig->SetBinContent(60,0.000604091);
+  numNeutrons_sig->SetBinContent(61,0.000604091);
+  numNeutrons_sig->SetBinContent(62,0.000604091);
+  numNeutrons_sig->SetBinContent(63,0.000604091);
+  numNeutrons_sig->SetBinContent(64,0.000604091);
+  numNeutrons_sig->SetBinContent(65,0.000604091);
+  numNeutrons_sig->SetBinContent(66,0.000604091);
+  numNeutrons_sig->SetBinContent(67,0.000604091);
+  numNeutrons_sig->SetBinContent(68,0.000604091);
+  numNeutrons_sig->SetBinContent(69,0.000604091);
+  numNeutrons_sig->SetBinContent(70,0.000604091);
+  numNeutrons_sig->SetBinContent(71,0.000604091);
+  numNeutrons_sig->SetBinContent(72,0.000604091);
+  numNeutrons_sig->SetBinContent(73,0.000604091);
+  numNeutrons_sig->SetBinContent(74,0.000604091);
+  numNeutrons_sig->SetBinContent(75,0.000604091);
+  numNeutrons_sig->SetBinContent(76,0.000604091);
+  numNeutrons_sig->SetBinContent(77,0.000604091);
+  numNeutrons_sig->SetBinContent(78,0.000604091);
+  numNeutrons_sig->SetBinContent(79,0.000604091);
+  numNeutrons_sig->SetBinContent(80,0.000604091);
+  numNeutrons_sig->SetBinContent(81,0.000604091);
+  numNeutrons_sig->SetBinContent(82,0.000604091);
+  numNeutrons_sig->SetBinContent(83,0.000604091);
+  numNeutrons_sig->SetBinContent(84,0.000604091);
+  numNeutrons_sig->SetBinContent(85,0.000604091);
+  numNeutrons_sig->SetBinContent(86,0.000604091);
+  numNeutrons_sig->SetBinContent(87,0.000604091);
+  numNeutrons_sig->SetBinContent(88,0.000604091);
+  numNeutrons_sig->SetBinContent(89,0.000604091);
+  numNeutrons_sig->SetBinContent(90,0.000604091);
+  numNeutrons_sig->SetBinContent(91,0.000604091);
+  numNeutrons_sig->SetBinContent(92,0.000604091);
+  numNeutrons_sig->SetBinContent(93,0.000604091);
+  numNeutrons_sig->SetBinContent(94,0.000604091);
+  numNeutrons_sig->SetBinContent(95,0.000604091);
+  numNeutrons_sig->SetBinContent(96,0.000604091);
+  numNeutrons_sig->SetBinContent(97,0.000604091);
+  numNeutrons_sig->SetBinContent(98,0.000604091);
+  numNeutrons_sig->SetBinContent(99,0.000604091);
+  numNeutrons_sig->SetBinContent(100,0.000604091);
+  numNeutrons_sig->SetBinError(1,0.00807567);
+  numNeutrons_sig->SetBinError(2,0.00188551);
+  numNeutrons_sig->SetBinError(3,0.00135412);
+  numNeutrons_sig->SetBinError(4,0.00106088);
+  numNeutrons_sig->SetBinError(5,0.000923336);
+  numNeutrons_sig->SetBinError(6,0.000838639);
+  numNeutrons_sig->SetBinError(7,0.000760437);
+  numNeutrons_sig->SetBinError(8,0.000686424);
+  numNeutrons_sig->SetBinError(9,0.00063953);
+  numNeutrons_sig->SetBinError(10,0.000599955);
+  numNeutrons_sig->SetBinError(11,0.000556959);
+  numNeutrons_sig->SetBinError(12,0.000515069);
+  numNeutrons_sig->SetBinError(13,0.000503539);
+  numNeutrons_sig->SetBinError(14,0.000463532);
+  numNeutrons_sig->SetBinError(15,0.000452979);
+  numNeutrons_sig->SetBinError(16,0.000422191);
+  numNeutrons_sig->SetBinError(17,0.000421372);
+  numNeutrons_sig->SetBinError(18,0.000419729);
+  numNeutrons_sig->SetBinError(19,0.000367043);
+  numNeutrons_sig->SetBinError(20,0.000363259);
+  numNeutrons_sig->SetBinError(21,0.000354597);
+  numNeutrons_sig->SetBinError(22,0.000365156);
+  numNeutrons_sig->SetBinError(23,0.000347711);
+  numNeutrons_sig->SetBinError(24,0.000321918);
+  numNeutrons_sig->SetBinError(25,0.000308773);
+  numNeutrons_sig->SetBinError(26,0.000280641);
+  numNeutrons_sig->SetBinError(27,0.000293869);
+  numNeutrons_sig->SetBinError(28,0.000275674);
+  numNeutrons_sig->SetBinError(29,0.000229143);
+  numNeutrons_sig->SetBinError(30,0.000258872);
+  numNeutrons_sig->SetBinError(31,0.000258872);
+  numNeutrons_sig->SetBinError(32,0.000242331);
+  numNeutrons_sig->SetBinError(33,0.000221477);
+  numNeutrons_sig->SetBinError(34,0.000211912);
+  numNeutrons_sig->SetBinError(35,0.000218335);
+  numNeutrons_sig->SetBinError(36,0.000203599);
+  numNeutrons_sig->SetBinError(37,0.000219912);
+  numNeutrons_sig->SetBinError(38,0.00018954);
+  numNeutrons_sig->SetBinError(39,0.000185859);
+  numNeutrons_sig->SetBinError(40,0.000183991);
+  numNeutrons_sig->SetBinError(41,0.000176322);
+  numNeutrons_sig->SetBinError(42,0.000157707);
+  numNeutrons_sig->SetBinError(43,0.000126056);
+  numNeutrons_sig->SetEntries(12013.9);
+  numNeutrons_sig->GetXaxis()->SetTitle("number of neutrons ");
+  numNeutrons_sig->GetYaxis()->SetTitle("events");
+
+  muondist_sig->SetBinContent(1,0.0405368);
+  muondist_sig->SetBinContent(2,0.0996113);
+  muondist_sig->SetBinContent(3,0.113459);
+  muondist_sig->SetBinContent(4,0.098744);
+  muondist_sig->SetBinContent(5,0.0761948);
+  muondist_sig->SetBinContent(6,0.0559451);
+  muondist_sig->SetBinContent(7,0.0436028);
+  muondist_sig->SetBinContent(8,0.0377785);
+  muondist_sig->SetBinContent(9,0.0315165);
+  muondist_sig->SetBinContent(10,0.0292702);
+  muondist_sig->SetBinContent(11,0.0260321);
+  muondist_sig->SetBinContent(12,0.0260774);
+  muondist_sig->SetBinContent(13,0.0242399);
+  muondist_sig->SetBinContent(14,0.0229207);
+  muondist_sig->SetBinContent(15,0.018592);
+  muondist_sig->SetBinContent(16,0.0196051);
+  muondist_sig->SetBinContent(17,0.0205155);
+  muondist_sig->SetBinContent(18,0.0165831);
+  muondist_sig->SetBinContent(19,0.0160644);
+  muondist_sig->SetBinContent(20,0.0173723);
+  muondist_sig->SetBinContent(21,0.0128423);
+  muondist_sig->SetBinContent(22,0.0113273);
+  muondist_sig->SetBinContent(23,0.0101852);
+  muondist_sig->SetBinContent(24,0.0106873);
+  muondist_sig->SetBinContent(25,0.011475);
+  muondist_sig->SetBinContent(26,0.00981208);
+  muondist_sig->SetBinContent(27,0.00985943);
+  muondist_sig->SetBinContent(28,0.00464216);
+  muondist_sig->SetBinContent(29,0.00856952);
+  muondist_sig->SetBinContent(30,0.00564496);
+  muondist_sig->SetBinContent(31,0.00777393);
+  muondist_sig->SetBinContent(32,0.00572662);
+  muondist_sig->SetBinContent(33,0.00332412);
+  muondist_sig->SetBinContent(34,0.00488976);
+  muondist_sig->SetBinContent(35,0.00278151);
+  muondist_sig->SetBinContent(36,0.00507715);
+  muondist_sig->SetBinContent(37,0.00513137);
+  muondist_sig->SetBinContent(38,0.00370988);
+  muondist_sig->SetBinContent(39,0.00176201);
+  muondist_sig->SetBinContent(40,0.00262061);
+  muondist_sig->SetBinContent(41,0.00277191);
+  muondist_sig->SetBinContent(43,0.00265106);
+  muondist_sig->SetBinContent(44,0.0016982);
+  muondist_sig->SetBinContent(45,0.00204477);
+  muondist_sig->SetBinContent(46,8.69766e-05);
+  muondist_sig->SetBinContent(47,0.000252734);
+  muondist_sig->SetBinContent(48,0.00338045);
+  muondist_sig->SetBinContent(49,0.000706991);
+  muondist_sig->SetBinContent(50,0.000313267);
+  muondist_sig->SetBinContent(51,0.00108307);
+  muondist_sig->SetBinContent(54,0.00106081);
+  muondist_sig->SetBinContent(55,0.000671631);
+  muondist_sig->SetBinContent(56,0.000875449);
+  muondist_sig->SetBinContent(57,0.000830845);
+  muondist_sig->SetBinContent(58,0.00181829);
+  muondist_sig->SetBinContent(59,0.000521821);
+  muondist_sig->SetBinContent(60,0.000844004);
+  muondist_sig->SetBinContent(62,0.000684597);
+  muondist_sig->SetBinContent(65,0.00040473);
+  muondist_sig->SetBinContent(66,8.61094e-06);
+  muondist_sig->SetBinContent(70,0.000170859);
+  muondist_sig->SetBinContent(71,0.000153828);
+  muondist_sig->SetBinContent(72,0.000153828);
+  muondist_sig->SetBinContent(73,0.000153828);
+  muondist_sig->SetBinContent(74,0.000153828);
+  muondist_sig->SetBinContent(75,0.000153828);
+  muondist_sig->SetBinContent(76,0.000153828);
+  muondist_sig->SetBinContent(77,0.000153828);
+  muondist_sig->SetBinContent(78,0.000153828);
+  muondist_sig->SetBinContent(79,0.000153828);
+  muondist_sig->SetBinContent(80,0.000153828);
+  muondist_sig->SetBinContent(81,0.000153828);
+  muondist_sig->SetBinContent(82,0.000153828);
+  muondist_sig->SetBinContent(83,0.000153828);
+  muondist_sig->SetBinContent(84,0.000153828);
+  muondist_sig->SetBinContent(85,0.000153828);
+  muondist_sig->SetBinContent(86,0.000153828);
+  muondist_sig->SetBinContent(87,0.000153828);
+  muondist_sig->SetBinContent(88,0.000153828);
+  muondist_sig->SetBinContent(89,0.000153828);
+  muondist_sig->SetBinContent(90,0.000153828);
+  muondist_sig->SetBinContent(91,0.000153828);
+  muondist_sig->SetBinContent(92,0.000153828);
+  muondist_sig->SetBinContent(93,0.000153828);
+  muondist_sig->SetBinContent(94,0.000153828);
+  muondist_sig->SetBinContent(95,0.000153828);
+  muondist_sig->SetBinContent(96,0.000153828);
+  muondist_sig->SetBinContent(97,0.000153828);
+  muondist_sig->SetBinContent(98,0.000153828);
+  muondist_sig->SetBinContent(99,0.000153828);
+  muondist_sig->SetBinContent(100,0.000153828);
+  muondist_sig->SetBinContent(101,-9.70326e-07);
+  muondist_sig->SetBinError(1,0.00105894);
+  muondist_sig->SetBinError(2,0.00166514);
+  muondist_sig->SetBinError(3,0.00179109);
+  muondist_sig->SetBinError(4,0.00169553);
+  muondist_sig->SetBinError(5,0.00152662);
+  muondist_sig->SetBinError(6,0.00136011);
+  muondist_sig->SetBinError(7,0.00125683);
+  muondist_sig->SetBinError(8,0.00121802);
+  muondist_sig->SetBinError(9,0.00117332);
+  muondist_sig->SetBinError(10,0.00117368);
+  muondist_sig->SetBinError(11,0.00116351);
+  muondist_sig->SetBinError(12,0.00119028);
+  muondist_sig->SetBinError(13,0.00119487);
+  muondist_sig->SetBinError(14,0.00120666);
+  muondist_sig->SetBinError(15,0.00118218);
+  muondist_sig->SetBinError(16,0.00121837);
+  muondist_sig->SetBinError(17,0.00125032);
+  muondist_sig->SetBinError(18,0.00122878);
+  muondist_sig->SetBinError(19,0.00124344);
+  muondist_sig->SetBinError(20,0.00127476);
+  muondist_sig->SetBinError(21,0.00124292);
+  muondist_sig->SetBinError(22,0.00124323);
+  muondist_sig->SetBinError(23,0.00124326);
+  muondist_sig->SetBinError(24,0.0012606);
+  muondist_sig->SetBinError(25,0.00127969);
+  muondist_sig->SetBinError(26,0.00127091);
+  muondist_sig->SetBinError(27,0.0012783);
+  muondist_sig->SetBinError(28,0.00122694);
+  muondist_sig->SetBinError(29,0.00127321);
+  muondist_sig->SetBinError(30,0.00124421);
+  muondist_sig->SetBinError(31,0.00126781);
+  muondist_sig->SetBinError(32,0.00124654);
+  muondist_sig->SetBinError(33,0.00121838);
+  muondist_sig->SetBinError(34,0.00123165);
+  muondist_sig->SetBinError(35,0.00120223);
+  muondist_sig->SetBinError(36,0.00122013);
+  muondist_sig->SetBinError(37,0.00121149);
+  muondist_sig->SetBinError(38,0.00118553);
+  muondist_sig->SetBinError(39,0.00115149);
+  muondist_sig->SetBinError(40,0.001148);
+  muondist_sig->SetBinError(41,0.00113563);
+  muondist_sig->SetBinError(43,0.00110066);
+  muondist_sig->SetBinError(44,0.00107066);
+  muondist_sig->SetBinError(45,0.00105395);
+  muondist_sig->SetBinError(46,0.00100619);
+  muondist_sig->SetBinError(47,0.000984358);
+  muondist_sig->SetBinError(48,0.00100179);
+  muondist_sig->SetBinError(49,0.000937238);
+  muondist_sig->SetBinError(50,0.000902209);
+  muondist_sig->SetBinError(51,0.000883124);
+  muondist_sig->SetBinError(54,0.000778525);
+  muondist_sig->SetBinError(55,0.000734502);
+  muondist_sig->SetBinError(56,0.000700171);
+  muondist_sig->SetBinError(57,0.000660247);
+  muondist_sig->SetBinError(58,0.000645235);
+  muondist_sig->SetBinError(59,0.000581528);
+  muondist_sig->SetBinError(60,0.000554747);
+  muondist_sig->SetBinError(62,0.000483615);
+  muondist_sig->SetBinError(65,0.0003796);
+  muondist_sig->SetBinError(66,0.000332868);
+  muondist_sig->SetBinError(70,0.000225135);
+  muondist_sig->SetBinError(71,0.000197736);
+  muondist_sig->SetBinError(101,2.11742e-07);
+  muondist_sig->SetEntries(12178.7);
+  muondist_sig->GetXaxis()->SetTitle("distance from mu [mm]");
+  muondist_sig->GetYaxis()->SetTitle("events");
+
+  numNeutrons_bkg->SetBinContent(1,0.991708);
+  numNeutrons_bkg->SetBinContent(2,0.00667387);
+  numNeutrons_bkg->SetBinContent(3,0.000858013);
+  numNeutrons_bkg->SetBinContent(4,0.000309747);
+  numNeutrons_bkg->SetBinContent(5,0.000142589);
+  numNeutrons_bkg->SetBinContent(6,8.15017e-05);
+  numNeutrons_bkg->SetBinContent(7,4.88698e-05);
+  numNeutrons_bkg->SetBinContent(8,3.38604e-05);
+  numNeutrons_bkg->SetBinContent(9,2.44572e-05);
+  numNeutrons_bkg->SetBinContent(10,1.89181e-05);
+  numNeutrons_bkg->SetBinContent(11,1.425e-05);
+  numNeutrons_bkg->SetBinContent(12,1.15697e-05);
+  numNeutrons_bkg->SetBinContent(13,8.91181e-06);
+  numNeutrons_bkg->SetBinContent(14,7.19199e-06);
+  numNeutrons_bkg->SetBinContent(15,6.52193e-06);
+  numNeutrons_bkg->SetBinContent(16,4.60109e-06);
+  numNeutrons_bkg->SetBinContent(17,4.3554e-06);
+  numNeutrons_bkg->SetBinContent(18,3.88635e-06);
+  numNeutrons_bkg->SetBinContent(19,3.50665e-06);
+  numNeutrons_bkg->SetBinContent(20,3.17162e-06);
+  numNeutrons_bkg->SetBinContent(21,2.45689e-06);
+  numNeutrons_bkg->SetBinContent(22,2.03252e-06);
+  numNeutrons_bkg->SetBinContent(23,1.74216e-06);
+  numNeutrons_bkg->SetBinContent(24,1.38479e-06);
+  numNeutrons_bkg->SetBinContent(25,1.38479e-06);
+  numNeutrons_bkg->SetBinContent(26,1.31779e-06);
+  numNeutrons_bkg->SetBinContent(27,1.1391e-06);
+  numNeutrons_bkg->SetBinContent(28,1.00509e-06);
+  numNeutrons_bkg->SetBinContent(29,9.38085e-07);
+  numNeutrons_bkg->SetBinContent(30,7.37067e-07);
+  numNeutrons_bkg->SetBinContent(31,7.14732e-07);
+  numNeutrons_bkg->SetBinContent(32,7.14732e-07);
+  numNeutrons_bkg->SetBinContent(33,4.24372e-07);
+  numNeutrons_bkg->SetBinContent(34,4.24372e-07);
+  numNeutrons_bkg->SetBinContent(35,5.8072e-07);
+  numNeutrons_bkg->SetBinContent(36,3.79701e-07);
+  numNeutrons_bkg->SetBinContent(37,3.79701e-07);
+  numNeutrons_bkg->SetBinContent(38,4.46707e-07);
+  numNeutrons_bkg->SetBinContent(39,4.46707e-07);
+  numNeutrons_bkg->SetBinContent(40,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(41,3.57366e-07);
+  numNeutrons_bkg->SetBinContent(42,2.68024e-07);
+  numNeutrons_bkg->SetBinContent(43,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(44,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(45,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(46,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(47,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(48,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(49,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(50,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(51,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(52,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(53,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(54,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(55,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(56,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(57,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(58,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(59,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(60,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(61,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(62,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(63,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(64,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(65,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(66,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(67,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(68,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(69,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(70,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(71,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(72,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(73,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(74,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(75,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(76,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(77,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(78,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(79,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(80,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(81,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(82,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(83,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(84,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(85,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(86,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(87,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(88,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(89,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(90,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(91,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(92,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(93,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(94,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(95,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(96,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(97,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(98,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(99,2.23354e-07);
+  numNeutrons_bkg->SetBinContent(100,2.23354e-07);
+  numNeutrons_bkg->SetBinError(1,0.000148829);
+  numNeutrons_bkg->SetBinError(2,1.22092e-05);
+  numNeutrons_bkg->SetBinError(3,4.37767e-06);
+  numNeutrons_bkg->SetBinError(4,2.63027e-06);
+  numNeutrons_bkg->SetBinError(5,1.78459e-06);
+  numNeutrons_bkg->SetBinError(6,1.34921e-06);
+  numNeutrons_bkg->SetBinError(7,1.04476e-06);
+  numNeutrons_bkg->SetBinError(8,8.69646e-07);
+  numNeutrons_bkg->SetBinError(9,7.39095e-07);
+  numNeutrons_bkg->SetBinError(10,6.50032e-07);
+  numNeutrons_bkg->SetBinError(11,5.64161e-07);
+  numNeutrons_bkg->SetBinError(12,5.08344e-07);
+  numNeutrons_bkg->SetBinError(13,4.46149e-07);
+  numNeutrons_bkg->SetBinError(14,4.00794e-07);
+  numNeutrons_bkg->SetBinError(15,3.81667e-07);
+  numNeutrons_bkg->SetBinError(16,3.20573e-07);
+  numNeutrons_bkg->SetBinError(17,3.11896e-07);
+  numNeutrons_bkg->SetBinError(18,2.94624e-07);
+  numNeutrons_bkg->SetBinError(19,2.79861e-07);
+  numNeutrons_bkg->SetBinError(20,2.66157e-07);
+  numNeutrons_bkg->SetBinError(21,2.34255e-07);
+  numNeutrons_bkg->SetBinError(22,2.13066e-07);
+  numNeutrons_bkg->SetBinError(23,1.97261e-07);
+  numNeutrons_bkg->SetBinError(24,1.75869e-07);
+  numNeutrons_bkg->SetBinError(25,1.75869e-07);
+  numNeutrons_bkg->SetBinError(26,1.71561e-07);
+  numNeutrons_bkg->SetBinError(27,1.59506e-07);
+  numNeutrons_bkg->SetBinError(28,1.4983e-07);
+  numNeutrons_bkg->SetBinError(29,1.4475e-07);
+  numNeutrons_bkg->SetBinError(30,1.28307e-07);
+  numNeutrons_bkg->SetBinError(31,1.26348e-07);
+  numNeutrons_bkg->SetBinError(32,1.26348e-07);
+  numNeutrons_bkg->SetBinError(33,9.73576e-08);
+  numNeutrons_bkg->SetBinError(34,9.73576e-08);
+  numNeutrons_bkg->SetBinError(35,1.13888e-07);
+  numNeutrons_bkg->SetBinError(36,9.20911e-08);
+  numNeutrons_bkg->SetBinError(37,9.20911e-08);
+  numNeutrons_bkg->SetBinError(38,9.98868e-08);
+  numNeutrons_bkg->SetBinError(39,9.98868e-08);
+  numNeutrons_bkg->SetBinError(40,7.06306e-08);
+  numNeutrons_bkg->SetBinError(41,8.93415e-08);
+  numNeutrons_bkg->SetBinError(42,7.7372e-08);
+  numNeutrons_bkg->SetBinError(43,7.06306e-08);
+  numNeutrons_bkg->SetEntries(4.47716e+07);
+  numNeutrons_bkg->GetXaxis()->SetTitle("number of neutrons ");
+  numNeutrons_bkg->GetYaxis()->SetTitle("events");
+
+  muondist_bkg->SetBinContent(1,0.000554406);
+  muondist_bkg->SetBinContent(2,0.00166561);
+  muondist_bkg->SetBinContent(3,0.00277728);
+  muondist_bkg->SetBinContent(4,0.0038804);
+  muondist_bkg->SetBinContent(5,0.0049752);
+  muondist_bkg->SetBinContent(6,0.00610167);
+  muondist_bkg->SetBinContent(7,0.00718865);
+  muondist_bkg->SetBinContent(8,0.00825752);
+  muondist_bkg->SetBinContent(9,0.00934276);
+  muondist_bkg->SetBinContent(10,0.0104235);
+  muondist_bkg->SetBinContent(11,0.0115412);
+  muondist_bkg->SetBinContent(12,0.0126318);
+  muondist_bkg->SetBinContent(13,0.0136971);
+  muondist_bkg->SetBinContent(14,0.0148229);
+  muondist_bkg->SetBinContent(15,0.0158454);
+  muondist_bkg->SetBinContent(16,0.0168978);
+  muondist_bkg->SetBinContent(17,0.0178583);
+  muondist_bkg->SetBinContent(18,0.018782);
+  muondist_bkg->SetBinContent(19,0.0196678);
+  muondist_bkg->SetBinContent(20,0.0204393);
+  muondist_bkg->SetBinContent(21,0.0211741);
+  muondist_bkg->SetBinContent(22,0.0219072);
+  muondist_bkg->SetBinContent(23,0.0224502);
+  muondist_bkg->SetBinContent(24,0.0229785);
+  muondist_bkg->SetBinContent(25,0.0234604);
+  muondist_bkg->SetBinContent(26,0.0238548);
+  muondist_bkg->SetBinContent(27,0.0241646);
+  muondist_bkg->SetBinContent(28,0.0243697);
+  muondist_bkg->SetBinContent(29,0.0245478);
+  muondist_bkg->SetBinContent(30,0.0246471);
+  muondist_bkg->SetBinContent(31,0.0246832);
+  muondist_bkg->SetBinContent(32,0.0247106);
+  muondist_bkg->SetBinContent(33,0.0246256);
+  muondist_bkg->SetBinContent(34,0.0244565);
+  muondist_bkg->SetBinContent(35,0.0241933);
+  muondist_bkg->SetBinContent(36,0.0238688);
+  muondist_bkg->SetBinContent(37,0.0234723);
+  muondist_bkg->SetBinContent(38,0.0230488);
+  muondist_bkg->SetBinContent(39,0.0225687);
+  muondist_bkg->SetBinContent(40,0.0220199);
+  muondist_bkg->SetBinContent(41,0.0214494);
+  muondist_bkg->SetBinContent(42,0.0207921);
+  muondist_bkg->SetBinContent(43,0.0201262);
+  muondist_bkg->SetBinContent(44,0.0194287);
+  muondist_bkg->SetBinContent(45,0.0186376);
+  muondist_bkg->SetBinContent(46,0.0178299);
+  muondist_bkg->SetBinContent(47,0.016984);
+  muondist_bkg->SetBinContent(48,0.0161106);
+  muondist_bkg->SetBinContent(49,0.0151701);
+  muondist_bkg->SetBinContent(50,0.0142196);
+  muondist_bkg->SetBinContent(51,0.0132528);
+  muondist_bkg->SetBinContent(52,0.0122223);
+  muondist_bkg->SetBinContent(53,0.0112217);
+  muondist_bkg->SetBinContent(54,0.0101954);
+  muondist_bkg->SetBinContent(55,0.00920432);
+  muondist_bkg->SetBinContent(56,0.00823815);
+  muondist_bkg->SetBinContent(57,0.0073006);
+  muondist_bkg->SetBinContent(58,0.00648598);
+  muondist_bkg->SetBinContent(59,0.00572176);
+  muondist_bkg->SetBinContent(60,0.00503168);
+  muondist_bkg->SetBinContent(61,0.00439957);
+  muondist_bkg->SetBinContent(62,0.00380356);
+  muondist_bkg->SetBinContent(63,0.00326258);
+  muondist_bkg->SetBinContent(64,0.00278945);
+  muondist_bkg->SetBinContent(65,0.00235148);
+  muondist_bkg->SetBinContent(66,0.00195177);
+  muondist_bkg->SetBinContent(67,0.00160316);
+  muondist_bkg->SetBinContent(68,0.00129723);
+  muondist_bkg->SetBinContent(69,0.00103706);
+  muondist_bkg->SetBinContent(70,0.000813606);
+  muondist_bkg->SetBinContent(71,0.000617169);
+  muondist_bkg->SetBinContent(72,0.000617169);
+  muondist_bkg->SetBinContent(73,0.000617169);
+  muondist_bkg->SetBinContent(74,0.000617169);
+  muondist_bkg->SetBinContent(75,0.000617169);
+  muondist_bkg->SetBinContent(76,0.000617169);
+  muondist_bkg->SetBinContent(77,0.000617169);
+  muondist_bkg->SetBinContent(78,0.000617169);
+  muondist_bkg->SetBinContent(79,0.000617169);
+  muondist_bkg->SetBinContent(80,0.000617169);
+  muondist_bkg->SetBinContent(81,0.000617169);
+  muondist_bkg->SetBinContent(82,0.000617169);
+  muondist_bkg->SetBinContent(83,0.000617169);
+  muondist_bkg->SetBinContent(84,0.000617169);
+  muondist_bkg->SetBinContent(85,0.000617169);
+  muondist_bkg->SetBinContent(86,0.000617169);
+  muondist_bkg->SetBinContent(87,0.000617169);
+  muondist_bkg->SetBinContent(88,0.000617169);
+  muondist_bkg->SetBinContent(89,0.000617169);
+  muondist_bkg->SetBinContent(90,0.000617169);
+  muondist_bkg->SetBinContent(91,0.000617169);
+  muondist_bkg->SetBinContent(92,0.000617169);
+  muondist_bkg->SetBinContent(93,0.000617169);
+  muondist_bkg->SetBinContent(94,0.000617169);
+  muondist_bkg->SetBinContent(95,0.000617169);
+  muondist_bkg->SetBinContent(96,0.000617169);
+  muondist_bkg->SetBinContent(97,0.000617169);
+  muondist_bkg->SetBinContent(98,0.000617169);
+  muondist_bkg->SetBinContent(99,0.000617169);
+  muondist_bkg->SetBinContent(100,0.000617169);
+  muondist_bkg->SetBinContent(101,4.61328e-07);
+  muondist_bkg->SetBinError(1,3.48987e-06);
+  muondist_bkg->SetBinError(2,6.04898e-06);
+  muondist_bkg->SetBinError(3,7.81097e-06);
+  muondist_bkg->SetBinError(4,9.2328e-06);
+  muondist_bkg->SetBinError(5,1.04544e-05);
+  muondist_bkg->SetBinError(6,1.15776e-05);
+  muondist_bkg->SetBinError(7,1.25666e-05);
+  muondist_bkg->SetBinError(8,1.34685e-05);
+  muondist_bkg->SetBinError(9,1.43263e-05);
+  muondist_bkg->SetBinError(10,1.51322e-05);
+  muondist_bkg->SetBinError(11,1.59228e-05);
+  muondist_bkg->SetBinError(12,1.66582e-05);
+  muondist_bkg->SetBinError(13,1.73464e-05);
+  muondist_bkg->SetBinError(14,1.80452e-05);
+  muondist_bkg->SetBinError(15,1.86572e-05);
+  muondist_bkg->SetBinError(16,1.92668e-05);
+  muondist_bkg->SetBinError(17,1.98069e-05);
+  muondist_bkg->SetBinError(18,2.03126e-05);
+  muondist_bkg->SetBinError(19,2.07861e-05);
+  muondist_bkg->SetBinError(20,2.11899e-05);
+  muondist_bkg->SetBinError(21,2.15674e-05);
+  muondist_bkg->SetBinError(22,2.19375e-05);
+  muondist_bkg->SetBinError(23,2.22078e-05);
+  muondist_bkg->SetBinError(24,2.24675e-05);
+  muondist_bkg->SetBinError(25,2.2702e-05);
+  muondist_bkg->SetBinError(26,2.28919e-05);
+  muondist_bkg->SetBinError(27,2.30401e-05);
+  muondist_bkg->SetBinError(28,2.31377e-05);
+  muondist_bkg->SetBinError(29,2.32221e-05);
+  muondist_bkg->SetBinError(30,2.3269e-05);
+  muondist_bkg->SetBinError(31,2.3286e-05);
+  muondist_bkg->SetBinError(32,2.3299e-05);
+  muondist_bkg->SetBinError(33,2.32589e-05);
+  muondist_bkg->SetBinError(34,2.31789e-05);
+  muondist_bkg->SetBinError(35,2.30538e-05);
+  muondist_bkg->SetBinError(36,2.28987e-05);
+  muondist_bkg->SetBinError(37,2.27077e-05);
+  muondist_bkg->SetBinError(38,2.25019e-05);
+  muondist_bkg->SetBinError(39,2.22663e-05);
+  muondist_bkg->SetBinError(40,2.19939e-05);
+  muondist_bkg->SetBinError(41,2.17071e-05);
+  muondist_bkg->SetBinError(42,2.13719e-05);
+  muondist_bkg->SetBinError(43,2.1027e-05);
+  muondist_bkg->SetBinError(44,2.06594e-05);
+  muondist_bkg->SetBinError(45,2.02344e-05);
+  muondist_bkg->SetBinError(46,1.97911e-05);
+  muondist_bkg->SetBinError(47,1.93159e-05);
+  muondist_bkg->SetBinError(48,1.88127e-05);
+  muondist_bkg->SetBinError(49,1.82553e-05);
+  muondist_bkg->SetBinError(50,1.76742e-05);
+  muondist_bkg->SetBinError(51,1.70627e-05);
+  muondist_bkg->SetBinError(52,1.63859e-05);
+  muondist_bkg->SetBinError(53,1.57009e-05);
+  muondist_bkg->SetBinError(54,1.49657e-05);
+  muondist_bkg->SetBinError(55,1.42197e-05);
+  muondist_bkg->SetBinError(56,1.34527e-05);
+  muondist_bkg->SetBinError(57,1.26641e-05);
+  muondist_bkg->SetBinError(58,1.19367e-05);
+  muondist_bkg->SetBinError(59,1.12114e-05);
+  muondist_bkg->SetBinError(60,1.05136e-05);
+  muondist_bkg->SetBinError(61,9.83106e-06);
+  muondist_bkg->SetBinError(62,9.14093e-06);
+  muondist_bkg->SetBinError(63,8.46594e-06);
+  muondist_bkg->SetBinError(64,7.82807e-06);
+  muondist_bkg->SetBinError(65,7.18729e-06);
+  muondist_bkg->SetBinError(66,6.54801e-06);
+  muondist_bkg->SetBinError(67,5.93449e-06);
+  muondist_bkg->SetBinError(68,5.33831e-06);
+  muondist_bkg->SetBinError(69,4.77307e-06);
+  muondist_bkg->SetBinError(70,4.22768e-06);
+  muondist_bkg->SetBinError(71,3.68211e-06);
+  muondist_bkg->SetBinError(101,1.0067e-07);
+  muondist_bkg->SetEntries(4.47715e+07);
+  muondist_bkg->GetXaxis()->SetTitle("distance from mu [mm]");
+  muondist_bkg->GetYaxis()->SetTitle("events");
+  return true;
+}
+
+bool triggermakelikehists = makelikehists();
+
+static float pdf(float x, TH1D * const hist, const bool interpolate)
+{
+  const float histmax=hist->GetXaxis()->GetXmax();
+  const float histmin=hist->GetXaxis()->GetXmin();
+
+  if(x < histmin) x=histmin;
+  if(x > histmax) x=histmax;
+  
+  if(interpolate){
+    return hist->Interpolate(x);
   }
-  return llike;
+  else{
+    const int xbin = hist->FindBin(x);
+    return hist->GetBinContent(xbin);
+  }
+}
+
+// max dt to look for previous mus
+// Emily's official Li-9 likelihood time, scaled down to B-12
+static const double maxdtmu = 0.7e9 * 20.20 / 178.3;
+
+static float getlike(const float dist, const int nneut)
+{
+  //get the likelihood for the muon and event pair.
+
+  // don't interpolate with neutron multiplicity because it's an int
+  const float signn   = pdf(nneut, numNeutrons_sig, 0);
+  const float bkgnn   = pdf(nneut, numNeutrons_bkg, 0);
+
+  const float sigdist = pdf(dist,  muondist_sig, 1);
+  const float bkgdist = pdf(dist,  muondist_bkg, 1);
+
+  //value of signal joint-pdf
+  float sigtot  = signn*sigdist;
+  //value of background joint-pdf
+  const float bkgtot  = bkgnn*bkgdist;
+
+  const float prior_ratio  = 1/(17.7 * 10.5 * maxdtmu * 1e-9); 
+
+  //multiply by prior probabilities
+  sigtot *= prior_ratio;
+
+  return (sigtot+bkgtot == 0) ? 0 : sigtot/(sigtot+bkgtot);
+}
+
+struct twolike{
+  float like, altlike;
+};
+
+static twolike lb12like(const vector<track> & ts, const float x,
+                        const float y, const float z, const float dtim)
+{
+  twolike max;
+  max.like = max.altlike = 0;
+  for(unsigned int i = 0; i < ts.size(); i++){
+    const double dt = dtim - ts[i].tim;
+
+    if(dt < 0) fprintf(stderr, "dt = %f\n", dt);
+
+    const float dist = ptol(ts[i], x, y, z);
+    const float like = getlike(dist, ts[i].nn);
+
+    // Emily's likelihood ignores time except to exclude
+    // muons that are too old
+    if(dt < maxdtmu && like > max.like) max.like = like;
+
+    // But what if instead we use the time in the likelihood?
+    // There's no log here, right?
+    const float altlike = like * exp(-dt/20.20e6);
+    if(altlike > max.altlike) max.altlike = altlike;
+  }
+  return max;
+}
+
+static bool isnenergy(const double e)
+{
+  return (e > 1.8 && e < 2.6) || (e > 4.0 && e < 10 );
+}
+
+static int nnaftermu(const unsigned int muoni, dataparts & bits,
+                      TTree * const chtree)
+{
+  TBranch 
+    #ifdef MULTIRUNFILES
+    * const runbr      = chtree->GetBranch("run"),
+    #endif
+    * const qrmsbr     = chtree->GetBranch("qrms"),
+    * const ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
+    * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
+    * const qdiffbr    = chtree->GetBranch("qdiff"),
+    * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
+    * const trgtimebr  = chtree->GetBranch("trgtime");
+
+  const double mindtmu      = 1e6;//dt to look for prev neutrons/veto
+
+  trgtimebr->GetEntry(muoni);
+  const double mutime = bits.trgtime;
+
+  int found = 0;
+  for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
+    #ifdef MULTIRUNFILES
+    runbr->GetEntry(i);
+    if(bits.run != murun) break; // Stop at run boundaries
+    #endif
+
+    trgtimebr->GetEntry(i);
+    const double dt = bits.trgtime - mutime;
+    if(dt > mindtmu) break;
+
+    qrmsbr->GetEntry(i);
+    ctmqtqallbr->GetEntry(i);
+    ctrmstsbr->GetEntry(i);
+    qdiffbr->GetEntry(i);
+
+    // pass light noise
+    if(lightnoise(bits.qrms, bits.ctmqtqall,
+                  bits.ctrmsts, bits.qdiff)) continue;
+
+    ctEvisIDbr->GetEntry(i);
+    // right energy for a neutron capture
+    if(!isnenergy(bits.ctEvisID)) continue;
+
+    found++; 
+  }
+  return found; 
 }
 
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
@@ -135,24 +892,25 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double michelt = 0, michele = 0, michdist = 0;
 
   TBranch 
-    * const runbr      = chtree->GetBranch("run"),
-    * const coinovbr   = chtree->GetBranch("coinov"),
-    * const trgIdbr    = chtree->GetBranch("trgId"),
-    * const ctXbr      = chtree->GetBranch("ctX"),
-    * const qrmsbr     = chtree->GetBranch("qrms"),
-    * const ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
-    * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
-    * const qdiffbr    = chtree->GetBranch("qdiff"),
-    * const fido_qivbr = chtree->GetBranch("fido_qiv"),
-    * const fido_didfitbr=chtree->GetBranch("fido_didfit"),
-    * const fido_entrxbr=chtree->GetBranch("fido_entrx"),
-    * const fido_entrybr=chtree->GetBranch("fido_entry"),
-    * const fido_entrzbr=chtree->GetBranch("fido_entrz"),
-    * const fido_endxbr= chtree->GetBranch("fido_endx"),
-    * const fido_endybr= chtree->GetBranch("fido_endy"),
-    * const fido_endzbr= chtree->GetBranch("fido_endz"),
-    * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
-    * const trgtimebr  = chtree->GetBranch("trgtime");
+    * const runbr           = chtree->GetBranch("run"),
+    * const coinovbr        = chtree->GetBranch("coinov"),
+    * const trgIdbr         = chtree->GetBranch("trgId"),
+    * const ctXbr           = chtree->GetBranch("ctX"),
+    * const qrmsbr          = chtree->GetBranch("qrms"),
+    * const ctmqtqallbr     = chtree->GetBranch("ctmqtqall"),
+    * const ctrmstsbr       = chtree->GetBranch("ctrmsts"),
+    * const qdiffbr         = chtree->GetBranch("qdiff"),
+    * const fido_nidtubesbr = chtree->GetBranch("fido_nidtubes"),
+    * const fido_qivbr      = chtree->GetBranch("fido_qiv"),
+    * const fido_didfitbr   = chtree->GetBranch("fido_didfit"),
+    * const fido_entrxbr    = chtree->GetBranch("fido_entrx"),
+    * const fido_entrybr    = chtree->GetBranch("fido_entry"),
+    * const fido_entrzbr    = chtree->GetBranch("fido_entrz"),
+    * const fido_endxbr     = chtree->GetBranch("fido_endx"),
+    * const fido_endybr     = chtree->GetBranch("fido_endy"),
+    * const fido_endzbr     = chtree->GetBranch("fido_endz"),
+    * const ctEvisIDbr      = chtree->GetBranch("ctEvisID"),
+    * const trgtimebr       = chtree->GetBranch("trgtime");
   
   double deadtime = 0, nondeadenergy = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
@@ -211,9 +969,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     ctEvisIDbr->GetEntry(i);
     // right energy for a neutron capture
-    if(!((bits.ctEvisID > 1.8 && bits.ctEvisID < 2.6) ||
-         (bits.ctEvisID > 4.0 && bits.ctEvisID < 10 )))
-      continue;
+    if(!isnenergy(bits.ctEvisID)) continue;
 
     ctXbr->GetEntry(i);
     const bool near =
@@ -271,7 +1027,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(dt_ms > maxtime){ // stop looking
       if(printed == 0)
         // NOTE-luckplan
-        printf("0 0 0 0 0 0 0 0 "
+        printf("0 0 0 0 0 0 0 0 0 "
                #define LATEFORM \
                "%d %d %d " \
                "%f %f %f %f %f " \
@@ -340,11 +1096,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
 
+      const twolike b12like =
+        lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
       // NOTE-luckplan
-      printf("%d %lf %f %f %f %f %f %f " LATEFORM "%c",
+      printf("%d %lf %f %f %f %f %f %f %f " LATEFORM "%c",
              bits.trgId, dt_ms, dist,
              bits.ctEvisID, ix[got], iy[got], iz[got],
-             lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime),
+             b12like.like, b12like.altlike,
              LATEVARS,
              is_be12search?' ':'\n');
       printed++;
@@ -371,34 +1129,38 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
 
-    if(bits.fido_qiv > 5000 && bits.ctEvisID > 60)
-      lastgcmuontime = bits.trgtime;
-
-    if(bits.fido_didfit){
-      fido_entrxbr->GetEntry(i);
-      fido_entrybr->GetEntry(i);
-      fido_entrzbr->GetEntry(i);
-      fido_endxbr ->GetEntry(i);
-      fido_endybr ->GetEntry(i);
-      fido_endzbr ->GetEntry(i);
-
-      tmuons.push_back(maketrack(
-        bits.fido_entrx, bits.fido_entry, bits.fido_entrz,
-        bits.fido_endx, bits.fido_endy, bits.fido_endz,
-        bits.trgtime));
-    }
-
     // Note the time of this even if it is valid, which for me means
     // not light noise and at least 0.4 MeV
     qrmsbr->GetEntry(i);
     ctmqtqallbr->GetEntry(i);
     ctrmstsbr->GetEntry(i);
     qdiffbr->GetEntry(i);
-    ctEvisIDbr->GetEntry(i);
+    trgtimebr->GetEntry(i);
 
     if(!lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff)
        && bits.ctEvisID > 0.4)
       lastvalidtime = bits.trgtime;
+
+    fido_entrzbr->GetEntry(i);
+    fido_endzbr ->GetEntry(i);
+    fido_nidtubesbr->GetEntry(i);
+    if(bits.fido_didfit && bits.fido_nidtubes > 30 &&
+       bits.fido_entrz > bits.fido_endz){
+      lastgcmuontime = bits.trgtime;
+
+      fido_entrxbr->GetEntry(i);
+      fido_entrybr->GetEntry(i);
+      fido_endxbr ->GetEntry(i);
+      fido_endybr ->GetEntry(i);
+
+      const double mutime = bits.trgtime;
+
+      tmuons.push_back(maketrack(
+        bits.fido_entrx, bits.fido_entry, bits.fido_entrz,
+        bits.fido_endx, bits.fido_endy, bits.fido_endz,
+        mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
+    }
+
   }
   if(got){
     printf("\n");
@@ -574,7 +1336,7 @@ int main(int argc, char ** argv)
   fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
 
   // NOTE-luckplan
-  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:"
+  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
          "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
          "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
