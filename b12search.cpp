@@ -277,7 +277,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                "%f %f %f %f %f " \
                "%d %d %d %d %d %d %d %d " \
                "%lf %.0lf %f %f %f %f %.0f %f %f " \
-               "%f %f %f %f %f %f %f %f"
+               "%f %f %f %f %f %f %f %f %d"
                LATEFORM
                "\n",
                /* 0, 0, 0, 0, 0, 0, 0, */
@@ -292,7 +292,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                deadtime, nondeadenergy, michdist, \
                mufqid, mufqiv, muctqid, muctqiv, \
                timeleft, ttlastvalid, ttlastmuon, \
-               ttlastgcmuon
+               ttlastgcmuon, printed
               LATEVARS);
       break;
     }
@@ -481,49 +481,41 @@ static void search(dataparts & parts, TTree * const chtree,
     if(parts.trgtime - lastmuontime < 500e3) goto end;
 
     fido_qivbr->GetEntry(mi);
-
     if(parts.fido_qiv < 5000) goto end;
 
     fido_qidbr->GetEntry(mi);
-
     if(parts.fido_qid/8300 > 700) goto end;
 
     ids_chi2br->GetEntry(mi);
     fido_nivtubesbr->GetEntry(mi);
     fido_nidtubesbr->GetEntry(mi);
-
     if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
       goto end;
 
     ids_end_xbr->GetEntry(mi);
     ids_end_ybr->GetEntry(mi);
-
     // This correctly uses the *uncorrected* position
     if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
       goto end;
 
     ids_end_zbr->GetEntry(mi);
-
     // This correctly uses the *uncorrected* position
     if(parts.ids_end_z < -1786+35) goto end;
 
     ids_entr_zbr->GetEntry(mi);
     id_ivlenbr->GetEntry(mi);
     id_buflenbr->GetEntry(mi);
-
     if(parts.ids_entr_z > 11500 -
        62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
     id_chi2br->GetEntry(mi);
     ids_chi2br->GetEntry(mi);
-
     if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
 
     id_entr_xbr->GetEntry(mi);
     id_entr_ybr->GetEntry(mi);
     ids_entr_xbr->GetEntry(mi);
     ids_entr_ybr->GetEntry(mi);
-
     if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
        pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
       goto end;
@@ -588,7 +580,7 @@ int main(int argc, char ** argv)
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
          "fex/F:fey/F:fez/F:deadt/F:"
          "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
-         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F"
+         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:ndecay/I"
          "\n");
 
   for(int i = 4; i < argc; i+=2){
