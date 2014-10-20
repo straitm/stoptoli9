@@ -29,7 +29,7 @@
                               "pow(dz - nearestaz(mx, my, mz), 2)"
                               " < 200**2"; */
 
-  const char * const cute = "e > 5 && e < 11.5 && (e < 7.4 || e > 8.4)";
+  const char * const cute = "e > 5 && e < 12";
 
   const char * const cutb12 = "b12like < 0.1";
 
@@ -72,20 +72,28 @@
   c->cd(2)->cd(8);t->Draw(Form("%s:%s",drawy,drawx),Form("%s&&%s",xscut,cutxx),".");
 */
 
-  c->cd(1)->cd(1)->SetLogy();
-
+  c->cd(1)->cd(1);
   printf("Drawing...\n");
   t->Draw("dt/1000 >> hfit(1000, 0.001, 100)", scut.c_str());
 
- // This is the n16 efficiency.
+ // This is the n16 efficiency.  The energy efficiency is made up.
+ // 67% of the events should be nearly 100% efficient because they give a 6.1MeV gamma.
+ // The other 33% is maybe 50% efficient given the 10.5 MeV endpoint and 5 MeV cut.
  // What is the be11 efficiency?
-  const double eff = 1
+  const double n16eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.565 // delta r
+    * 0.565 // delta r for 200mm, maybe not valid for the 6.1MeV gammas, so perhaps should be lower
     * 0.9709 // 100s from end of run
-    * 0.8 // energy XXX
-    * 0.9 // spatial cuts XXX
+    * 0.84 // energy, see above
+  ;
+
+  const double be11eff = 1
+    * 0.981 // subsequent muons
+    * 0.977 // previous muons
+    * 0.565 // delta r for 200mm
+    * 0.9709 // 100s from end of run
+    * 0.60 // energy, made up  XXX  endpoint is 11.5 MeV
   ;
 
   TF1 * ee = new TF1("ee",
@@ -93,7 +101,7 @@
                "[2]*exp(-x*log(2)/0.0202) + " // b12
                "[3]*exp(-x*log(2)/0.8399) + " // li8
                "[4] +" // accidentals
-               "%f*[5]/13.81*log(2)*exp(-x*log(2)/[6])", eff, eff), 0, 100); // be11
+               "%f*[5]/13.81*log(2)*exp(-x*log(2)/[6])", n16eff, be11eff), 0, 100); // be11
 
   ee->SetParameters(0.1, 7.13, 3000, 2, 0.1, 1);
   ee->FixParameter(0, 0);
@@ -116,14 +124,16 @@
            sqrt(2)*sqrt(likenon16-likewn16), CLR);
 
   ee->ReleaseParameter(1);
+  ee->FixParameter(5, 0);
   if(fit) printf("fitting...\n"), hfit->Fit("ee", "le");  // fit with free lifetime n16
 
   if(fit)
     printf("%sHalf life %f +%f %f%s\n", RED, ee->GetParameter(1),
            gMinuit->fErp[1], gMinuit->fErn[1], CLR);
 
+  ee->ReleaseParameter(5);
   ee->FixParameter(1, 7.13);
-
+/*
   ee->ReleaseParameter(6);
   ee->SetParLimits(6, 8, 100);
   if(fit) printf("fitting...\n"), hfit->Fit("ee", "le");  // fit with free lifetime be11
@@ -133,41 +143,52 @@
            gMinuit->fErp[5], gMinuit->fErn[5], CLR);
 
   ee->FixParameter(6, 13.81);
+*/
 
+ 
+  ee->FixParameter(0, 0);
+  if(fit) printf("fitting...\n"), hfit->Fit("ee", "le");  // fit with not n16 and be11
 
-  if(fit) printf("fitting...\n"), hfit->Fit("ee", "le");  // fit with b16 and be11
+  const double be11norm = ee->GetParameter(5);
 
   printf("Drawing...\n");
   t->Draw("dt/1000 >> hdisp(49, 2, 100)", scut.c_str(), "hist");
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
+
+  ee->ReleaseParameter(0);
+  ee->FixParameter(5, 0);
+  if(fit) printf("fitting...\n"), hfit->Fit("ee", "le");  // fit with n16 and no be11
 
   TF1 * eedisp = (TF1 *)ee->Clone("eedisp");
   eedisp->SetNpx(400);
   eedisp->SetLineColor(kRed);
 
   bool nearlimit[5] = {false, false, false, false, false};
-  int tomult[5] = { 0, 2, 3, 4, 5};
+  int tomult[5] = { 0, 2, 3, 4, 5 };
   const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
   for(int i = 0; i < 5; i++){
-    if(eedisp->GetParameter(tomult[i]) < eedisp->GetParError(tomult[i]))
+    //if(eedisp->GetParameter(tomult[i]) < eedisp->GetParError(tomult[i]))
+    if(tomult[i] == 5)
       nearlimit[i] = true;
 
-    eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
-    eedisp->SetParError( tomult[i], eedisp->GetParError (tomult[i])*mult);
+    eedisp->SetParameter(tomult[i], ee->GetParameter(tomult[i])*mult);
+    eedisp->SetParError( tomult[i], ee->GetParError (tomult[i])*mult);
   }
 
+  hdisp->Draw("e");
   eedisp->Draw("same");
   c->Update();
 
   TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-  TF1 * li8 = new TF1("n16", "[0]*exp(-x*log(2)/0.8399)", 0, 100);
-  TF1 * n16 = new TF1("n16", "[0]*exp(-x*log(2)/[1])", 0, 100);
+  TF1 * li8 = new TF1("li8", "[0]*exp(-x*log(2)/0.8399) + [1]", 0, 100);
+  TF1 * n16 = new TF1("n16", Form("%f*[0]/7.13*log(2)*exp(-x*log(2)/[1]) + [2]", n16eff), 0, 100);
   TF1 * acc = new TF1("acc", "[0]", 0, 100);
-  TF1 * be11= new TF1("be11","[0]*exp(-x*log(2)/13.81)", 0, 100);
+  TF1 * be11= new TF1("be11",Form("%f*[0]/13.81*log(2)*exp(-x*log(2)/13.81) + [1]", be11eff), 0, 100);
 
   b12->SetNpx(400);
   n16->SetNpx(400);
   be11->SetNpx(400);
+  li8->SetNpx(400);
 
   TF1 * parts[5] = { b12, li8, n16, acc, be11 };
 
@@ -175,14 +196,24 @@
   n16->SetParError(0, eedisp->GetParError(0));
   n16->SetParameter(1, eedisp->GetParameter(1));
   n16->SetParError(1, eedisp->GetParError(1));
+  n16->SetParameter(2, eedisp->GetParameter(4));
+  n16->SetParError(2, eedisp->GetParError(4));
+
   b12->SetParameter(0, eedisp->GetParameter(2));
   b12->SetParError(0, eedisp->GetParError(2));
+
   li8->SetParameter(0, eedisp->GetParameter(3));
   li8->SetParError(0, eedisp->GetParError(3));
+  li8->SetParameter(1, eedisp->GetParameter(4));
+  li8->SetParError(1, eedisp->GetParError(4));
+
   acc->SetParameter(0, eedisp->GetParameter(4));
   acc->SetParError(0, eedisp->GetParError(4));
+
   be11->SetParameter(0, eedisp->GetParameter(5));
   be11->SetParError(0, eedisp->GetParError(5));
+  be11->SetParameter(1, eedisp->GetParameter(4));
+  be11->SetParError(1, eedisp->GetParError(4));
 
   
   for(int i = 0; i < 5; i++){
@@ -190,8 +221,8 @@
     parts[i]->SetLineWidth(2);
     if(nearlimit[i]){
       printf("plot %d (%d) is near limit\n", i, tomult[i]);
-      parts[i]->SetParameter(0, parts[i]->GetParameter(0)+
-                                parts[i]->GetParError(0));
+      parts[i]->SetParameter(0, be11norm*mult); // XXX parts[i]->GetParameter(0)+
+                                //parts[i]->GetParError(0));
       parts[i]->SetLineStyle(kDotted);
       parts[i]->SetLineWidth(1);
     }
@@ -215,9 +246,9 @@
   printf("%sN N-16 found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double captures = (7.5 + 7.0 + 0.2 + 0.3) * 489.509;
+  const double captures = (0.2 + (5.+9.)/2 + 0.3 + (1.4+2.7)/2) * 489.509;
 
-  const double toprob = 1./captures/eff;
+  const double toprob = 1./captures;
 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
@@ -252,6 +283,14 @@
   printf("Drawing...\n");
   t->Draw("b12like >> b12hist(500, 0, 1)", b12scut.c_str(), "e");
 
+  ee->ReleaseParameter(5);
+  ee->ReleaseParameter(0);
+  ee->SetParLimits(5, 0, 200);
+  new TCanvas;
+
+  hfit->Fit("ee", "le");
+
+  
   gMinuit->Command("set print 0");
 
   gMinuit->fUp = 2.3./2; // 90% in 1D
@@ -265,8 +304,6 @@
   gMinuit->fUp = 11.83/2; // 99.73% contour in 2D
   gMinuit->Command("MNC 1 6 99");
   TGraph * ninty983_2d = ((TGraph*)gMinuit->GetPlot())->Clone();
-
-  new TCanvas;
 
   ninty_1d->Draw("al");
   ninty_2d->Draw("l");
