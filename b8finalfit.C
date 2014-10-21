@@ -1,4 +1,4 @@
-void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
+void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
 {
   TFile * fiel = new TFile("/cp/s4/strait/fullfido-100s-3-25MeV-20140925-earlymich.root", "read");
   TTree * t = (TTree *) fiel->Get("t");
@@ -14,7 +14,7 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
 
   const string scut =
   Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d && e > 4"
-    "&& e < 16 && timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
+    "&& e < 18 && timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
 
   const char * const cut = scut.c_str();
 
@@ -28,7 +28,8 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
 
   ee->SetParameters(1, 1, 0.7700, 1, 1);
   ee->FixParameter(3, 0);
-  ee->FixParameter(2, 0.7700);
+  ee->FixParameter(2, 0.7700); // b8
+  //ee->FixParameter(2, 0.0110); // n12
 
   if(nncut >= 3){
     ee->SetParLimits(0, 0, 10);
@@ -49,7 +50,7 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
     hfit->Fit(Form("ee%d", nncut), "le");
   }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 0.201)", nncut), cut, "hist");
+  t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
   TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
@@ -63,16 +64,14 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
     eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
   eedisp->Draw("same");
 
- return;
-
-  TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-  TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
+  TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)", 0, 100);
+  TF1 * b8  = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
   TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
 
   b12->SetNpx(400);
   b8->SetNpx(400);
 
-  TF1 * parts[3] = { &b12, &b8, &acc };
+  TF1 * parts[3] = { b12, b8, acc };
 
   b12->SetParameter(0, eedisp->GetParameter(0));
   b8 ->SetParameter(0, eedisp->GetParameter(1));
@@ -95,8 +94,8 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
   }
   else{
     errtype = "MINOS";
-    Nerrup = Nfound * gMinuit.fErp[1-p0isfixed]/ee->GetParameter(1);
-    Nerrlo = Nfound * gMinuit.fErn[1-p0isfixed]/ee->GetParameter(1);
+    Nerrup = Nfound * gMinuit->fErp[1-p0isfixed]/ee->GetParameter(1);
+    Nerrlo = Nfound * gMinuit->fErn[1-p0isfixed]/ee->GetParameter(1);
   }
 
   printf("%sN found: %f +%f %f %s%s\n",
@@ -108,7 +107,7 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
 
   double neffs[5] = {
        gf*          pow(1-gp,4)+tf*          pow(1-tp,4),
-    6*(gf*    gp   *pow(1-gp,3)+tf*    tp   *pow(1-tp,3)),
+    4*(gf*    gp   *pow(1-gp,3)+tf*    tp   *pow(1-tp,3)),
     6*(gf*pow(gp,2)*pow(1-gp,2)+tf*pow(tp,2)*pow(1-tp,2)),
     4*(gf*pow(gp,3)*   (1-gp)  +tf*pow(tp,3)*   (1-tp)),
        gf*pow(gp,4)            +tf*pow(tp,4)
@@ -117,7 +116,6 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
   double neff = 0;
   for(int i = nncut; i <= nncuthigh && i <= 4; i++)
     neff += neffs[i];
-    
 
   const double eff = 1
     * 0.981 // subsequent muons
@@ -127,6 +125,8 @@ void b8finalfit(const int nncut = 2, const int nncuthigh = 2)
     * 0.969 // energy
     * neff
   ;
+
+  printf("neutron efficiency: %.3f\n", neff);
 
   const double captures = 358. * 489.509;
 

@@ -166,7 +166,7 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
     * neff
   ;
 
-  const double captures = 358. * 489.509;
+  const double captures = (0.2+5.6+0.3+1.2) * 489.509;
 
   const double toprob = 1./captures/eff;
 
@@ -175,6 +175,8 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+
+  printf("%sIf you see none with no background: < %f\n%s", RED, 2.3/eff/captures, CLR);
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

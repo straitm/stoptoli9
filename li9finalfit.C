@@ -1,4 +1,5 @@
 {
+  TCanvas c1;
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
@@ -94,6 +95,7 @@
     Form("(([0]-[2])*%f*exp(-    x    *log(2)/0.1783)+[1])*(x < 10) +"
          "(   [2]   *%f*exp(-(x-9.999)*log(2)/0.1783)+[3])*(x >=10)",
          Heff, Geff), 0, 20);
+  ee2.SetParNames("totalli9", "hbg", "gdli9", "gdbg");
   ee2.SetParameters(1, 1, 1, 1);
   ee2->SetNpx(400);
   ee2->SetLineColor(kRed);
@@ -101,8 +103,52 @@
   ee2->SetParLimits(2, 0, 10);
   th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", "dist < 300  && miche < 12 && !earlymich");
   tg.Draw("dt/1000+9.999 >> +h2fit", "dist < 300  && miche < 12 && !earlymich");
-  h2fit->Fit("ee2", "le", "", 0, 20);
+  h2fit->Fit("ee2", "l", "", 0, 20);
 
+  //////////////////
+  new TCanvas;
+
+  TF1 ee2str("ee2str",
+    Form("%f*(%f*(([0]-[2])/0.1783*log(2)*exp(-    x    *log(2)/0.1783) + ([5]-[4])/0.1191*log(2)*exp(-    x    *log(2)/0.1191) + [1])*(x < 10) +"
+             "%f*(   [2]   /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +    [4]   /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) + [3])*(x >=10))",
+         h2fit.GetBinWidth(1), Heff, Geff), 0, 20);
+  ee2str.SetParameters(ee2->GetParameter(0), ee2->GetParameter(1), ee2->GetParameter(2), ee2->GetParameter(3), 1, 1);
+  ee2str.SetParNames("totalli9" /* c0, f1 */, "hbg", "gdli9", "gdbg", "gdhe8", "totalhe8");
+  ee2str->SetNpx(400);
+  ee2str->SetLineColor(kRed);
+  ee2str->SetParLimits(0, 0, 60);
+  ee2str->SetParLimits(2,  0, 60);
+  ee2str->SetParLimits(4,  0, 60);
+  ee2str->SetParLimits(5, 0, 60);
+
+  h2fit->Fit("ee2str", "le", "", 0, 20);
+
+  gMinuit->Command("set print 0");
+  gMinuit->Command("set strategy 2");
+  gMinuit->fUp = 2.3/2; // 90% in 1D
+  gMinuit->Command("mncont 1 6 500");
+  TGraph * ninty_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  gMinuit->fUp = 4.61/2; // 90%
+  gMinuit->Command("mncont 1 6 500");
+  TGraph * ninty_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  gMinuit->fUp = 11.83/2; // 99.73%
+  gMinuit->Command("mncont 1 6 500");
+  TGraph * ninty973_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  ninty973_2d->SetFillColor(kViolet);
+  ninty973_2d->Draw("alf");
+  ninty_2d->SetFillColor(kBlue);
+  ninty_2d->Draw("lf");
+  ninty_1d->SetLineColor(kRed);
+  ninty_1d->Draw("l");
+
+  ninty973_2d->GetYaxis()->SetRangeUser(0, 50);
+  ninty973_2d->GetXaxis()->SetRangeUser(0, 50);
+
+  //////////////////
+ 
+  c1->cd();
+
+  h2fit->Fit("ee2", "le", "", 0, 20); // for gMinuit
   e->SetParameter(0, ee2->GetParameter(0));
   e->SetParameter(1, 0.1783);
  
@@ -148,7 +194,7 @@
 
   hfitb->Fit("ee", "le");
 
-  printf("\n%s--> li9 lifetime = %f +%f %f%s\n", RED,
+  printf("\n%s--> li9 half-life = %f +%f %f%s\n", RED,
           ee.GetParameter(1), 
           gMinuit.fErp[1], gMinuit.fErn[1], CLR);
 
@@ -181,4 +227,5 @@
 
   michs.Draw("e");
 */
+
 }
