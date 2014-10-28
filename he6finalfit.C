@@ -58,94 +58,6 @@ void he6finalfit()
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
 
-/*
-  //TCanvas c0;
-  //t->Draw("dy**2+dx**2 >> p1(40, 0, 3240000)", Form("%s && dz > -1000 && dz < 800 && e > 1.5 && e < 2.0 && dt/1000 > 1", cut ), "e");
-  //t->Draw("dy**2+dx**2 >> p2(40, 0, 3240000)", Form("%s && dz > -1000 && dz < 800 && e > 2.0 && e < 2.5 && dt/1000 > 1", cut ), "samee");
-  //t->Draw("dy**2+dx**2 >> p3(40, 0, 3240000)", Form("%s && dz > -1000 && dz < 800 && e > 2.5 && e < 3.1 && dt/1000 > 1", cut ), "samee");
-  //t->Draw("dy**2+dx**2 >> p5(40, 0, 3240000)", Form("%s && dz > -1000 && dz < 800 && e > 3.1 && e < 3.5 && dt/1000 > 1", cut ), "samee");
-  //return;
-
-  TCanvas * c1 = new TCanvas;
-  c1->SetLogy();
-
-  t->Draw("dt/1000 >> hfit(3000, 0.001, 100)", Form("%s && e > 2.8 && e < 10", cut));
-  TH1D * hfit = (TH1D*)gROOT->FindObject("hfit");
-
-  TF1 ee("ee", Form("%f*([0]*exp(-x*log(2)/0.0202) + "
-               "%f*[1]/[2]*log(2)*exp(-x*log(2)/[2]) + "
-               "[3]*exp(-x*log(2)/7.13) + "
-               "[4])", hfit->GetBinWidth(1), eff), 0, 100);
-
-  ee.SetParameters(1, 1, 0.801, 1, 1);
-  ee.FixParameter(2, 0.801);
-
-  ee.FixParameter(3, 0);
-  
-  ee.FixParameter(1, 0);
-  hfit->Fit("ee", "l");
-  const double nohe8chi2 = gMinuit->fAmin;
-
-  ee.ReleaseParameter(1);
-  ee.SetParLimits(1, 0, 100000);
-  hfit->Fit("ee", "le");
-  const double whe8chi2 = gMinuit->fAmin;
-
-  printf("%sEfficiency: %f%s\n", RED, eff, CLR);
-
-  printf("%ssignificance of something: %f%s\n", RED,
-    nohe8chi2 < whe8chi2? 0 : sqrt(2)*sqrt(nohe8chi2 - whe8chi2), CLR);
-
-  t->Draw("dt/1000 >> hdisp(100, 0.1, 100)", Form("%s && e > 2.8 && e < 10", cut), "e");
-  TH1D * hdisp = (TH1D*)gROOT->FindObject("hdisp");
-
-  TF1 * eedisp = (TF1 *)ee.Clone("eedisp");
-  eedisp->SetNpx(400);
-  eedisp->SetLineColor(kRed);
-
-  int tomult[4] = { 0, 1, 3, 4};
-  const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
-  for(int i = 0; i < 4; i++)
-    eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
-  eedisp->Draw("same");
-
-  TF1 b12("b12", Form("%f*[0]*exp(-x*log(2)/0.0202)", hfit->GetBinWidth(1)), 0, 100);
-  TF1 he6("he6", Form("%f*%f*[0]/[2]*log(2)*exp(-x*log(2)/0.801)", hfit->GetBinWidth(1), eff), 0, 100);
-  TF1 n16("n16", Form("%f*[0]*exp(-x*log(2)/7.13)", hfit->GetBinWidth(1))  , 0, 100);
-  TF1 acc("acc", Form("%f*[0]", hfit->GetBinWidth(1)), 0, 100);
-
-  b12.SetNpx(400);
-
-  TF1 * parts[4] = { &b12, &he6, &n16, &acc };
-
-
-  b12.SetParameter(0, eedisp->GetParameter(0));
-  he6.SetParameter(0, eedisp->GetParameter(1));
-  n16.SetParameter(0, eedisp->GetParameter(3));
-  acc.SetParameter(0, eedisp->GetParameter(4));
-
-  hdisp->GetYaxis()->SetRangeUser(acc.GetParameter(0)/50,
-                                  acc.GetParameter(0)*10);
-
-  for(int i = 0; i < 4; i++){
-    parts[i]->SetLineStyle(7);
-    parts[i]->SetLineWidth(2);
-    parts[i]->Draw("Same");
-  } 
-
-  const double Nfound = ee.GetParameter(1);
-  const double Nerrup = Nfound * gMinuit->fErp[1]/ee.GetParameter(1);
-  const double Nerrlo = Nfound * gMinuit->fErn[1]/ee.GetParameter(1);
-
-  printf("%sN found: %f +%f %f%s\n", RED, Nfound, Nerrup, Nerrlo, CLR);
-
-  const double captures = 139. * 489.509;
-
-  const double toprob = 1./captures/eff;
-
-  printf("%sProb: %g +%g %g%s\n", 
-      RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
-*/
   TCanvas * c2 = new TCanvas;
  
   TF1 betahe6("betahe6", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (3.5076 - x)**2", 0, 3.51);
@@ -159,12 +71,6 @@ void he6finalfit()
   for(int i = 0; i < 1e6; i++){ const double et=betahe6.GetRandom(); he6spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
   for(int i = 0; i < 1e6; i++){ const double et=betali8.GetRandom(); li8spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
 
-/*
-  for(int i = 0; i < 28.0e5; i++){ const double et=betan16l->GetRandom()        ; spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
-  for(int i = 0; i < 66.2e5; i++){ const double et=(gRandom->Rndm() < 0.6)*betan16h1->GetRandom()+6.0477; spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
-  for(int i = 0; i <  4.8e5; i++){ const double et=(gRandom->Rndm() < 0.6)*betan16h2->GetRandom()+7.11515;spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
-  for(int i = 0; i < 1.06e5; i++){ const double et=(gRandom->Rndm() < 0.6)*betan16h3->GetRandom()+8.8719; spec->Fill(gRandom->Gaus(et, sqrt(et)*0.077));}
-*/
 
   ehistbg = new TH1D("ehistbg", "", 80, 0, 20);
   ehistsig = new TH1D("ehistsig", "", 80, 0, 20);
@@ -228,33 +134,4 @@ void he6finalfit()
   printf("%s efficiency: %f%s\n", RED, eff, CLR);
   printf("%s raw n He-6: %f +- %f%s\n", RED, nhe6, signhe6, CLR);
   printf("%s He-6 prob: %f +- %f%s\n", RED, nhe6*toprob, signhe6*toprob, CLR);
-
-/*
-  ehistbg->Sumw2();
-  ehistsig->Sumw2();
-
-  ehistbg ->Draw("hist");
-  ehistsig->Draw("esame");
-
-  TH1D * ehistsub = (TH1D*) ehistsig->Clone("ehistsub");
-  ehistsub->Add(ehistbg, -1);
-  ehistsub->SetLineColor(kRed);
-  ehistsub->Draw("samee");
-  ehistbg ->GetYaxis()->SetRangeUser(ehistsub->GetMinimum()-1, ehistbg->GetMaximum());
-*/
-/*
-  TCanvas c3;
-  gMinuit->fUp = nohe8chi2 - whe8chi2 + 2.3/2;
-
-  gMinuit->Command("Set print 0");
-  gMinuit->Command("mncont 2 5 200");
-  TGraph * ninty_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
-  ninty_1d->Draw("al");
-  double lim = 0;
-  for(int i = 0; i < ninty_1d->GetN(); i++)
-    if(ninty_1d->GetX()[i] > lim)
-      lim = ninty_1d->GetX()[i];
-  printf("%sHe-6 90%% CL upper limit events: %.3lf %s\n", RED, lim, CLR);
-  printf("%sHe-6 90%% CL upper limit prob: %.3lg %s\n", RED, lim*toprob, CLR);
-*/
 }
