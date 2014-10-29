@@ -12,33 +12,35 @@
 #include "stdio.h"
 
 double bgerr[3] = {0};
-double abg[3][240], asig[3][240], ali8[240], ahe6[240];
+double abg[3][120], asig[3][120], ali8[120], ahe6[120];
 
 TH2D * ehistsig = NULL, * ehistbg = NULL;
 TH1D * li8spec = NULL, * he6spec = NULL;
 
-const double mus[3] = {0.3608, 1.0292, 2.28};
+const double mus[3] = {0.3789, 1.0084, 2.2826};
+
+bool verbose = false;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
-  const double bgnorm[3] = { par[0], par[1], par[2] };
-  const double li8norm = par[3];
-  const double he6norm = par[4];
+  double mnbgnorm[3] = { par[0], par[1], par[2] };
+  double mnli8norm = par[3];
+  double mnhe6norm = par[4];
 
   like = 0;
   for(int j = 0; j < 3; j++){
     bool datahasstarted = false;
-    for(int i = 12; i < 240; i++){
-      const double model = bgnorm[j]*abg[j][i]
-                         + li8norm*mus[j]*ali8[i]
-                         + he6norm*mus[j]*ahe6[i];
-      const double data = asig[j][i];
+    for(int i = 6; i < 120; i++){
+      double model = mnbgnorm[j]*abg[j][i]
+              + mnli8norm*mus[j]*ali8[i]
+              + mnhe6norm*mus[j]*ahe6[i];
+      double data = asig[j][i];
       if(datahasstarted || data > 0) datahasstarted = true;
       else continue;
       like += model - data;
-      if(data > 0) like += data*log(data/model);
+      if(data > 0 && model > 0) like += data*log(data/model);
     } 
-    like += pow((1-bgnorm[j])/bgerr[j], 2);
+    like += pow((1-mnbgnorm[j])/bgerr[j], 2);
   }
   like *= 2;
 }
@@ -46,8 +48,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 int classi(const double x, const double y, const double z)
 {
   const double r2 = x*x+y*y;
+  const double r = sqrt(r2);
   const double az = abs(z);
-  if(r2 > 1150*1150 || az > 1229) return 2;
+  if(r2 > 1150*1150 || az > 1229 + 0.03*(1150-r)) return 2;
   if(r2 > 750*750 || az > 750) return 1;
   return 0;
 }
@@ -62,7 +65,7 @@ void he6finalfit()
   c2->cd(1);
   c2->ToggleEventStatus();
 
-  TFile fiel("/cp/s4/strait/fullfido-100s-0-25MeV-20141022.root");
+  TFile fiel("/cp/s4/strait/fullfido-100s-1.5-25MeV-20141022.root");
   TTree * t = (TTree *) fiel.Get("t");
 
   const double r2cut = 800, zcut = 800;
@@ -117,11 +120,11 @@ void he6finalfit()
     * (exp(-siglow*log(2)/0.8399) - exp(-sighigh*log(2)/0.8399))
   ;
 
-#include "ehistbg.C"
-#include "ehistsig.C"
+//#include "ehistbg.C"
+//#include "ehistsig.C"
  
   if(!ehistbg){ 
-    ehistbg = new TH2D("ehistbg", "", 3, 0, 3, 240, 0, 15);
+    ehistbg = new TH2D("ehistbg", "", 3, 0, 3, 120, 0, 15);
     fprintf(stderr, "regenerating ehistbg\n");
     t->Draw("e:classi(dx, dy, dz) >> ehistbg ", Form("%s && dt > %f", cut, bglow*1e3));
 
@@ -134,7 +137,7 @@ void he6finalfit()
   }
 
   if(!ehistsig){ 
-    ehistsig = new TH2D("ehistsig", "", 3, 0, 3, 240, 0, 15);
+    ehistsig = new TH2D("ehistsig", "", 3, 0, 3, 120, 0, 15);
     fprintf(stderr, "regenerating ehistsig\n");
     t->Draw("e:classi(dx, dy, dz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
   }
@@ -145,8 +148,8 @@ void he6finalfit()
   TF1 betan16h1("betan16h1", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (4.370 - x)**2", 0, 4.370);
   TF1 betan16h2("betan16h2", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (3.3022- x)**2", 0,3.3022);
   TF1 betan16h3("betan16h3", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (1.5472- x)**2", 0,1.5472);
-  he6spec = new TH1D("he6spec", "", 240, 0, 15);
-  li8spec = new TH1D("li8spec", "", 240, 0, 15);
+  he6spec = new TH1D("he6spec", "", 120, 0, 15);
+  li8spec = new TH1D("li8spec", "", 120, 0, 15);
   for(int i = 0; i < 1e7; i++){
     const double et=betahe6.GetRandom();
     he6spec->Fill(gRandom->Gaus(et, sqrt(et*pow(0.077, 2)
@@ -161,12 +164,12 @@ void he6finalfit()
   he6spec->Scale(ehistsig->Integral()/he6spec->Integral());
   li8spec->Scale(ehistsig->Integral()/li8spec->Integral());
 
-  for(int i = 0; i < 240; i++){
+  for(int i = 0; i < 120; i++){
     ali8[i] = li8spec->GetBinContent(i+1);
     ahe6[i] = he6spec->GetBinContent(i+1);
     for(int j = 0; j < 3; j++){
-      abg[j][i]  =ehistbg ->GetBinContent(j, i+1);
-      asig[j][i] =ehistsig->GetBinContent(j, i+1);
+      abg[j][i]  =ehistbg ->GetBinContent(j+1, i+1);
+      asig[j][i] =ehistsig->GetBinContent(j+1, i+1);
     }
   }
 
@@ -177,7 +180,7 @@ void he6finalfit()
   mn->mnparm(0, "bgtargin",  1, 0.01, 0,  0, err);
   mn->mnparm(1, "bgtargout",  1, 0.01, 0,  0, err);
   mn->mnparm(2, "bggc",  1, 0.01, 0,  0, err);
-  mn->mnparm(3, "li8", 1, 0.01, 0, 10, err);
+  mn->mnparm(3, "li8", 1, 0.01, 0.01, 1, err);
   mn->mnparm(4, "he6", 1, 0.01, 0, 10, err);
   printf("err? %d\n", err);
 
@@ -247,10 +250,10 @@ void he6finalfit()
   for(int j = 1; j < 4; j++){
     c2->cd(j);
 
-    TH1D * ehistbg_p=ehistbg->ProjectionY(Form("ehistbg_%d", j-1), j, j);
-    TH1D * ehistsig_p=ehistsig->ProjectionY(Form("ehistsig_%d", j-1), j, j);
-    TH1D * li8spec_p = (TH1D * )li8spec->Clone(Form("li8spec_%d", j-1));
-    TH1D * he6spec_p = (TH1D * )he6spec->Clone(Form("he6spec_%d", j-1));
+    TH1D * ehistbg_p=ehistbg->ProjectionY(Form("ehistbg_%d", j), j, j);
+    TH1D * ehistsig_p=ehistsig->ProjectionY(Form("ehistsig_%d", j), j, j);
+    TH1D * li8spec_p = (TH1D * )li8spec->Clone(Form("li8spec_%d", j));
+    TH1D * he6spec_p = (TH1D * )he6spec->Clone(Form("he6spec_%d", j));
 
     ehistbg_p->Scale(bgnorm[j-1]);
     li8spec_p->Scale(li8norm*mus[j-1]);
@@ -258,8 +261,7 @@ void he6finalfit()
 
     ehistsig_p->SetLineColor(kRed);
     ehistsig_p->SetMarkerColor(kRed);
-    ehistsig_p->Rebin
-    ehistsig_p->GetXaxis()->SetRange(12, 240);
+    ehistsig_p->GetXaxis()->SetRange(6, 120);
     ehistsig_p->Draw("e");
 
     ehistbg_p->Draw("same");
@@ -279,7 +281,7 @@ void he6finalfit()
     he6demo->SetLineStyle(kDashed);
     he6demo->Draw("same");
 
-    TH1D * alldemo = new TH1D(Form("all%d", j), "", 240, 0, 15);
+    TH1D * alldemo = new TH1D(Form("alldemo%d", j), "", 120, 0, 15);
     alldemo->Add(ehistbg_p);
     alldemo->Add(li8spec_p);
     alldemo->Add(he6demo);
@@ -287,11 +289,23 @@ void he6finalfit()
     alldemo->SetLineStyle(kDashed);
     alldemo->Draw("same");
 
-    n90he6 += he6demo->Integral();
+    n90he6 += he6demo->Integral(1, he6demo->GetNbinsX());
+
+    /*alldemo->Rebin(4);
+    he6demo->Rebin(4);
+    bg_plus_li8_plus_he6->Rebin(4);
+    bg_plus_li8->Rebin(4);
+    ehistbg_p->Rebin(4);
+    ehistsig_p->Rebin(4); */
   }
 
   printf("%s 90%% upper limit raw n He-6: %f%s\n", RED, n90he6, CLR);
   printf("%s 90%% upper limit He-6 prob: %f%s\n", RED, n90he6*toprob, CLR);
+
+  mn->fGraphicsMode = 0;
+verbose = true;
+  mn->Command("SET PRINT 0");
+  mn->Command("SCAN 4");
 
   c2->SaveAs("he6.pdf");
   c2->SaveAs("he6.C");
