@@ -1,6 +1,6 @@
 void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
 {
-  TFile * fiel = new TFile("/cp/s4/strait/fullfido-100s-3-25MeV-20140925-earlymich.root", "read");
+  TFile * fiel = new TFile("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root", "read");
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));

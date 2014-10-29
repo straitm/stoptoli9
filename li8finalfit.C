@@ -2,7 +2,7 @@
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
-  TFile fiel("/cp/s4/strait/fullfido-100s-3-25MeV-20140925-earlymich.root");
+  TFile fiel("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root");
   TTree * t = (TTree *) fiel->Get("t");
 
   const char * const cut =
@@ -82,7 +82,7 @@
     * 0.71 // energy
   ;
 
-  const double captures = 358. * 489.509;
+  const double captures = 367. * 489.509;
 
   const double toprob = 1./captures/eff;
 

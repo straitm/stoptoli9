@@ -1,5 +1,5 @@
 {
-  TFile fiel("/cp/s4/strait/fullfido-100s-3-25MeV-20140925-earlymich.root");
+  TFile fiel("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root");
   TTree * t = (TTree *) fiel.Get("t");
 
   const int nncut = 1;

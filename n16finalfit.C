@@ -15,7 +15,7 @@
   const char * const RED = "\033[31;1m"; // bold red
   const char * const CLR = "\033[m"    ; // clear
 
-  const char * const scutwoe = "!earlymich && nnear == 0 && miche > 0.7 && miche < 12 "
+  const char * const scutwoe = "!earlymich && nnear == 0 && miche < 12 "
     "&& dist < 200 && ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 100e3 ";
 
   const char * const acrcut = "1"; 
@@ -248,7 +248,7 @@
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
   const double Ocaptures = (0.2 + 5.67 + 0.3 + 1.248) * 489.509;
-  const double Ccaptures = 358 * 489.509;
+  const double Ccaptures = 367 * 489.509;
 
   const double toprob = 1./Ocaptures;
 
@@ -273,8 +273,8 @@
 */
   ee->ReleaseParameter(5);
   ee->ReleaseParameter(0);
- // ee->SetParLimits(5, 0, 2000);
- // ee->SetParLimits(0, 0, 2000);
+  ee->SetParLimits(5, -1, 2000);
+  ee->SetParLimits(0, -1, 2000);
 
   new TCanvas;
 

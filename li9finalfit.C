@@ -157,7 +157,7 @@
   const double N2rawlo = e->Integral(0, 10)/h2fit.GetBinWidth(1) / ee2.GetParameter(0) * gMinuit.fErn[0];
 
   printf("%s Joint fit = %.2f +%f %f%s\n", RED, N2raw, N2rawup , N2rawlo, CLR);
-  const double toprob = 1. / (358*489.509) / 0.508 / 0.852;
+  const double toprob = 1. / (367*489.509) / 0.508 / 0.852;
   printf("%s Joint fit to prob = %.2g +%g %g%s\n", RED, N2raw*toprob, N2rawup*toprob , N2rawlo*toprob, CLR);
 
   for(int i = 0; i <= 4; i+=2)
