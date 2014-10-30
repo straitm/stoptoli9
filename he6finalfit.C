@@ -11,24 +11,22 @@
 #include "TF1.h"
 #include "stdio.h"
 
-double bgerr[3] = {0};
-double abg[3][120], asig[3][120], ali8[120], ahe6[120];
+double bgerr[4] = {0};
+double abg[4][120], asig[4][120], ali8[120], ahe6[120];
 
 TH2D * ehistsig = NULL, * ehistbg = NULL;
 TH1D * li8spec = NULL, * he6spec = NULL;
 
-const double mus[3] = {0.3789, 1.0084, 2.2826};
-
-bool verbose = false;
+const double mus[4] = {0.45120, 0.44157, 0.49416, 2.2830};
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
-  double mnbgnorm[3] = { par[0], par[1], par[2] };
-  double mnli8norm = par[3];
-  double mnhe6norm = par[4];
+  double mnbgnorm[4] = { par[0], par[1], par[2], par[3] };
+  double mnli8norm = par[4];
+  double mnhe6norm = par[5];
 
   like = 0;
-  for(int j = 0; j < 3; j++){
+  for(int j = 0; j < 4; j++){
     bool datahasstarted = false;
     for(int i = 6; i < 120; i++){
       double model = mnbgnorm[j]*abg[j][i]
@@ -42,6 +40,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     } 
     like += pow((1-mnbgnorm[j])/bgerr[j], 2);
   }
+  like += pow((0.00229277 - mnli8norm)/1.79122e-04, 2);
   like *= 2;
 }
 
@@ -50,8 +49,9 @@ int classi(const double x, const double y, const double z)
   const double r2 = x*x+y*y;
   const double r = sqrt(r2);
   const double az = abs(z);
-  if(r2 > 1150*1150 || az > 1229 + 0.03*(1150-r)) return 2;
-  if(r2 > 750*750 || az > 750) return 1;
+  if(r2 > 1150*1150 || az > 1229 + 0.03*(1150-r)) return 3;
+  if(r2 > 1000*1000 || az > 1000) return 2;
+  if(r2 > 800*800 || az > 800) return 1;
   return 0;
 }
 
@@ -61,11 +61,11 @@ void he6finalfit()
   const char * const CLR      = "\033[m"    ; // clear
 
   TCanvas * c2 = new TCanvas();
-  c2->Divide(1, 3);
+  c2->Divide(1, 4);
   c2->cd(1);
   c2->ToggleEventStatus();
 
-  TFile fiel("/cp/s4/strait/fullfido-100s-1.5-25MeV-20141022.root");
+  TFile fiel("/cp/s4/strait/fullfido-100s-0-25MeV-20141022.root");
   TTree * t = (TTree *) fiel.Get("t");
 
   const double r2cut = 800, zcut = 800;
@@ -120,24 +120,24 @@ void he6finalfit()
     * (exp(-siglow*log(2)/0.8399) - exp(-sighigh*log(2)/0.8399))
   ;
 
-//#include "ehistbg.C"
-//#include "ehistsig.C"
+#include "ehistbg.C"
+#include "ehistsig.C"
  
   if(!ehistbg){ 
-    ehistbg = new TH2D("ehistbg", "", 3, 0, 3, 120, 0, 15);
+    ehistbg = new TH2D("ehistbg", "", 4, 0, 4, 120, 0, 15);
     fprintf(stderr, "regenerating ehistbg\n");
     t->Draw("e:classi(dx, dy, dz) >> ehistbg ", Form("%s && dt > %f", cut, bglow*1e3));
 
     ehistbg->Scale((sighigh-siglow)/(bghigh-bglow));
   }
 
-  for(int j = 0; j < 3; j++){
+  for(int j = 0; j < 4; j++){
     bgerr[j] = 1/sqrt(ehistbg->Integral(j+1,j+1));
     if((bghigh-bglow)/15 > 1) bgerr[j] *= sqrt((bghigh-bglow)/15); // XXX fudge
   }
 
   if(!ehistsig){ 
-    ehistsig = new TH2D("ehistsig", "", 3, 0, 3, 120, 0, 15);
+    ehistsig = new TH2D("ehistsig", "", 4, 0, 4, 120, 0, 15);
     fprintf(stderr, "regenerating ehistsig\n");
     t->Draw("e:classi(dx, dy, dz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
   }
@@ -167,7 +167,7 @@ void he6finalfit()
   for(int i = 0; i < 120; i++){
     ali8[i] = li8spec->GetBinContent(i+1);
     ahe6[i] = he6spec->GetBinContent(i+1);
-    for(int j = 0; j < 3; j++){
+    for(int j = 0; j < 4; j++){
       abg[j][i]  =ehistbg ->GetBinContent(j+1, i+1);
       asig[j][i] =ehistsig->GetBinContent(j+1, i+1);
     }
@@ -178,22 +178,26 @@ void he6finalfit()
   mn->SetFCN(fcn);
   int err;
   mn->mnparm(0, "bgtargin",  1, 0.01, 0,  0, err);
-  mn->mnparm(1, "bgtargout",  1, 0.01, 0,  0, err);
-  mn->mnparm(2, "bggc",  1, 0.01, 0,  0, err);
-  mn->mnparm(3, "li8", 1, 0.01, 0.01, 1, err);
-  mn->mnparm(4, "he6", 1, 0.01, 0, 10, err);
+  mn->mnparm(1, "bgtargmid",  1, 0.01, 0,  0, err);
+  mn->mnparm(2, "bgtargout",  1, 0.01, 0,  0, err);
+  mn->mnparm(3, "bggc",  1, 0.01, 0,  0, err);
+  mn->mnparm(4, "li8", 1, 0.001, 0.0001, 1, err);
+  mn->mnparm(5, "he6", 1, 0.01, 0, 10, err);
   printf("err? %d\n", err);
 
-  mn->Command("SET PAR 5 0");
-  mn->Command("FIX 5");
+//  mn->Command("SET PAR 5 0.00229277");
+//  mn->Command("FIX 5");
+
+  mn->Command("SET PAR 6 0");
+  mn->Command("FIX 6");
   mn->Command("MIGRAD");
 
   const double chi2nohe6 = mn->fAmin;
 
-  mn->Command("RELEASE 5");
-  mn->Command("SET PAR 5 0.1");
+  mn->Command("RELEASE 6");
+  mn->Command("SET PAR 6 0.1");
   mn->Command("MIGRAD");
-  mn->Command("MINOS 10000 5");
+  mn->Command("MINOS 10000 6");
 
   const double chi2he6 = mn->fAmin;
 
@@ -203,15 +207,15 @@ void he6finalfit()
 
   const double upforlim = 2.71 + chi2nohe6 - chi2he6;
 
-  double dum, bgnorm[3], li8norm, he6norm;
+  double dum, bgnorm[4], li8norm, he6norm;
 
-  for(int j = 0; j < 3; j++) mn->GetParameter(j, bgnorm[j], dum);
-  mn->GetParameter(3, li8norm, dum);
-  mn->GetParameter(4, he6norm, dum);
+  for(int j = 0; j < 4; j++) mn->GetParameter(j, bgnorm[j], dum);
+  mn->GetParameter(4, li8norm, dum);
+  mn->GetParameter(5, he6norm, dum);
 
   double li8normerr, he6normerr;
-  mn->mnerrs(3, dum, dum, li8normerr, dum);
-  mn->mnerrs(4, dum, dum, he6normerr, dum);
+  mn->mnerrs(4, dum, dum, li8normerr, dum);
+  mn->mnerrs(5, dum, dum, he6normerr, dum);
 
   const double captures = 489.509 *
                   (tgc ?367.:
@@ -221,33 +225,33 @@ void he6finalfit()
   const double toprob = 1./captures/eff;
 
   const double nhe6 = he6spec->Integral() * he6norm *
-                      (mus[0] + mus[1] + mus[2]);
+                      (mus[0] + mus[1] + mus[2] + mus[3]);
   const double signhe6 = he6spec->Integral() * he6normerr *
-                      (mus[0] + mus[1] + mus[2]);
+                      (mus[0] + mus[1] + mus[2] + mus[3]);
 
   printf("%sefficiency: %f%s\n", RED, eff, CLR);
   printf("%sraw n He-6: %f +- %f%s\n", RED, nhe6, signhe6, CLR);
   printf("%sHe-6 prob: %f +- %f%s\n", RED, nhe6*toprob,signhe6*toprob, CLR);
 
   const double nli8 = li8spec->Integral() * li8norm *
-                      (mus[0] + mus[1] + mus[2]);
+                      (mus[0] + mus[1] + mus[2] + mus[3]);
   const double signli8 = li8spec->Integral() * li8normerr *
-                      (mus[0] + mus[1] + mus[2]);
+                      (mus[0] + mus[1] + mus[2] + mus[3]);
 
   printf("%sLi-8 prob: %f +- %f%s\n",RED,nli8/captures/li8eff,
                                      signli8/captures/li8eff, CLR);
 
   mn->fUp = upforlim;
-  mn->Command("MINOS 10000 5");
+  mn->Command("MINOS 10000 6");
  
   double he6up90;
-  mn->GetParameter(4, he6norm, dum);
-  mn->mnerrs(4, he6up90, dum, dum, dum);
+  mn->GetParameter(5, he6norm, dum);
+  mn->mnerrs(5, he6up90, dum, dum, dum);
 
   printf("%s 90%% upper limit: %f+%f = %f%s\n", RED, he6norm, he6up90, he6norm+he6up90, CLR);
   
   double n90he6 = 0;
-  for(int j = 1; j < 4; j++){
+  for(int j = 1; j <= 4; j++){
     c2->cd(j);
 
     TH1D * ehistbg_p=ehistbg->ProjectionY(Form("ehistbg_%d", j), j, j);
@@ -301,11 +305,6 @@ void he6finalfit()
 
   printf("%s 90%% upper limit raw n He-6: %f%s\n", RED, n90he6, CLR);
   printf("%s 90%% upper limit He-6 prob: %f%s\n", RED, n90he6*toprob, CLR);
-
-  mn->fGraphicsMode = 0;
-verbose = true;
-  mn->Command("SET PRINT 0");
-  mn->Command("SCAN 4");
 
   c2->SaveAs("he6.pdf");
   c2->SaveAs("he6.C");
