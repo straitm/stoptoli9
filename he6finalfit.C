@@ -52,9 +52,8 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     } 
     like += pow((1-mnbgnorm[j])/bgerr[j], 2);
   }
-  // pull term for Li-8.  However, this doesn't let the Li-8
-  // part of the fit account for N-16, which is useful.
-  //like += pow((0.00229277 - mnli8norm)/1.79122e-04, 2);
+  // pull term for Li-8.
+  like += pow((0.00229277 - mnli8norm)/1.79122e-04, 2);
   like *= 2;
 }
 
