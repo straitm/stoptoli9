@@ -97,14 +97,12 @@ void he6finalfit(const int ncutin = 0)
 
   const double distcut = 200;
 
-  char cut[1000];
-  snprintf(cut, 999, 
-    "n >= %d && n <= 3 && b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
-    "&& miche < 12 && dist < %f && timeleft > 100e3", ncut, distcut);
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
     "b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
     "&& miche < 12 && dist < %f && timeleft > 100e3", distcut);
+  char cut[1000];
+  snprintf(cut, 999, "n >= %d && n <= 3 && %s", ncut, distcut, cutnoncut);
 
   const double distcuteff = (distcut == 400?0.948:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
 
@@ -184,7 +182,7 @@ void he6finalfit(const int ncutin = 0)
   li8spec = new TH1D("li8spec", "", 120, 0, 15);
   for(int j = 0; j < 5; j++)
     n16spec[j] = new TH1D(Form("n16spec%d", j), "", 120, 0, 15);
-  for(int i = 0; i < 1e7; i++){
+  for(int i = 0; i < 1e8; i++){
     const double et=betahe6.GetRandom();
     he6spec->Fill(gRandom->Gaus(et, sqrt(et*pow(0.077, 2)
                                      +et*et*pow(0.018, 2)
@@ -222,29 +220,24 @@ void he6finalfit(const int ncutin = 0)
   TMinuit * mn = new TMinuit(11);
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(0, "bgtargin",   1, 0.01, 0,  0, err);
-  mn->mnparm(1, "bgtargmid1", 1, 0.01, 0,  0, err);
-  mn->mnparm(2, "bgtargmid2", 1, 0.01, 0,  0, err);
-  mn->mnparm(3, "bgtargout",  1, 0.01, 0,  0, err);
-  mn->mnparm(4, "bggc",       1, 0.01, 0,  0, err);
-  mn->mnparm(5, "li8",        1, 0.001, 0.0001, 1, err);
-  mn->mnparm(6, "he6",        1, 0.01, 0, 1, err);
+  mn->mnparm(0, "bgtargin",   1, 0.01,  0,  0, err);
+  mn->mnparm(1, "bgtargmid1", 1, 0.01,  0,  0, err);
+  mn->mnparm(2, "bgtargmid2", 1, 0.01,  0,  0, err);
+  mn->mnparm(3, "bgtargout",  1, 0.01,  0,  0, err);
+  mn->mnparm(4, "bggc",       1, 0.01,  0,  0, err);
+  mn->mnparm(5, "li8",        1, 0.001, 0, 1, err);
+  mn->mnparm(6, "he6",        1, 0.01,  0, 1*(ncut == 3? 100:1), err);
   mn->mnparm(7, "n16targin",  1, 0.001, 0, 0.1, err);
   mn->mnparm(8, "n16targmid", 1, 0.001, 0, 0.1, err);
   mn->mnparm(9, "n16targout", 1, 0.001, 0, 0.1, err);
   mn->mnparm(10, "n16gc",     1, 0.001, 0, 0.1, err);
   printf("err? %d\n", err);
 
-  if(ncut > 0){
-    mn->Command("SET PAR 8 0"); //n16
-    mn->Command("SET PAR 9 0");
-    mn->Command("SET PAR 10 0");
-    mn->Command("SET PAR 11 0");
-
-    mn->Command("FIX 8");
-    mn->Command("FIX 9");
-    mn->Command("FIX 10");
-    mn->Command("FIX 11");
+  if(ncut > 2){ // no n16 
+    for(int i = nrbins+2+1; i < nrbins+2+1+4; i++){
+      mn->Command(Form("SET PAR %d 0", i));
+      mn->Command(Form("FIX %d", i));
+    }
   }
 
   mn->Command(Form("SET PAR %d 0", nrbins+1+1));
@@ -274,8 +267,8 @@ void he6finalfit(const int ncutin = 0)
   for(int j = 0; j < nrbins; j++) mn->GetParameter(j+nrbins+2, n16norm[j], dum);
 
   double li8normerr, he6normerr;
-  mn->mnerrs(4, dum, dum, li8normerr, dum);
-  mn->mnerrs(5, dum, dum, he6normerr, dum);
+  mn->mnerrs(nrbins, dum, dum, li8normerr, dum);
+  mn->mnerrs(nrbins+1, dum, dum, he6normerr, dum);
 
   const double captures = 489.509 * 367.;
 
@@ -306,15 +299,15 @@ void he6finalfit(const int ncutin = 0)
   printf("%s 90%% upper limit: %f+%f = %f%s\n", RED, he6norm, he6up90, he6norm+he6up90, CLR);
   
   mn->Command("set print -3");
-  mn->Command("Fix 7");
+  mn->Command(Form("Fix %d", nrbins+1+1));
 
   const double scan = he6up90 > 0.0001? he6up90: 0.001;
 
   double sump = 0;
   for(int i =0;i<1000; i++){
-    mn->Command(Form("set  par 7 %f", i*0.01*scan));
+    mn->Command(Form("set  par %d %f", nrbins+1+1, i*0.01*scan));
     mn->Command("Migrad");
-    double p = exp(-mn->fAmin+chi2he6);
+    const double p = exp(-mn->fAmin+chi2he6);
     printf("%f\t%g\t%g\n", i*0.01*scan, -mn->fAmin+chi2he6, p);
     sump += p;
   }
@@ -322,16 +315,16 @@ void he6finalfit(const int ncutin = 0)
   double sump2 = 0;
   int i;
   for(i =0;i<1000; i++){
-    mn->Command(Form("set par 7 %f", i*0.01*scan));
+    mn->Command(Form("set par %d %f", nrbins+1+1, i*0.01*scan));
     mn->Command("Migrad");
-    double p = exp(-mn->fAmin+chi2he6);
+    const double p = exp(-mn->fAmin+chi2he6);
     sump2 += p;
     printf("%f\t%g\n", i*0.01*scan, sump2/sump);
     if(sump2>sump*0.9){ printf("%s 90% bays lim: %f (best = %f)%s\n", RED, i*0.01*scan, scan, CLR); break;}
   }
   mn->Command("set print 0");
 
-  double he6norm90 = i*0.01*scan;
+  const double he6norm90 = i*0.01*scan;
 
   double n90he6 = 0;
   for(int j = 1; j <= nrbins; j++){
@@ -341,6 +334,7 @@ void he6finalfit(const int ncutin = 0)
     TH1D * ehistsig_p=ehistsig->ProjectionY(Form("ehistsig_%d", j), j, j);
     TH1D * li8spec_p = (TH1D * )li8spec->Clone(Form("li8spec_%d", j));
     TH1D * he6spec_p = (TH1D * )he6spec->Clone(Form("he6spec_%d", j));
+    TH1D * he6demo   = (TH1D * )he6spec->Clone(Form("he6demo_%d", j));
     TH1D * n16spec_p = (TH1D * )n16spec[j-1]->Clone(Form("n16specp_%d", j));
 
     const double thiseff = j < nrbins?teff:gceff;
@@ -349,6 +343,7 @@ void he6finalfit(const int ncutin = 0)
     n16spec_p->Scale(n16norm[j-1]);
     li8spec_p->Scale(li8norm*mus[j-1]);
     he6spec_p->Scale(he6norm*mus[j-1]*thiseff);
+    he6demo->Scale(he6norm90*mus[j-1]*thiseff);
 
     ehistsig_p->SetLineColor(kRed);
     ehistsig_p->SetMarkerColor(kRed);
@@ -357,8 +352,10 @@ void he6finalfit(const int ncutin = 0)
 
     ehistbg_p->Draw("samehist");
 
-    n16spec_p->SetLineColor(kOrange);
-    n16spec_p->Draw("samehist");
+    if(ncut < 3){
+      n16spec_p->SetLineColor(kOrange);
+      n16spec_p->Draw("samehist");
+    }
 
     TH1D * bg_plus_li8 = (TH1D*)ehistbg_p->Clone(Form("bg_plus_li8_%d", j));
     bg_plus_li8->Add(li8spec_p);
@@ -368,21 +365,23 @@ void he6finalfit(const int ncutin = 0)
     TH1D * bg_plus_li8_n16 = (TH1D*)bg_plus_li8->Clone(Form("bg_plus_li8_n16_%d", j));
     bg_plus_li8_n16->Add(n16spec_p);
     bg_plus_li8_n16->SetLineColor(kViolet);
-    bg_plus_li8_n16->Draw("samehist");
+    if(ncut < 3) bg_plus_li8_n16->Draw("samehist");
 
     TH1D * bg_plus_li8_n16_he6 = (TH1D*)bg_plus_li8_n16->Clone(Form("bg_plus_li8_n16_he6_%d", j));
     bg_plus_li8_n16_he6->Add(he6spec_p);
     bg_plus_li8_n16_he6->SetLineColor(kGreen+2);
     bg_plus_li8_n16_he6->Draw("samehist");
 
-    TH1D * he6demo = (TH1D*) he6spec_p->Clone(Form("he6demo%d", j));
-    he6demo->Scale(he6norm90/he6norm);
+    he6spec_p->SetLineWidth(1);
+    he6spec_p->Draw("samehist");
+
     he6demo->SetLineStyle(kDashed);
     he6demo->Draw("samehist");
 
     TH1D * alldemo = new TH1D(Form("alldemo%d", j), "", 120, 0, 15);
     alldemo->Add(ehistbg_p);
     alldemo->Add(li8spec_p);
+    alldemo->Add(n16spec_p);
     alldemo->Add(he6demo);
     alldemo->SetLineColor(kGreen+2);
     alldemo->SetLineStyle(kDashed);
