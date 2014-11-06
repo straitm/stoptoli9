@@ -11,7 +11,7 @@
 #include "TF1.h"
 #include "stdio.h"
 
-int ncut = 0;
+int ncutmin = 0, ncutmax = 100;
 
 double teff = 0, gceff = 0;
 
@@ -78,9 +78,10 @@ int classi(const double x, const double y, const double z)
   return 0;
 }
 
-void he6finalfit(const int ncutin = 0)
+void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100)
 {
-  ncut = ncutin;
+  ncutmin = ncutmin_;
+  ncutmax = ncutmax_;
   
   TH1::SetDefaultSumw2();
 
@@ -102,7 +103,7 @@ void he6finalfit(const int ncutin = 0)
     "b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
     "&& miche < 12 && dist < %f && timeleft > 100e3", distcut);
   char cut[1000];
-  snprintf(cut, 999, "n >= %d && n <= 3 && %s", ncut, distcut, cutnoncut);
+  snprintf(cut, 999, "n >= %d && n <= %d && %s", ncutmin, ncutmax, distcut, cutnoncut);
 
   const double distcuteff = (distcut == 400?0.948:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
 
@@ -118,8 +119,8 @@ void he6finalfit(const int ncutin = 0)
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
-  teff  = eff * pow(0.64, ncut);
-  gceff = eff * pow(0.93, ncut);
+  teff  = eff * pow(0.64, ncutmin);
+  gceff = eff * pow(0.93, ncutmin);
 
   const double li8eff = 1
     * 0.981 // subsequent muons
@@ -139,7 +140,7 @@ void he6finalfit(const int ncutin = 0)
   double nfracerr[nrbins];
 
   TH2D tmp("tmp", "", 2, 0, 2, nrbins, 0, nrbins);
-  t->Draw(Form("classi(mx, my, mz):n>=%d && n <= 3 >> tmp", ncut), "ndecay == 0 && miche < 12 && !earlymich");
+  t->Draw(Form("classi(mx, my, mz):n>=%d && n <= %d >> tmp", ncutmin, ncutmax), "ndecay == 0 && miche < 12 && !earlymich");
   for(int i = 0; i < nrbins; i++){
     double muonswithn = tmp.GetBinContent(2, i+1);
     double allmuons   = tmp.GetBinContent(1, i+1) + muonswithn;
@@ -226,14 +227,14 @@ void he6finalfit(const int ncutin = 0)
   mn->mnparm(3, "bgtargout",  1, 0.01,  0,  0, err);
   mn->mnparm(4, "bggc",       1, 0.01,  0,  0, err);
   mn->mnparm(5, "li8",        1, 0.001, 0, 1, err);
-  mn->mnparm(6, "he6",        1, 0.01,  0, 1*(ncut == 3? 100:1), err);
+  mn->mnparm(6, "he6",        1, 0.01,  0, 1*(ncutmin >= 3? 100:1), err);
   mn->mnparm(7, "n16targin",  1, 0.001, 0, 0.1, err);
   mn->mnparm(8, "n16targmid", 1, 0.001, 0, 0.1, err);
   mn->mnparm(9, "n16targout", 1, 0.001, 0, 0.1, err);
   mn->mnparm(10, "n16gc",     1, 0.001, 0, 0.1, err);
   printf("err? %d\n", err);
 
-  if(ncut > 2){ // no n16 
+  if(ncutmin > 2){ // no n16 
     for(int i = nrbins+2+1; i < nrbins+2+1+4; i++){
       mn->Command(Form("SET PAR %d 0", i));
       mn->Command(Form("FIX %d", i));
@@ -352,7 +353,7 @@ void he6finalfit(const int ncutin = 0)
 
     ehistbg_p->Draw("samehist");
 
-    if(ncut < 3){
+    if(ncutmin < 3){
       n16spec_p->SetLineColor(kOrange);
       n16spec_p->Draw("samehist");
     }
@@ -365,7 +366,7 @@ void he6finalfit(const int ncutin = 0)
     TH1D * bg_plus_li8_n16 = (TH1D*)bg_plus_li8->Clone(Form("bg_plus_li8_n16_%d", j));
     bg_plus_li8_n16->Add(n16spec_p);
     bg_plus_li8_n16->SetLineColor(kViolet);
-    if(ncut < 3) bg_plus_li8_n16->Draw("samehist");
+    if(ncutmin < 3) bg_plus_li8_n16->Draw("samehist");
 
     TH1D * bg_plus_li8_n16_he6 = (TH1D*)bg_plus_li8_n16->Clone(Form("bg_plus_li8_n16_he6_%d", j));
     bg_plus_li8_n16_he6->Add(he6spec_p);
@@ -388,22 +389,15 @@ void he6finalfit(const int ncutin = 0)
     alldemo->Draw("samehist");
 
     n90he6 += he6demo->Integral(1, he6demo->GetNbinsX())/thiseff;
-
-    /*alldemo->Rebin(4);
-    he6demo->Rebin(4);
-    bg_plus_li8_plus_he6->Rebin(4);
-    bg_plus_li8->Rebin(4);
-    ehistbg_p->Rebin(4);
-    ehistsig_p->Rebin(4); */
   }
 
   printf("%s 90%% upper limit n He-6, eff corrected: %f%s\n", RED, n90he6, CLR);
   printf("%s 90%% upper limit He-6 prob: %f%s\n", RED, n90he6/captures, CLR);
 
-  c2->SaveAs(Form("he6-ncut%d.pdf", ncut));
-  c2->SaveAs(Form("he6-ncut%d.C", ncut));
+  c2->SaveAs(Form("he6-ncut%d-%d.pdf", ncutmin, ncutmax));
+  c2->SaveAs(Form("he6-ncut%d-%d.C", ncutmin, ncutmax));
 
-  ehistsig->SaveAs(Form("tmp-ehistsig-ncut%d.C", ncut));
-  ehistbg->SaveAs(Form("tmp-ehistbg-ncut%d.C", ncut));
+  ehistsig->SaveAs(Form("tmp-ehistsig-ncut%d-%d.C", ncutmin, ncutmax));
+  ehistbg->SaveAs(Form("tmp-ehistbg-ncut%d-%d.C", ncutmin, ncutmax));
 }
 
