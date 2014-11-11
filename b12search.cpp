@@ -893,6 +893,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
 
   double michelt = 0, michele = 0, michdist = 0;
+  bool followingov = false;
+  double followingovtime = 0, followingqivtime = 0;
+  float followingqiv = 0;
+
 
   TBranch 
     * const runbr           = chtree->GetBranch("run"),
@@ -938,21 +942,36 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const double dt = bits.trgtime - mutime;
 
     // For any uncut Michels or (hopefully) prompt gammas from muon
-    // capture, record the time and energy. Note that if we are
+    // capture, record the time and energy. The *highest* energy
+    // event in the time window is accepted.  Note that if we are
     // operating on my microdsts, this will not pick up triggers with E
     // < 0.4MeV in the ID or light noise. I'm going to allow IV energy
     // since these may be very close to the muon event. Note that we
     // will often count this Michel as a neutron also for the zeroth
     // element of the count arrays (but not the first), so don't double
     // count by accident.  
-    if(dt < 5500 && !bits.coinov && michelt == 0 && michele == 0){
+    if(dt < 5500 && !bits.coinov){
       ctEvisIDbr->GetEntry(i);
       ctXbr->GetEntry(i);
-      michele = bits.ctEvisID, michelt = dt;
-      michdist =
-        sqrt(pow(mux-bamacorrxy(bits.ctX[0], bits.ctEvisID), 2) +
-             pow(muy-bamacorrxy(bits.ctX[1], bits.ctEvisID), 2) +
-             pow(muz-bamacorrz( bits.ctX[2], bits.ctEvisID), 2));
+      if(bits.ctEvisID > michele){
+        michele = bits.ctEvisID, michelt = dt;
+        michdist =
+          sqrt(pow(mux-bamacorrxy(bits.ctX[0], bits.ctEvisID), 2) +
+               pow(muy-bamacorrxy(bits.ctX[1], bits.ctEvisID), 2) +
+               pow(muz-bamacorrz( bits.ctX[2], bits.ctEvisID), 2));
+      }
+    }
+
+    if(dt < 5500){
+      fido_qivbr->GetEntry(i);
+      if(bits.coinov){
+         followingov = true;
+         followingovtime = dt;
+      }
+      if(bits.fido_qiv > followingqiv){
+        followingqiv = bits.fido_qiv;
+        followingqivtime = dt;
+      }
     }
 
     // Skip past retriggers and whatnot, like DC3rdPub
@@ -1036,7 +1055,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                "%f %f %f %f %f " \
                "%d %d %d %d %d %d %d %d " \
                "%lf %.0lf %f %f %f %f %.0f %f %f " \
-               "%f %f %f %f %f %f %f %f %d"
+               "%f %f %f %f %f %f %f %f %d %f %f %f %d"
                LATEFORM
                "\n",
                /* 0, 0, 0, 0, 0, 0, 0, */
@@ -1051,7 +1070,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                deadtime, nondeadenergy, michdist, \
                mufqid, mufqiv, muctqid, muctqiv, \
                timeleft, ttlastvalid, ttlastmuon, \
-               ttlastgcmuon, printed
+               ttlastgcmuon, followingov, followingovtime, \
+               followingqiv, followingqivtime, printed
               LATEVARS);
       break;
     }
@@ -1345,7 +1365,8 @@ int main(int argc, char ** argv)
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
          "fex/F:fey/F:fez/F:deadt/F:"
          "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
-         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:ndecay/I"
+         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:ndecay/I:"
+         "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F"
          "\n");
 
   for(int i = 4; i < argc; i+=2){
