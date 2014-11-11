@@ -1365,8 +1365,9 @@ int main(int argc, char ** argv)
          "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
          "fex/F:fey/F:fez/F:deadt/F:"
          "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
-         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:ndecay/I:"
-         "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F"
+         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
+         "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
+         "ndecay/I"
          "\n");
 
   for(int i = 4; i < argc; i+=2){
