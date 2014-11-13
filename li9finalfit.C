@@ -75,7 +75,7 @@
   for(int i = 0; i < 2; i++)
     e->SetParameter(i, ee->GetParameter(i));
 
-  const double Geff = 0.9 /* Made up! */,
+  const double Geff = 0.922, /* DC3rdPub product of muon, light noise, OV, multiplicity, neutron (E, t, R), FV and IV efficiencies */
                Heff = 0.77 /* doc-5787, but maybe misinterpreted */;
 
   const double Ncorr = Nrawg/Geff + Nrawh/Heff;
