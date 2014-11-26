@@ -136,46 +136,93 @@ void li9finalfit(bool neutron = false)
   const double denominator = 489.509*367*0.852;
 
   //////////////////
-  new TCanvas;
+  TCanvas * c2 = new TCanvas("c2", "c2", 600, 350);
 
   TF1 ee2str("ee2str",
-    Form("%f*%f*(%f*(%f*([0]-[2])/0.1783*log(2)*exp(-    x    *log(2)/0.1783) + %f*([5]-[4])/0.1191*log(2)*exp(-    x    *log(2)/0.1191) + [1])*(x < 10) +"
-             "%f*(%f*   [2]   /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) + %f*   [4]   /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) + [3])*(x >=10))",
+    Form("%f*%f*(%f*(%f*([0]-[2])/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +"
+                   " %f*([5]-[4])/0.1191*log(2)*exp(-    x    *log(2)/0.1191) + [1])*(x < 10) +"
+             "%f*(%f*   [2]   /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) + "
+                 "%f*   [4]   /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) + [3])*(x >=10))",
          h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, Geff, li9ebn, he8ebn), 0, 20);
   ee2str.SetParameters(ee2.GetParameter(0)/denominator,
                        ee2.GetParameter(1)/denominator, 
                        ee2.GetParameter(2)/denominator,
-                       ee2.GetParameter(3)/denominator, 1, 1);
+                       ee2.GetParameter(3)/denominator,
+                       ee2.GetParameter(2)/denominator/10,
+                       ee2.GetParameter(0)/denominator/10);
   ee2str.SetParNames("totalli9" /* c0, f1 */, "hbg", "gdli9", "gdbg", "gdhe8", "totalhe8");
-  ee2str.SetNpx(400);
-  ee2str.SetLineColor(kRed);
-  ee2str.SetParLimits(0, 0, 120/denominator);
-  ee2str.SetParLimits(2, 0, 120/denominator);
-  ee2str.SetParLimits(4, 0, 300/denominator);
-  ee2str.SetParLimits(5, 0, 300/denominator);
+  ee2str.SetParLimits(0, 0, 1e-3);
+  ee2str.SetParLimits(2, 0, 0.3e-3);
+  ee2str.SetParLimits(4, 0, 0.3e-3);
+  ee2str.SetParLimits(5, 0, 1e-3);
 
-  h2fit->Fit("ee2str", "le", "", 0, 20);
+  h2fit->Fit("ee2str", "le", "", 0, 20); // bogus!  Lets He-8 or Li-9 be negative
+
+  double gridmin = 1e40;
+  double minx = 0, miny = 0;
 
   gMinuit->Command("set print 0");
   gMinuit->Command("set strategy 2");
+
+  const int gridspacing = 50;
+  TH2D * grid = new TH2D("grid", "", gridspacing, 0, 0.75e-3, gridspacing, 0, 1.9e-3);
+  ((TGaxis*)(grid->GetXaxis()))->SetMaxDigits(1);
+  ((TGaxis*)(grid->GetYaxis()))->SetMaxDigits(1);
+  grid->SetContour(4);
+  grid->SetContourLevel(0, gridmin+1./2);
+  grid->SetContourLevel(1, gridmin+2.3/2);
+  grid->SetContourLevel(2, gridmin+4.61/2);
+  grid->SetContourLevel(3, gridmin+11.83/2);
+  for(int x = 1; x <= grid->GetNbinsX(); x++){
+    for(int y = 1; y <= grid->GetNbinsY(); y++){
+      ee2str.FixParameter(0, grid->GetXaxis()->GetBinCenter(x));
+      ee2str.FixParameter(5, grid->GetYaxis()->GetBinCenter(y));
+      ee2str.SetParLimits(2, 0, grid->GetXaxis()->GetBinCenter(x));
+      ee2str.SetParLimits(4, 0, grid->GetYaxis()->GetBinCenter(y));
+      h2fit->Fit("ee2str", "l", "", 0, 20);
+      grid->SetBinContent(x, y, gMinuit->fAmin);
+      if(gMinuit->fAmin < gridmin){
+        gridmin = gMinuit->fAmin;
+        minx = grid->GetXaxis()->GetBinCenter(x);
+        miny = grid->GetYaxis()->GetBinCenter(y);
+        grid->SetContourLevel(0, gridmin+1./2);
+        grid->SetContourLevel(1, gridmin+2.3/2);
+        grid->SetContourLevel(2, gridmin+4.61/2);
+        grid->SetContourLevel(3, gridmin+11.83/2);
+      }
+    }
+    grid->Draw("cont1");
+    c2->Update();
+  }
+
+
+  grid->Draw("cont1");
+  printf("best: %f %f\n", minx, miny);
+  TMarker * best = new TMarker(minx, miny, kStar);
+  best->Draw();
+  
+
+/*
   gMinuit->fUp = 2.3/2; // 90% in 1D
+
   gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  TGraph * ninty_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
   gMinuit->fUp = 4.61/2; // 90%
   gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  TGraph * ninty_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
   gMinuit->fUp = 11.83/2; // 99.73%
   gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty973_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  TGraph * ninty973_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
   if(ninty973_2d) ninty973_2d->SetFillColor(kViolet);
-  if(ninty973_2d) ninty973_2d->Draw("alf");
+  if(ninty973_2d) ninty973_2d->Draw("al");
   if(ninty_2d) ninty_2d->SetFillColor(kBlue);
   if(ninty_2d) ninty_2d->Draw("lf");
   if(ninty_1d) ninty_1d->SetLineColor(kRed);
   if(ninty_1d) ninty_1d->Draw("l");
 
-  if(ninty973_2d) ninty973_2d->GetYaxis()->SetRangeUser(0, 300/denominator);
-  if(ninty973_2d) ninty973_2d->GetXaxis()->SetRangeUser(0, 120/denominator);
+  if(ninty973_2d) ninty973_2d->GetYaxis()->SetRangeUser(0, 0.001);
+  if(ninty973_2d) ninty973_2d->GetXaxis()->SetRangeUser(0, 0.0006);
+*/
 
 
   //////////////////
