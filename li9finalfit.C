@@ -1,20 +1,3 @@
-static void scalemarker(TMarker * m)
-{
-  const double newx = m->GetX() * c15life/c15eff;
-  const double newy = m->GetY() * be11life/be11eff;
-  m->SetX(newx);
-  m->SetY(newy);
-}
-
-static void scalegraph(TGraph * g)
-{
-  for(int i = 0; i < g->GetN(); i++){
-    const double newx = g->GetX()[i] * c15life/c15eff;
-    const double newy = g->GetY()[i] * be11life/be11eff;
-    g->SetPoint(i, newx, newy);
-  }
-}
-
 void li9finalfit(bool neutron = false)
 {
   const double li9ebn = 0.5080,
@@ -29,8 +12,10 @@ void li9finalfit(bool neutron = false)
   tg.ReadFile("li9-20140925-earlymich.Gd.ntuple");
   th.ReadFile("li9-20141119.H.ntuple");
 
-  tg.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
+  const float dist = 300;
+
+  tg.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  tg.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.FixParameter(1, 0.1783);
@@ -55,8 +40,8 @@ void li9finalfit(bool neutron = false)
 
   hdispg->Draw("e");
 
-  th.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  th.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.FixParameter(1, 0.1783);
@@ -80,10 +65,10 @@ void li9finalfit(bool neutron = false)
     ee.SetParameter(i, ee.GetParameter(i)*hdispg->GetBinWidth(1)/
                                            hfitg->GetBinWidth(1));
 
-  th.Draw("dt/1000 >> hfitb(10000, 0.001, 10)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  th.Draw("dt/1000 >> hdispb(40, 0, 10)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> +hfitb", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> +hdispb", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> hfitb(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> hdispb(40, 0, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  tg.Draw("dt/1000 >> +hfitb", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  tg.Draw("dt/1000 >> +hdispb", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
 
   TH1D * hdispb = (TH1D*) gROOT->FindObject("hdispb");
   TH1D * hfitb = (TH1D*) gROOT->FindObject("hfitb");
@@ -129,8 +114,8 @@ void li9finalfit(bool neutron = false)
   ee2.SetLineColor(kRed);
   ee2.SetParLimits(0, 0, 20);
   ee2.SetParLimits(2, 0, 50);
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
   h2fit->Fit("ee2", "l", "", 0, 20);
 
   const double denominator = 489.509*367*0.852;
@@ -139,32 +124,82 @@ void li9finalfit(bool neutron = false)
   TCanvas * c2 = new TCanvas("c2", "c2", 600, 350);
 
   TF1 ee2str("ee2str",
-    Form("%f*%f*(%f*(%f*([0]-[2])/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +"
-                   " %f*([5]-[4])/0.1191*log(2)*exp(-    x    *log(2)/0.1191) + [1])*(x < 10) +"
-             "%f*(%f*   [2]   /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) + "
-                 "%f*   [4]   /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) + [3])*(x >=10))",
+    Form("%f*%f*"
+      "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783))*(x < 10) +" // H Li-9
+          "(%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191))*(x < 10) +" // H He-8
+           "[1]*(1-[2])*(x < 10) + "                                                  // H bg
+       "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783))*(x >=10) +" // Gd Li-9
+          "(%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191))*(x >=10) +" // Gd He-8
+           "[1]*[2]*(x >=10))",                                                       // Gd bg
          h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, Geff, li9ebn, he8ebn), 0, 20);
-  ee2str.SetParameters(ee2.GetParameter(0)/denominator,
-                       ee2.GetParameter(1)/denominator, 
-                       ee2.GetParameter(2)/denominator,
-                       ee2.GetParameter(3)/denominator,
-                       ee2.GetParameter(2)/denominator/10,
-                       ee2.GetParameter(0)/denominator/10);
-  ee2str.SetParNames("totalli9" /* c0, f1 */, "hbg", "gdli9", "gdbg", "gdhe8", "totalhe8");
+  ee2str.SetParameters(ee2.GetParameter(0)/denominator, // li9 
+                       ee2.GetParameter(1)/denominator, // bg
+                       0.38,                            // gdfrac
+                       ee2.GetParameter(0)/denominator/10); // he8
+  ee2str.SetParNames("li9" /* c0, f1 */, "bg", "gdfrac", "he8");
+
+  //////////////////////////////////////////////////////////////////////
+  
   ee2str.SetParLimits(0, 0, 1e-3);
-  ee2str.SetParLimits(2, 0, 0.3e-3);
-  ee2str.SetParLimits(4, 0, 0.3e-3);
-  ee2str.SetParLimits(5, 0, 1e-3);
+  ee2str.SetParLimits(2, 0, 1);
+  ee2str.FixParameter(2, 139./367 * Geff/Heff);
+  ee2str.SetParLimits(3, 0, 1e-3);
 
-  h2fit->Fit("ee2str", "le", "", 0, 20); // bogus!  Lets He-8 or Li-9 be negative
+  ee2str.FixParameter(3, 0);
+  h2fit->Fit("ee2str", "le", "", 0, 20);
+  printf("%sLi-9 prob without He-8: %f +%f %f%s\n", RED,
+    ee2str.GetParameter(0), gMinuit->fErp[0], gMinuit->fErn[0], CLR);
 
-  double gridmin = 1e40;
-  double minx = 0, miny = 0;
+  ee2str.ReleaseParameter(3);
+  ee2str.SetParLimits(3, 0, 1e-3);
+  h2fit->Fit("ee2str", "le", "", 0, 20);
+  printf("%sLi-9 prob with He-8: %f +%f %f%s\n", RED,
+    ee2str.GetParameter(0), gMinuit->fErp[0], gMinuit->fErn[0], CLR);
 
-  gMinuit->Command("set print 0");
-  gMinuit->Command("set strategy 2");
+  double minx = ee2str.GetParameter(0), miny = ee2str.GetParameter(3);
 
-  const int gridspacing = 50;
+  gMinuit->Command("Set print 0");
+  gMinuit->Command("Set strategy 2");
+
+  gMinuit->fUp = 1.0/2; // 68% in 1D
+  gMinuit->Command("mncont 1 4 200");
+  TGraph * sigma_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  gMinuit->fUp = 2.3/2; // 90% in 1D
+  gMinuit->Command("mncont 1 4 200");
+  TGraph * ninty_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  gMinuit->fUp = 4.61/2; // 90%
+  gMinuit->Command("mncont 1 4 200");
+  TGraph * ninty_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  gMinuit->fUp = 11.83/2; // 99.73%
+  gMinuit->Command("mncont 1 4 200");
+  TGraph * ninty973_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  if(ninty973_2d) ninty973_2d->SetFillColor(kViolet);
+  if(ninty973_2d) ninty973_2d->Draw("al");
+  if(ninty973_2d) ninty973_2d->GetXaxis()->SetRangeUser(0, 0.00075);
+  if(ninty973_2d) ninty973_2d->GetYaxis()->SetRangeUser(0, 0.001);
+  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetXaxis()))->SetMaxDigits(1);
+  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetYaxis()))->SetMaxDigits(1);
+  if(ninty_2d) ninty_2d->SetFillColor(kBlue);
+  if(ninty_2d) ninty_2d->Draw("l");
+  if(ninty_1d) ninty_1d->SetLineColor(kRed);
+  if(ninty_1d) ninty_1d->Draw("l");
+  if(sigma_1d) sigma_1d->SetLineColor(kBlack);
+  if(sigma_1d) sigma_1d->Draw("l");
+
+
+  //////////////////
+  //////////////////////////////////////////////////////////////////////
+/*
+  h2fit->Fit("ee2str", "le", "", 0, 20);
+
+  double gridmin = gMinuit->fAmin;
+  double minx = ee2str.GetParameter(0), miny = ee2str.GetParameter(3);
+
+  const int gridspacing = 10;
   TH2D * grid = new TH2D("grid", "", gridspacing, 0, 0.75e-3, gridspacing, 0, 1.9e-3);
   ((TGaxis*)(grid->GetXaxis()))->SetMaxDigits(1);
   ((TGaxis*)(grid->GetYaxis()))->SetMaxDigits(1);
@@ -176,10 +211,8 @@ void li9finalfit(bool neutron = false)
   for(int x = 1; x <= grid->GetNbinsX(); x++){
     for(int y = 1; y <= grid->GetNbinsY(); y++){
       ee2str.FixParameter(0, grid->GetXaxis()->GetBinCenter(x));
-      ee2str.FixParameter(5, grid->GetYaxis()->GetBinCenter(y));
-      ee2str.SetParLimits(2, 0, grid->GetXaxis()->GetBinCenter(x));
-      ee2str.SetParLimits(4, 0, grid->GetYaxis()->GetBinCenter(y));
-      h2fit->Fit("ee2str", "l", "", 0, 20);
+      ee2str.FixParameter(3, grid->GetYaxis()->GetBinCenter(y));
+      h2fit->Fit("ee2str", "ql", "", 0, 20);
       grid->SetBinContent(x, y, gMinuit->fAmin);
       if(gMinuit->fAmin < gridmin){
         gridmin = gMinuit->fAmin;
@@ -191,40 +224,16 @@ void li9finalfit(bool neutron = false)
         grid->SetContourLevel(3, gridmin+11.83/2);
       }
     }
-    grid->Draw("cont1");
+    grid->Draw("cont1same");
     c2->Update();
   }
 
-
-  grid->Draw("cont1");
-  printf("best: %f %f\n", minx, miny);
+  grid->Draw("cont1same");
+*/
   TMarker * best = new TMarker(minx, miny, kStar);
   best->Draw();
   
-
-/*
-  gMinuit->fUp = 2.3/2; // 90% in 1D
-
-  gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-  gMinuit->fUp = 4.61/2; // 90%
-  gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-  gMinuit->fUp = 11.83/2; // 99.73%
-  gMinuit->Command("mncont 1 6 200");
-  TGraph * ninty973_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-  if(ninty973_2d) ninty973_2d->SetFillColor(kViolet);
-  if(ninty973_2d) ninty973_2d->Draw("al");
-  if(ninty_2d) ninty_2d->SetFillColor(kBlue);
-  if(ninty_2d) ninty_2d->Draw("lf");
-  if(ninty_1d) ninty_1d->SetLineColor(kRed);
-  if(ninty_1d) ninty_1d->Draw("l");
-
-  if(ninty973_2d) ninty973_2d->GetYaxis()->SetRangeUser(0, 0.001);
-  if(ninty973_2d) ninty973_2d->GetXaxis()->SetRangeUser(0, 0.0006);
-*/
-
-
+  //////////////////////////////////////////////////////////////////////
   //////////////////
  
   c1->cd();
@@ -252,8 +261,8 @@ void li9finalfit(bool neutron = false)
   ee2s.SetLineColor(kRed);
   ee2s.SetParLimits(0, 0, 10);
   ee2s.SetParLimits(2, 0, 10);
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
-  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < 300  && miche < 12 && !earlymich", neutron?"n==1&&":" "));
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
   h2fit->Fit("ee2s", "l", "", 0, 20);
 
   const double bestlike = gMinuit->fAmin;
@@ -287,6 +296,6 @@ void li9finalfit(bool neutron = false)
   printf("Candidates:\n");
   th.SetScanField(0);
   tg.SetScanField(0);
-  th.Scan("run:trig:dt", Form("%sdist < 300  && miche < 12 && !earlymich && dt < 10000", neutron?"n==1&&":" "));
-  tg.Scan("run:trig:dt", Form("%sdist < 300  && miche < 12 && !earlymich && dt < 10000", neutron?"n==1&&":" "));
+  th.Scan("run:trig:dt", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
+  tg.Scan("run:trig:dt", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
 }
