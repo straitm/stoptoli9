@@ -118,19 +118,21 @@ void li9finalfit(bool neutron = false)
   tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
   h2fit->Fit("ee2", "l", "", 0, 20);
 
-  const double denominator = 489.509*367*0.852;
+  const double distcuteff = (dist == 400?0.948:dist == 300?0.852:dist == 200?0.565:dist==159?0.376:100000);
+
+  const double denominator = 489.509*367*distcuteff;
 
   //////////////////
   TCanvas * c2 = new TCanvas("c2", "c2", 600, 350);
 
   TF1 ee2str("ee2str",
     Form("%f*%f*"
-      "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783))*(x < 10) +" // H Li-9
-          "(%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191))*(x < 10) +" // H He-8
-           "[1]*(1-[2])*(x < 10) + "                                                  // H bg
-       "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783))*(x >=10) +" // Gd Li-9
-          "(%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191))*(x >=10) +" // Gd He-8
-           "[1]*[2]*(x >=10))",                                                       // Gd bg
+      "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +" // H Li-9
+           "%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191) +" // H He-8
+            "[1]*(1-[2]))*(x < 10) + "                                      // H bg
+       "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +" // Gd Li-9
+           "%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) +" // Gd He-8
+            "[1]*[2])*(x >=10))",                                           // Gd bg
          h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, Geff, li9ebn, he8ebn), 0, 20);
   ee2str.SetParameters(ee2.GetParameter(0)/denominator, // li9 
                        ee2.GetParameter(1)/denominator, // bg
@@ -141,6 +143,7 @@ void li9finalfit(bool neutron = false)
   //////////////////////////////////////////////////////////////////////
   
   ee2str.SetParLimits(0, 0, 1e-3);
+//  ee2str.FixParameter(1,  165799./7778371 * 8.32142e-05); // XXX
   ee2str.SetParLimits(2, 0, 1);
   ee2str.FixParameter(2, 139./367 * Geff/Heff);
   ee2str.SetParLimits(3, 0, 1e-3);
@@ -181,8 +184,8 @@ void li9finalfit(bool neutron = false)
   if(ninty973_2d) ninty973_2d->Draw("al");
   if(ninty973_2d) ninty973_2d->GetXaxis()->SetRangeUser(0, 0.00075);
   if(ninty973_2d) ninty973_2d->GetYaxis()->SetRangeUser(0, 0.001);
-  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetXaxis()))->SetMaxDigits(1);
-  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetYaxis()))->SetMaxDigits(1);
+  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetXaxis()))->SetMaxDigits(2);
+  if(ninty973_2d) ((TGaxis*)(ninty973_2d->GetYaxis()))->SetMaxDigits(2);
   if(ninty_2d) ninty_2d->SetFillColor(kBlue);
   if(ninty_2d) ninty_2d->Draw("l");
   if(ninty_1d) ninty_1d->SetLineColor(kRed);
@@ -296,6 +299,6 @@ void li9finalfit(bool neutron = false)
   printf("Candidates:\n");
   th.SetScanField(0);
   tg.SetScanField(0);
-  th.Scan("run:trig:dt", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
-  tg.Scan("run:trig:dt", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
+  th.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
+  tg.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
 }
