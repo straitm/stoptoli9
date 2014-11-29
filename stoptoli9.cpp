@@ -11,6 +11,8 @@
 
 #include "search.h"
 
+static const double window = 30e9;
+
 static void stopper_search(dataparts & parts, TTree * const ctree,
                            TTree * const ftree, const int prompt)
 {
@@ -23,6 +25,10 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
   ctree->GetEntry(prompt);
   const double prompttime = parts.trgtime;
+
+  // Can't look back all the way
+  if(prompttime < window) return;
+
   const double li9x=bamacorrxy(parts.ctX[0], parts.ctEvisID),
                li9y=bamacorrxy(parts.ctX[1], parts.ctEvisID),
                li9z=bamacorrz( parts.ctX[2], parts.ctEvisID);
@@ -62,7 +68,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       continue;
 
     // Open up a big window
-    if(prompttime - parts.trgtime > 10e9) return;
+    if(prompttime - parts.trgtime > window) return;
 
     const double mux = fidocorrxy(parts.ids_end_x),
                  muy = fidocorrxy(parts.ids_end_y),
