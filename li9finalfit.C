@@ -40,57 +40,57 @@ void li9finalfit(bool neutron = false)
 
   TF1 ee2str("ee2str",
     Form("%f*%f*"
-    "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +" // H Li-9
-         "%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191) +" // H He-8
-          "[1]*(1-[2]))*(x < 10) + "                                      // H bg
-     "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +" // Gd Li-9
-         "%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) +" // Gd He-8
-          "[1]*[2])*(x >=10))",                                           // Gd bg
+    "(%f*(%f*([2]*(1-[1]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +" // H Li-9
+         "%f*([3]*(1-[1]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191) +" // H He-8
+          "[0]*(1-[1]))*(x < 10) + "                                      // H bg
+     "%f*(%f*  [2]*[1]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +" // Gd Li-9
+         "%f*  [3]*[1]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) +" // Gd He-8
+          "[0]*[1])*(x >=10))",                                           // Gd bg
          h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, Geff, li9ebn, he8ebn), 0, 20);
-  ee2str.SetParameters(0.0001, 0.0001, 0.38,   0.00001);
-  ee2str.SetParNames(  "li9",  "bg",  "gdfrac", "he8");
+  ee2str.SetParameters(0.0001, 0.38, 0.0001, 0.00001);
+  ee2str.SetParNames(  "bg",  "gdfrac", "li9",  "he8");
 
-  ee2str.SetParLimits(0, 0, 1e-3);
+  ee2str.SetParLimits(2, 0, 1e-3);
 //  ee2str.FixParameter(1,  165799./7778371 * 8.32142e-05); // XXX
-  ee2str.SetParLimits(2, 0, 1);
-  ee2str.FixParameter(2, 0.87 /* H-n paper */ *139./367 * Geff/Heff);
+  ee2str.SetParLimits(1, 0, 1);
+  ee2str.FixParameter(1, 0.87 /* H-n paper */ *139./367 * Geff/Heff);
   ee2str.SetParLimits(3, 0, 1e-3);
 
   ee2str.FixParameter(3, 0);
   h2fit->Fit("ee2str", "le", "", 0, 20);
   printf("%sLi-9 prob without He-8: %f +%f %f%s\n", RED,
-    ee2str.GetParameter(0), gMinuit->fErp[0], gMinuit->fErn[0], CLR);
+    ee2str.GetParameter(2), gMinuit->fErp[2], gMinuit->fErn[2], CLR);
 
   ee2str.ReleaseParameter(3);
   ee2str.SetParLimits(3, 0, 1e-3);
   h2fit->Fit("ee2str", "le", "", 0, 20);
   printf("%sLi-9 prob with He-8: %f +%f %f%s\n", RED,
-    ee2str.GetParameter(0), gMinuit->fErp[0], gMinuit->fErn[0], CLR);
+    ee2str.GetParameter(2), gMinuit->fErp[2], gMinuit->fErn[2], CLR);
 
-  const double li9prob = ee2str.GetParameter(0),
+  const double li9prob = ee2str.GetParameter(2),
                he8prob = ee2str.GetParameter(3),
-               gdfrac = ee2str.GetParameter(2);
-  double       bg = ee2str.GetParameter(1)* denominator;
+               gdfrac = ee2str.GetParameter(1);
+  double       bg = ee2str.GetParameter(0)* denominator;
 
-  double minx = ee2str.GetParameter(0), miny = ee2str.GetParameter(3);
+  double minx = ee2str.GetParameter(2), miny = ee2str.GetParameter(3);
 
   gMinuit->Command("Set print 0");
   gMinuit->Command("Set strategy 2");
 
   gMinuit->fUp = 1.0/2; // 68% in 1D
-  gMinuit->Command("mncont 1 4 200");
+  gMinuit->Command("mncont 3 4 200");
   TGraph * sigma_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
 
   gMinuit->fUp = 2.3/2; // 90% in 1D
-  gMinuit->Command("mncont 1 4 200");
+  gMinuit->Command("mncont 3 4 200");
   TGraph * ninty_1d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
 
   gMinuit->fUp = 4.61/2; // 90%
-  gMinuit->Command("mncont 1 4 200");
+  gMinuit->Command("mncont 3 4 200");
   TGraph * ninty_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
 
   gMinuit->fUp = 11.83/2; // 99.73%
-  gMinuit->Command("mncont 1 4 200");
+  gMinuit->Command("mncont 3 4 200");
   TGraph * ninty973_2d = gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
 
   if(ninty973_2d) ninty973_2d->SetFillColor(kViolet);
