@@ -1,88 +1,20 @@
 void li9finalfit(bool neutron = false)
 {
-  const double li9ebn = 0.5080,
-               he8ebn = 0.1600;
-
-  TCanvas * c1 = new TCanvas;
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
-  TTree tg("t", "t");
-  TTree th("t", "t");
-  tg.ReadFile("li9-20140925-earlymich.Gd.ntuple");
-  th.ReadFile("li9-20141119.H.ntuple");
-
+  ///////////////////////////////////////////////////////////////////
+ 
   const float dist = 300;
 
-  tg.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
+  const double livetime = 489.509, nstop = 367.;
 
-  TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
-  ee.FixParameter(1, 0.1783);
-  ee.FixParameter(3, 0.1191);
-  ee.FixParameter(2, 0);
+  const double li9ebn = 0.5080, he8ebn = 0.1600;
+  const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
+                             dist == 200?0.565:dist==159?0.376:100000);
 
-  hfitg->Fit("ee", "le", "");
-
-  TF1 e("e", "[0]*exp(-x*log(2)/[1])", 0, 10);
-  for(int i = 0; i < 2; i++)
-    e.SetParameter(i, ee.GetParameter(i));
-
-  const double Nrawg = e.Integral(0, 10)/hfitg->GetBinWidth(1);
-  const double Nrawgup = e.Integral(0, 10)/hfitg->GetBinWidth(1) / ee.GetParameter(0) * gMinuit->fErp[0];
-  const double Nrawglo = e.Integral(0, 10)/hfitg->GetBinWidth(1) / ee.GetParameter(0) * gMinuit->fErn[0];
-
-  printf("%sgd Nraw = %.2f +%f %f%s\n", RED, Nrawg, Nrawgup, Nrawglo, CLR);
-
-  for(int i = 0; i <= 4; i+=2)
-    ee.SetParameter(i, ee.GetParameter(i)*hdispg->GetBinWidth(1)/
-                                           hfitg->GetBinWidth(1));
-
-  hdispg->Draw("e");
-
-  th.Draw("dt/1000 >> hfitg(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  th.Draw("dt/1000 >> hdispg(50, 0.001, 10.001)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-
-  TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
-  ee.FixParameter(1, 0.1783);
-  ee.FixParameter(3, 0.1191);
-  ee.FixParameter(2, 0);
-  ee.SetParLimits(0, 0, 10);
-
-  hfitg->Fit("ee", "le", "");
-
-  TF1 e("e", "[0]*exp(-x*log(2)/[1])", 0, 10);
-  for(int i = 0; i < 2; i++)
-    e.SetParameter(i, ee.GetParameter(i));
- 
-  const double Nrawh = e.Integral(0, 10)/hfitg->GetBinWidth(1);
-  const double Nrawhup = e.Integral(0, 10)/hfitg->GetBinWidth(1) / ee.GetParameter(0) * gMinuit->fErp[0];
-  const double Nrawhlo = e.Integral(0, 10)/hfitg->GetBinWidth(1) / ee.GetParameter(0) * gMinuit->fErn[0];
-
-  printf("%sH Nraw = %.2f +%f %f%s\n", RED, Nrawh , Nrawhup , Nrawhlo, CLR);
-
-  for(int i = 0; i <= 4; i+=2)
-    ee.SetParameter(i, ee.GetParameter(i)*hdispg->GetBinWidth(1)/
-                                           hfitg->GetBinWidth(1));
-
-  th.Draw("dt/1000 >> hfitb(10000, 0.001, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  th.Draw("dt/1000 >> hdispb(40, 0, 10)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> +hfitb", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  tg.Draw("dt/1000 >> +hdispb", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-
-  TH1D * hdispb = (TH1D*) gROOT->FindObject("hdispb");
-  TH1D * hfitb = (TH1D*) gROOT->FindObject("hfitb");
-
-  TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
-  ee.FixParameter(1, 0.1783);
-  ee.FixParameter(3, 0.1191);
-  ee.FixParameter(2, 0);
-
-  hfitb->Fit("ee", "le", "");
-
-  TF1 e("e", "[0]*exp(-x*log(2)/[1])", 0, 10);
-  for(int i = 0; i < 2; i++)
-    e.SetParameter(i, ee.GetParameter(i));
+  // 30s begin-of-run requirement taken into account here
+  const double denominator = 0.99127*livetime*nstop*distcuteff;
 
   // First factor takes into account the prompt energy cut, second
   // as documented 
@@ -91,61 +23,37 @@ void li9finalfit(bool neutron = false)
                Heff = (neutron?0.97*0.93:1)* // neutron eff
                0.993*0.870 /* doc-5787 and others, but maybe misinterpreted */;
 
-  const double Ncorr = Nrawg/Geff + Nrawh/Heff;
-  const double Ncorrup = sqrt((Nrawgup/Geff)**2 + (Nrawhup/Heff)**2);
-  const double Ncorrlo = sqrt((Nrawglo/Geff)**2 + (Nrawhlo/Heff)**2);
+  char cut[1000];
+  snprintf(cut, 999, "%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" ");
 
-  printf("%s\n--> Sum using summed quadrature errors:\n", RED);
-  printf("Both with eff = %.2f +%f %f%s\n", Ncorr , Ncorrup , Ncorrlo, CLR);
+  ////////////////////////////////////////////////////////////////////
 
-  TF1 * eedisp = new TF1("eedisp", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
-  eedisp->FixParameter(1, 0.1783);
-  eedisp->FixParameter(3, 0.1191);
-  eedisp->FixParameter(2, 0);
-
-
-  TF1 ee2("ee2",
-    Form("(([0]-[2])*%f*%f*exp(-    x    *log(2)/0.1783)+[1])*(x < 10) +"
-         "(   [2]   *%f*%f*exp(-(x-9.999)*log(2)/0.1783)+[3])*(x >=10)",
-         Heff, li9ebn, Geff, li9ebn), 0, 20);
-  ee2.SetParNames("totalli9", "hbg", "gdli9", "gdbg");
-  ee2.SetParameters(1, 1, 1, 1);
-  ee2.SetNpx(400);
-  ee2.SetLineColor(kRed);
-  ee2.SetParLimits(0, 0, 20);
-  ee2.SetParLimits(2, 0, 50);
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  h2fit->Fit("ee2", "l", "", 0, 20);
-
-  const double distcuteff = (dist == 400?0.948:dist == 300?0.852:dist == 200?0.565:dist==159?0.376:100000);
-
-  const double denominator = 489.509*367*distcuteff;
+  TCanvas * c2 = new TCanvas("c2", "c2", 600, 350);
+  TTree tg("t", "t");
+  TTree th("t", "t");
+  tg.ReadFile("li9-20140925-earlymich.Gd.ntuple");
+  th.ReadFile("li9-20141119.H.ntuple");
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", cut);
+  tg.Draw("dt/1000+9.999 >> +h2fit", cut);
 
   //////////////////
-  TCanvas * c2 = new TCanvas("c2", "c2", 600, 350);
 
   TF1 ee2str("ee2str",
     Form("%f*%f*"
-      "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +" // H Li-9
-           "%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191) +" // H He-8
-            "[1]*(1-[2]))*(x < 10) + "                                      // H bg
-       "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +" // Gd Li-9
-           "%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) +" // Gd He-8
-            "[1]*[2])*(x >=10))",                                           // Gd bg
+    "(%f*(%f*([0]*(1-[2]))/0.1783*log(2)*exp(-    x    *log(2)/0.1783) +" // H Li-9
+         "%f*([3]*(1-[2]))/0.1191*log(2)*exp(-    x    *log(2)/0.1191) +" // H He-8
+          "[1]*(1-[2]))*(x < 10) + "                                      // H bg
+     "%f*(%f*  [0]*[2]    /0.1783*log(2)*exp(-(x-9.999)*log(2)/0.1783) +" // Gd Li-9
+         "%f*  [3]*[2]    /0.1191*log(2)*exp(-(x-9.999)*log(2)/0.1191) +" // Gd He-8
+          "[1]*[2])*(x >=10))",                                           // Gd bg
          h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, Geff, li9ebn, he8ebn), 0, 20);
-  ee2str.SetParameters(ee2.GetParameter(0)/denominator, // li9 
-                       ee2.GetParameter(1)/denominator, // bg
-                       0.38,                            // gdfrac
-                       ee2.GetParameter(0)/denominator/10); // he8
-  ee2str.SetParNames("li9" /* c0, f1 */, "bg", "gdfrac", "he8");
+  ee2str.SetParameters(0.0001, 0.0001, 0.38,   0.00001);
+  ee2str.SetParNames(  "li9",  "bg",  "gdfrac", "he8");
 
-  //////////////////////////////////////////////////////////////////////
-  
   ee2str.SetParLimits(0, 0, 1e-3);
 //  ee2str.FixParameter(1,  165799./7778371 * 8.32142e-05); // XXX
   ee2str.SetParLimits(2, 0, 1);
-  ee2str.FixParameter(2, 139./367 * Geff/Heff);
+  ee2str.FixParameter(2, 0.87 /* H-n paper */ *139./367 * Geff/Heff);
   ee2str.SetParLimits(3, 0, 1e-3);
 
   ee2str.FixParameter(3, 0);
@@ -158,6 +66,11 @@ void li9finalfit(bool neutron = false)
   h2fit->Fit("ee2str", "le", "", 0, 20);
   printf("%sLi-9 prob with He-8: %f +%f %f%s\n", RED,
     ee2str.GetParameter(0), gMinuit->fErp[0], gMinuit->fErn[0], CLR);
+
+  const double li9prob = ee2str.GetParameter(0),
+               he8prob = ee2str.GetParameter(3),
+               gdfrac = ee2str.GetParameter(2);
+  double       bg = ee2str.GetParameter(1)* denominator;
 
   double minx = ee2str.GetParameter(0), miny = ee2str.GetParameter(3);
 
@@ -193,112 +106,31 @@ void li9finalfit(bool neutron = false)
   if(sigma_1d) sigma_1d->SetLineColor(kBlack);
   if(sigma_1d) sigma_1d->Draw("l");
 
-
-  //////////////////
-  //////////////////////////////////////////////////////////////////////
-/*
-  h2fit->Fit("ee2str", "le", "", 0, 20);
-
-  double gridmin = gMinuit->fAmin;
-  double minx = ee2str.GetParameter(0), miny = ee2str.GetParameter(3);
-
-  const int gridspacing = 10;
-  TH2D * grid = new TH2D("grid", "", gridspacing, 0, 0.75e-3, gridspacing, 0, 1.9e-3);
-  ((TGaxis*)(grid->GetXaxis()))->SetMaxDigits(1);
-  ((TGaxis*)(grid->GetYaxis()))->SetMaxDigits(1);
-  grid->SetContour(4);
-  grid->SetContourLevel(0, gridmin+1./2);
-  grid->SetContourLevel(1, gridmin+2.3/2);
-  grid->SetContourLevel(2, gridmin+4.61/2);
-  grid->SetContourLevel(3, gridmin+11.83/2);
-  for(int x = 1; x <= grid->GetNbinsX(); x++){
-    for(int y = 1; y <= grid->GetNbinsY(); y++){
-      ee2str.FixParameter(0, grid->GetXaxis()->GetBinCenter(x));
-      ee2str.FixParameter(3, grid->GetYaxis()->GetBinCenter(y));
-      h2fit->Fit("ee2str", "ql", "", 0, 20);
-      grid->SetBinContent(x, y, gMinuit->fAmin);
-      if(gMinuit->fAmin < gridmin){
-        gridmin = gMinuit->fAmin;
-        minx = grid->GetXaxis()->GetBinCenter(x);
-        miny = grid->GetYaxis()->GetBinCenter(y);
-        grid->SetContourLevel(0, gridmin+1./2);
-        grid->SetContourLevel(1, gridmin+2.3/2);
-        grid->SetContourLevel(2, gridmin+4.61/2);
-        grid->SetContourLevel(3, gridmin+11.83/2);
-      }
-    }
-    grid->Draw("cont1same");
-    c2->Update();
-  }
-
-  grid->Draw("cont1same");
-*/
   TMarker * best = new TMarker(minx, miny, kStar);
   best->Draw();
   
   //////////////////////////////////////////////////////////////////////
-  //////////////////
  
-  c1->cd();
+  TCanvas * c1 = new TCanvas;
 
-  h2fit->Fit("ee2", "le", "", 0, 20); // for gMinuit
-  e.SetParameter(0, ee2.GetParameter(0));
-  e.SetParameter(1, 0.1783);
- 
-  const double N2raw = e.Integral(0, 10)/h2fit->GetBinWidth(1);
-  const double N2rawup = e.Integral(0, 10)/h2fit->GetBinWidth(1) / ee2.GetParameter(0) * gMinuit->fErp[0];
-  const double N2rawlo = e.Integral(0, 10)/h2fit->GetBinWidth(1) / ee2.GetParameter(0) * gMinuit->fErn[0];
+  th.Draw("dt/1000 >> hdisp(60, 0, 30)", cut);
+  tg.Draw("dt/1000 >> +hdisp", cut, "e");
 
-  printf("%sJoint fit to number of raw selected Li-9 = %.2f +%f %f%s\n",
-         RED, N2raw, N2rawup , N2rawlo, CLR);
-
-  for(int i = 0; i <= 4; i+=2)
-    eedisp->SetParameter(i, ee.GetParameter(i)*hdispg->GetBinWidth(1)/
-                                               hfitb->GetBinWidth(1));
-
-  TF1 ee2s("ee2s",
-    Form("([0]*%f*%f*exp(-    x    *log(2)/0.1783)+[1])*(x < 10) +"
-         "([2]*%f*%f*exp(-(x-9.999)*log(2)/0.1783)+[3])*(x >=10)",
-         Heff, li9ebn, Geff, li9ebn), 0, 20);
-  ee2s.SetParameters(1, 1, 1, 1);
-  ee2s.SetLineColor(kRed);
-  ee2s.SetParLimits(0, 0, 10);
-  ee2s.SetParLimits(2, 0, 10);
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 19.998)", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  tg.Draw("dt/1000+9.999 >> +h2fit", Form("%sdist < %f  && miche < 12 && !earlymich", dist, neutron?"n==1&&":" "));
-  h2fit->Fit("ee2s", "l", "", 0, 20);
-
-  const double bestlike = gMinuit->fAmin;
-
-  ee2s.FixParameter(0, 0);
-  ee2s.FixParameter(2, 0);
-  h2fit->Fit("ee2s", "l");
-
-  const double nulllike = gMinuit->fAmin;
-
-  printf("%ssignificance = %f\n%s", RED, sqrt(2)*sqrt(nulllike - bestlike), CLR);
-
-  TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
-  ee.SetParameter(0, 1);
-  ee.SetParameter(1, 0.1783);
-  ee.FixParameter(3, 0.1191);
-  ee.FixParameter(2, 0);
-
-  hfitb->Fit("ee", "le");
-
-  printf("\n%s--> li9 half-life = %f +%f %f%s\n", RED,
-          ee.GetParameter(1), 
-          gMinuit->fErp[1], gMinuit->fErn[1], CLR);
-
-  // Just for looks:
-  hdispb->Draw("e");
+  TF1 * eedisp = new TF1("eedisp",
+    "[0]*exp(-x*log(2)/0.1783)+[1]*exp(-x*log(2)/0.1191)+[2]", 0, 30);
   eedisp->SetLineColor(kRed);
   eedisp->SetNpx(400);
+
+  eedisp->SetParameter(0, li9prob*denominator*li9ebn*(Heff*(1-gdfrac)+Geff*gdfrac)/0.1783*log(2));
+  eedisp->SetParameter(1, he8prob*denominator*he8ebn*(Heff*(1-gdfrac)+Geff*gdfrac)/0.1191*log(2));
+  eedisp->SetParameter(2, bg * hdisp->GetBinWidth(1));
+
+  // Just for looks:
   eedisp->Draw("Same");
 
   printf("Candidates:\n");
   th.SetScanField(0);
   tg.SetScanField(0);
-  th.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
-  tg.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", Form("%sdist < %f  && miche < 12 && !earlymich && dt < 10000", dist, neutron?"n==1&&":" "));
+  th.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", cut);
+  tg.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", cut);
 }
