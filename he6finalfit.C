@@ -20,15 +20,15 @@ const int nrbins = 5;
 bool rbinson[nrbins] = { true, true, true, true, true };
 
 double bgerr[nrbins] = {0};
-double abg[nrbins][120], asig[nrbins][120], an16[nrbins][120], ali8[120], ahe6[120];
+double abg[nrbins][120], asig[nrbins][120], an16[nrbins][120], ali8[nrbins][120], ahe6[120];
 
 TH2D * ehistsig = NULL, * ehistbg = NULL;
-TH1D * li8spec = NULL, * he6spec = NULL, * n16spec[5] = {NULL};
+TH1D * li8spec[5] = {NULL}, * he6spec = NULL, * n16spec[5] = {NULL};
 
 TH2D * mdispbg = NULL;
 
 const double mus[nrbins] =
-  {0.36274982, 0.3592311, 0.35758143, 0.30827676, 2.2830};
+  {0.36335419, 0.374389, 0.357561, 0.292535, 2.2830};
 
 double bamacorrxy(const double xy, const double e)
 {
@@ -44,11 +44,13 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   double mnbgnorm[nrbins] = { par[0], par[1], par[2],
                               par[3], par[4] };
-  double mnli8norm = par[nrbins];
-  double mnhe6norm = par[nrbins+1];
-  double mnn16norm[nrbins] = { par[nrbins+2], par[nrbins+3],
-                               par[nrbins+4], par[nrbins+5],
-                               par[nrbins+6] };
+  double mnhe6norm = par[nrbins];
+  double mnli8norm[nrbins] = { par[nrbins+1], par[nrbins+2],
+                               par[nrbins+3], par[nrbins+4],
+                               par[nrbins+5] };
+  double mnn16norm[nrbins] = { par[nrbins+6], par[nrbins+7],
+                               par[nrbins+8], par[nrbins+9],
+                               par[nrbins+10] };
 
   like = 0;
   for(int j = 0; j < nrbins; j++){
@@ -57,7 +59,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     for(int i = 3 /* 0.375 MeV */; i < 120; i++){
       double model = mnbgnorm[j]*abg[j][i]
                    + mnn16norm[j]*an16[j][i]
-                   + mnli8norm*mus[j]*ali8[i]
+                   + mnli8norm[j]*ali8[j][i]
                    + mnhe6norm*mus[j]*ahe6[i]*(j < nrbins-1?teff:gceff);
       if(model < 0) model = 0;
       double data = asig[j][i];
@@ -68,8 +70,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     } 
     like += pow((1-mnbgnorm[j])/bgerr[j], 2);
   }
-  // pull term for Li-8.
-  //like += pow((0.00229277 - mnli8norm)/1.79122e-04, 2);
+
   like *= 2;
 }
 
@@ -79,9 +80,9 @@ int classi(const double x, const double y, const double z)
   const double r = sqrt(r2);
   const double az = abs(z);
   if(r2 > 1150*1150 || az > 1229 + 0.03*(1150-r)) return 4;
-  if(r2 > 1068.*1068. || az > 1068.) return 3;
-  if(r2 > 933.*933. || az > 933.) return 2;
-  if(r2 > 740*740 || az > 740) return 1;
+  if(r2 > 1045.*1045. || az > 1127.) return 3;
+  if(r2 > 913.*913. || az > 985.) return 2;
+  if(r2 > 724.*724. || az > 781) return 1;
   return 0;
 }
 
@@ -161,7 +162,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   double nfracerr[nrbins];
 
   TH2D tmp("tmp", "", 2, 0, 2, nrbins, 0, nrbins);
-  t->Draw(Form("classi(mx, my, mz):n>=%d && n <= %d >> tmp", ncutmin, ncutmax), "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
+  t->Draw(Form("classi(dx, dy, dz):n>=%d && n <= %d >> tmp", ncutmin, ncutmax), "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
   for(int i = 0; i < nrbins; i++){
     double muonswithn = tmp.GetBinContent(2, i+1);
     double allmuons   = tmp.GetBinContent(1, i+1) + muonswithn;
@@ -176,7 +177,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     fprintf(stderr, "regenerating ehistbg\n");
    
     ehistbg->Sumw2();
-    t->Draw("e:classi(mx, my, mz) >> ehistbg ", Form("%s && dt > %f", cutnoncut, bglow*1e3));
+    t->Draw("e:classi(dx, dy, dz) >> ehistbg ", Form("%s && dt > %f", cutnoncut, bglow*1e3));
 
     ehistbg->Scale((sighigh-siglow)/(bghigh-bglow));
 
@@ -196,14 +197,15 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   if(!ehistsig){ 
     ehistsig = new TH2D("ehistsig", "", 5, 0, 5, 120, 0, 15);
     fprintf(stderr, "regenerating ehistsig\n");
-    t->Draw("e:classi(mx, my, mz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
+    t->Draw("e:classi(dx, dy, dz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
   }
   
   TF1 betahe6("betahe6", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (3.5076 - x)**2", 0, 3.51);
   he6spec = new TH1D("he6spec", "", 120, 0, 15);
-  li8spec = new TH1D("li8spec", "", 120, 0, 15);
-  for(int j = 0; j < 5; j++)
+  for(int j = 0; j < 5; j++){
     n16spec[j] = new TH1D(Form("n16spec%d", j), "", 120, 0, 15);
+    li8spec[j] = new TH1D(Form("li8spec%d", j), "", 120, 0, 15);
+  }
   for(int i = 0; i < 1e8; i++){
     const double et=betahe6.GetRandom();
     he6spec->Fill(gRandom->Gaus(et, sqrt(et*pow(0.077, 2)
@@ -213,7 +215,11 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   
   TChain li8mc("data");
   li8mc.Add("/cp/s4/strait/li8mc/*.root");
-  li8mc.Draw("ctEvisID >> li8spec", "bamacorrxy(ctX[0], ctEvisID)**2 + bamacorrxy(ctX[1], ctEvisID)**2 < (1150*1.2)**2 && abs(bamacorrz(ctX[2], ctEvisID)) < 1229*1.2");
+  for(int j = 0; j < nrbins; j++)
+    li8mc.Draw(Form("ctEvisID >> li8spec%d", j),
+               Form("classi(bamacorrxy(ctX[0], ctEvisID),"
+                           "bamacorrxy(ctX[1], ctEvisID),"
+                           "bamacorrz (ctX[2], ctEvisID)) == %d", j));
 
   TChain n16mc("data");
   n16mc.Add("/cp/s4/strait/n16mc/*.root");
@@ -224,17 +230,18 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
                            "bamacorrz (ctX[2], ctEvisID)) == %d", j));
 
   he6spec->Scale(ehistsig->Integral()/he6spec->Integral());
-  li8spec->Scale(ehistsig->Integral()/li8spec->Integral());
-  for(int j = 0; j < nrbins; j++)
+  for(int j = 0; j < nrbins; j++){
+    li8spec[j]->Scale(ehistsig->Integral()/li8spec[j]->Integral());
     n16spec[j]->Scale(ehistsig->Integral()/n16spec[j]->Integral());
+  }
 
   for(int i = 0; i < 120; i++){
-    ali8[i] = li8spec->GetBinContent(i+1);
     ahe6[i] = he6spec->GetBinContent(i+1);
     for(int j = 0; j < nrbins; j++){
       abg[j][i]  =ehistbg ->GetBinContent(j+1, i+1);
       asig[j][i] =ehistsig->GetBinContent(j+1, i+1);
       an16[j][i] = n16spec[j]->GetBinContent(i+1);
+      ali8[j][i] = li8spec[j]->GetBinContent(i+1);
     }
   }
 
@@ -242,47 +249,56 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   TMinuit * mn = new TMinuit(11);
   mn->SetFCN(fcn);
   int err;
+
+  const int li8fpn = nrbins+1+1, n16fpn = 2*nrbins+1+1,
+            he6fpn = nrbins+1;
+
   mn->mnparm(0, "bgtargin",   1, 0.01,  0,  2, err);
   mn->mnparm(1, "bgtargmid1", 1, 0.01,  0,  2, err);
   mn->mnparm(2, "bgtargmid2", 1, 0.01,  0,  2, err);
   mn->mnparm(3, "bgtargout",  1, 0.01,  0,  2, err);
   mn->mnparm(4, "bggc",       1, 0.01,  0,  0, err);
-  mn->mnparm(5, "li8",        1, 0.001, 0,  1, err);
-  mn->mnparm(6, "he6",        1, 0.001, 0,  1*(ncutmin>2?100:ncutmin>1?10:1), err);
-  mn->mnparm(7, "n16targin",  1, 0.001, 0, 0.1, err);
-  mn->mnparm(8, "n16targmid1",1, 0.001, 0, 0.1, err);
-  mn->mnparm(9, "n16targmid2",1, 0.001, 0, 0.1, err);
-  mn->mnparm(10,"n16targout", 1, 0.001, 0, 0.1, err);
-  mn->mnparm(11,"n16gc",      1, 0.001, 0, 0.1, err);
+  mn->mnparm(5, "he6",        1, 0.001, 0,  1*(ncutmin>2?100:ncutmin>1?10:1), err);
+  mn->mnparm(6, "li8targin",  1, 0.001, 0,  1, err);
+  mn->mnparm(7, "li8targmid1",1, 0.001, 0,  1, err);
+  mn->mnparm(8, "li8targmid2",1, 0.001, 0,  1, err);
+  mn->mnparm(9, "li8targout", 1, 0.001, 0,  1, err);
+  mn->mnparm(10, "li8gc",      1, 0.001, 0,  1, err);
+  mn->mnparm(11, "n16targin",  1, 0.001, 0, 0.1, err);
+  mn->mnparm(12, "n16targmid1",1, 0.001, 0, 0.1, err);
+  mn->mnparm(13, "n16targmid2",1, 0.001, 0, 0.1, err);
+  mn->mnparm(14,"n16targout", 1, 0.001, 0, 0.1, err);
+  mn->mnparm(15,"n16gc",      1, 0.001, 0, 0.1, err);
   printf("err? %d\n", err);
 
-  // Don't float accidentals or N16 in regions that we ignore.
+  // Don't float accidentals, Li8 or N16 in regions that we ignore.
   for(int i = 0; i < nrbins; i++){
     if(!rbinson[i]){
       mn->Command(Form("FIX %d", i+1));
-      mn->Command(Form("FIX %d", nrbins+2+i+1));
+      mn->Command(Form("FIX %d", n16fpn+i));
+      mn->Command(Form("FIX %d", li8fpn+i));
     }
   }
 
   if(ncutmin > 2){ // no n16, no li8
-    mn->Command(Form("SET PAR %d 0", nrbins+1));
-    mn->Command(Form("FIX %d", nrbins+1));
     for(int i = nrbins+2+1; i < nrbins+2+1+4; i++){
-      mn->Command(Form("SET PAR %d 0", i));
-      mn->Command(Form("FIX %d", i));
+      mn->Command(Form("SET PAR %d 0", li8fpn+i));
+      mn->Command(Form("FIX %d", li8fpn+i));
+      mn->Command(Form("SET PAR %d 0", n16fpn+i));
+      mn->Command(Form("FIX %d", n16fpn+i));
     }
   }
 
-  mn->Command(Form("SET PAR %d 0", nrbins+1+1));
-  mn->Command(Form("FIX %d", nrbins+1+1));
+  mn->Command(Form("SET PAR %d 0", he6fpn));
+  mn->Command(Form("FIX %d", he6fpn));
   mn->Command("MIGRAD");
 
   const double chi2nohe6 = mn->fAmin;
 
-  mn->Command(Form("RELEASE %d", nrbins+1+1));
-  mn->Command(Form("SET PAR %d 0.05", nrbins+1+1));
+  mn->Command(Form("RELEASE %d", he6fpn));
+  mn->Command(Form("SET PAR %d 0.05", he6fpn));
   mn->Command("MIGRAD");
-  mn->Command(Form("MINOS 10000 %d", nrbins+1+1));
+  mn->Command(Form("MINOS 10000 %d", he6fpn));
 
   const double chi2he6 = mn->fAmin;
 
@@ -292,20 +308,21 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   const double upforlim = 2.71 + chi2nohe6 - chi2he6;
 
-  double dum, bgnorm[nrbins], li8norm, he6norm, n16norm[nrbins];
+  double dum, bgnorm[nrbins], li8norm[nrbins], he6norm, n16norm[nrbins];
 
-  for(int j = 0; j < nrbins; j++) mn->GetParameter(j, bgnorm[j], dum);
-  mn->GetParameter(nrbins, li8norm, dum);
-  mn->GetParameter(nrbins+1, he6norm, dum);
-  for(int j = 0; j < nrbins; j++) mn->GetParameter(j+nrbins+2, n16norm[j], dum);
+  mn->GetParameter(he6fpn-1, he6norm, dum);
+  for(int j = 0; j < nrbins; j++){
+    mn->GetParameter(j+n16fpn-1, n16norm[j], dum);
+    mn->GetParameter(j+li8fpn-1, li8norm[j], dum);
+    mn->GetParameter(j, bgnorm[j], dum);
+  }
 
-  double li8normerr, he6normerrup, he6normerrlo;
-  mn->mnerrs(nrbins, dum, dum, li8normerr, dum);
+  double he6normerrup, he6normerrlo;
 
   int iforhe = 0;
   for(int i = 0; i < 11; i++){
     printf("mn->fNexofi[%d] = %d\n", i, mn->fNexofi[i]);
-    if(mn->fNexofi[i] == nrbins+1+1) iforhe = i;
+    if(mn->fNexofi[i] == he6fpn) iforhe = i;
   }
 
   he6normerrup = mn->fErp[iforhe];
@@ -334,22 +351,22 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   const double defaultfup = mn->fUp;
   mn->fUp = upforlim;
-  mn->Command(Form("MINOS 10000 %d", nrbins+1+1));
+  mn->Command(Form("MINOS 10000 %d", he6fpn));
   mn->fUp = defaultfup;
  
   double he6up90;
-  mn->GetParameter(nrbins+1, he6norm, dum);
-  mn->mnerrs(nrbins+1, he6up90, dum, dum, dum);
+  mn->GetParameter(he6fpn-1, he6norm, dum);
+  mn->mnerrs(he6fpn, he6up90, dum, dum, dum);
 
   printf("%s 90%% upper limit: %f+%f = %f%s\n", RED, he6norm, he6up90, he6norm+he6up90, CLR);
   
-  mn->Command(Form("Fix %d", nrbins+1+1));
+  mn->Command(Form("Fix %d", he6fpn));
 
   const double scan = he6up90 > 0.0001? he6up90: 0.001;
 
   double sump = 0;
   for(int i =0;i<1000; i++){
-    mn->Command(Form("set  par %d %f", nrbins+1+1, i*0.01*scan));
+    mn->Command(Form("set  par %d %f", he6fpn, i*0.01*scan));
     mn->Command("Migrad");
     const double p = exp(-mn->fAmin+chi2he6);
     printf("%f\t%g\t%g\n", i*0.01*scan, -mn->fAmin+chi2he6, p);
@@ -359,7 +376,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   double sump2 = 0;
   int i;
   for(i =0;i<1000; i++){
-    mn->Command(Form("set par %d %f", nrbins+1+1, i*0.01*scan));
+    mn->Command(Form("set par %d %f", he6fpn, i*0.01*scan));
     mn->Command("Migrad");
     const double p = exp(-mn->fAmin+chi2he6);
     sump2 += p;
@@ -375,7 +392,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
     TH1D * ehistbg_p=ehistbg->ProjectionY(Form("ehistbg_%d", j), j, j);
     TH1D * ehistsig_p=ehistsig->ProjectionY(Form("ehistsig_%d", j), j, j);
-    TH1D * li8spec_p = (TH1D * )li8spec->Clone(Form("li8spec_%d", j));
+    TH1D * li8spec_p = (TH1D * )li8spec[j-1]->Clone(Form("li8specp_%d", j));
     TH1D * he6spec_p = (TH1D * )he6spec->Clone(Form("he6spec_%d", j));
     TH1D * he6demo   = (TH1D * )he6spec->Clone(Form("he6demo_%d", j));
     TH1D * n16spec_p = (TH1D * )n16spec[j-1]->Clone(Form("n16specp_%d", j));
@@ -384,7 +401,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
     ehistbg_p->Scale(bgnorm[j-1]);
     n16spec_p->Scale(n16norm[j-1]);
-    li8spec_p->Scale(li8norm*mus[j-1]);
+    li8spec_p->Scale(li8norm[j-1]);
     he6spec_p->Scale(he6norm*mus[j-1]*thiseff);
     he6demo->Scale(he6norm90*mus[j-1]*thiseff);
 
@@ -444,4 +461,3 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d-%d%d%d%d%d.C", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
   ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d-%d%d%d%d%d.C", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 }
-
