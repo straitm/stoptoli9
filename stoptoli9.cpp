@@ -21,7 +21,7 @@ static bool earlymich(const int run, const int mutrig)
   // Fantastically inefficient since we know we'll be reading in order,
   // but much easier to code than going sequentially.
   return
-    pulse->GetEntries(Form("run == %d && trig == %d\n", run, mutrig)); 
+    pulse->GetEntries(Form("run == %d && trig == %d", run, mutrig));
 }
 
 static void stopper_search(dataparts & parts, TTree * const ctree,
