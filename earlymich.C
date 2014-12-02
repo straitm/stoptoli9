@@ -11,7 +11,7 @@ void earlymich()
   TTree * pulse = (TTree *)_file1->Get("t");
   pulse->SetName("pulse");
 
-  TFile *_file0 = TFile::Open("/cp/s4/strait/fullfido-100s-0-25MeV-20141022.root", "update");
+  TFile *_file0 = TFile::Open("/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root", "update");
   TTree * b12 = (TTree *)_file0->Get("t");
   b12->SetName("b12");
   cout << b12->GetEntries() << " entries" << endl;
