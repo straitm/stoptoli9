@@ -123,7 +123,7 @@
   const double c15norm = ee->GetParameter(4);
 
   printf("Drawing...\n");
-  t->Draw("dt/1000 >> hdisp(198, 1, 100)", scut.c_str(), "hist");
+  t->Draw("dt/1000 >> hdisp(99, 1, 100)", scut.c_str(), "hist");
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
   ee->ReleaseParameter(0);
@@ -138,7 +138,7 @@
   const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
   for(int i = 0; i < 5; i++){
     //if(eedisp->GetParameter(i) < eedisp->GetParError(i))
-    if(i == 5) nearlimit[i] = true;
+    if(i == 4) nearlimit[i] = true;
 
     eedisp->SetParameter(i, ee->GetParameter(i)*mult);
     eedisp->SetParError( i, ee->GetParError (i)*mult);
