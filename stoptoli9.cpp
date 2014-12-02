@@ -101,7 +101,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     // First save the structure we're about to tromp all over
     dataparts selectedmuon;
     memcpy(&selectedmuon, &parts, sizeof(dataparts));
-    
+
     // Require at least 500us since the last muon so we don't count
     // neutrons from the previous one as belonging to this one.
     bool previousmuon = false;
@@ -114,13 +114,13 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
       if(parts.coinov || parts.fido_qiv > 5000 || parts.ctEvisID > 60)
         previousmuon = true;
-    } 
-    
-    if(previousmuon) continue; 
-    
+    }
+
+    if(previousmuon) continue;
+
     // restore our muon after the look back for other muons
-    memcpy(&parts, &selectedmuon, sizeof(dataparts)); 
-    
+    memcpy(&parts, &selectedmuon, sizeof(dataparts));
+
     // Open up a big window
     if(prompttime - parts.trgtime > window) return;
 
@@ -163,7 +163,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
            "%f %f %f %f %f %d\n",
            parts.run, prompt, prompt-back,
            (prompttime - mutime)/1e6, li9tomu, nneutron, nneutronnotmichel,
-           li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz, 
+           li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz,
            miche, micht, fidoqid, chi2qual, dedxslant,
            earlymich(parts.run, prompt-back));
     fflush(stdout);
