@@ -13,6 +13,17 @@
 
 static const double window = 30e9;
 
+static bool earlymich(const int run, const int mutrig)
+{
+  static TFile *f=TFile::Open("/cp/s4/strait/feb25.t.withmichonly.root");
+  static TTree *pulse = (TTree *)f->Get("t");
+
+  // Fantastically inefficient since we know we'll be reading in order,
+  // but much easier to code than going sequentially.
+  return
+    pulse->GetEntries(Form("run == %d && trig == %d\n", run, mutrig)); 
+}
+
 static void stopper_search(dataparts & parts, TTree * const ctree,
                            TTree * const ftree, const int prompt)
 {
@@ -67,8 +78,6 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
        pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
       continue;
 
-    // Open up a big window
-    if(prompttime - parts.trgtime > window) return;
 
     const double mux = fidocorrxy(parts.ids_end_x),
                  muy = fidocorrxy(parts.ids_end_y),
@@ -84,6 +93,37 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     // And they must be near each other.
     if(li9tomu > 800) continue;
 
+    // Ok, we've almost accepted this muon.  Now we have to do the hard
+    // work of figuring out if it happened right after another muon,
+    // because if so the neutron count we're about to do is unreliable.
+
+
+    // First save the structure we're about to tromp all over
+    dataparts selectedmuon;
+    memcpy(&selectedmuon, &parts, sizeof(dataparts));
+    
+    // Require at least 500us since the last muon so we don't count
+    // neutrons from the previous one as belonging to this one.
+    bool previousmuon = false;
+    for(int moreback = 1; ; moreback++){
+      if(prompt-back-moreback < 1) break; // BOR and didn't find any
+      ctree->GetEvent(prompt-back-moreback);
+
+      // Out of 500us window and didn't find any
+      if(selectedmuon.trgtime - parts.trgtime > 500e3) break;
+
+      if(parts.coinov || parts.fido_qiv > 5000 || parts.ctEvisID > 60)
+        previousmuon = true;
+    } 
+    
+    if(previousmuon) continue; 
+    
+    // restore our muon after the look back for other muons
+    memcpy(&parts, &selectedmuon, sizeof(dataparts)); 
+    
+    // Open up a big window
+    if(prompttime - parts.trgtime > window) return;
+
     const double mutime = parts.trgtime;
     const double fidoqid = parts.fido_qid;
 
@@ -92,7 +132,8 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     const float miche = parts.deltaT < 5500? parts.ctEvisID:0.;
     const float micht = parts.deltaT < 5500? parts.deltaT:0.;
 
-    unsigned int nneutron = 0;
+    // XXX really need to do more careful counting like in b12search
+    unsigned int nneutron = 0, nneutronnotmichel = 0;
     for(int forward = 1; back-forward > 0; forward++){
       ctree->GetEvent(prompt-back+forward);
 
@@ -115,15 +156,16 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
          > 1000) continue;
 
       nneutron++;
+      if(parts.trgtime - mutime > 5500) nneutronnotmichel++;
     }
 
-    printf("Muon_for %d %d is %d dt %lf dist %f n "
-           "%u at %f %f %f mu_at %f %f %f mu_start %f %f %f, "
-           "michel %f %f fidoqid %f stopqual %f %f\n",
+    printf("%d %d %d %lf %f %u %u %f %f %f %f %f %f %f %f %f "
+           "%f %f %f %f %f %d\n",
            parts.run, prompt, prompt-back,
-           (prompttime - parts.trgtime)/1e6, li9tomu, nneutron,
+           (prompttime - mutime)/1e6, li9tomu, nneutron, nneutronnotmichel,
            li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz, 
-           miche, micht, fidoqid, chi2qual, dedxslant);
+           miche, micht, fidoqid, chi2qual, dedxslant,
+           earlymich(parts.run, prompt-back));
     fflush(stdout);
   }
 }
@@ -133,6 +175,11 @@ int main()
   gErrorIgnoreLevel = kError;
   unsigned int errcode = 0;
   std::string line;
+
+  printf("run:trig:mutrig:dt:dist:n:nlate:dx:dy:dz:mx:my:mz:"
+         "imx:imy:imz:miche:micht:fidoqid:chi2qual:dedxslant:"
+         "earlymich\n");
+
   while(std::getline(std::cin, line)){
     std::stringstream ss(line);
     int run;
