@@ -1,6 +1,9 @@
 {
+ 
   const char * const RED = "\033[31;1m"; // bold red
   const char * const CLR = "\033[m"    ; // clear
+
+  printf("%sMUST UPDATE THIS%s\n", RED, CLR);
 
   // li11
   //const double shortlife = 0.00875;
@@ -13,7 +16,7 @@
   TTree tg("t", "t");
   TTree th("t", "t");
   tg.ReadFile("li9-20140925-earlymich.Gd.ntuple");
-  th.ReadFile("li9-20140925-earlymich.H.ntuple");
+  th.ReadFile("li9-20141119.H.ntuple");
 
   TF1 ee("ee", "[0]*exp(-x*log(2)/[1]) + [2]*exp(-x*log(2)/[3]) + [4]", 0, 10);
   ee.SetNpx(400);
@@ -96,8 +99,7 @@
 
 
   ///////////////////////////////////////////////////////////
-  const double Geff = 0.9 /* Made up! */,
-               Heff = 0.77 /* doc-5787, but maybe misinterpreted */;
+  const double Geff = 0.996*0.922, Heff = 0.993*0.870;
 
   const double Ncorr = Nrawg/Geff + Nrawh/Heff;
   const double Ncorrup = sqrt((Nrawgup/Geff)**2 + (Nrawhup/Heff)**2);
