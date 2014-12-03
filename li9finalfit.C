@@ -1,5 +1,6 @@
 void setupee2str(TF1 & ee2str, const double expectedgdfrac)
 {
+  ee2str.SetParLimits(0, 0, 1e-3);
   ee2str.SetParLimits(1, 0, 1);
   ee2str.FixParameter(1, expectedgdfrac);
   ee2str.SetParLimits(2, 0, 1e-3);
@@ -10,6 +11,8 @@ void setupee2str(TF1 & ee2str, const double expectedgdfrac)
                                 // for other complications.
   ee2str.SetParLimits(5, 0, 0.5);
   ee2str.SetParLimits(6, 0, 1);
+  ee2str.SetParLimits(7, 0, 1);
+  ee2str.SetParLimits(8, 0, 1);
 }
 
 void li9finalfit(bool neutron = false)
@@ -24,10 +27,15 @@ void li9finalfit(bool neutron = false)
   const double livetime = 489.509, nstop = 367.;
   const double nstoptarg = 139.0;
 
+  // bn decay probability multiplied by the number of captures relative
+  // to C-12
   const double li9ebn = 0.5080,
                he8ebn = 0.1600,
-               c16ebn = 0.99  * (5.6+0.2+0.3+0.7)*0.00205/nstop,
-               n17ebn = 0.951 * (5.6+0.2+0.3+0.7)*0.00205/nstop;
+               c16ebn = 0.99  * 7.0/nstop,
+               n17ebn = 0.951 * 7.0/nstop,
+               b13ebn = 0.0029 * 3.7/nstop,
+               li11ebn = 0.789 * 3.7/nstop;
+               
   const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
                              dist == 200?0.565:dist==159?0.376:100000);
 
@@ -68,7 +76,7 @@ void li9finalfit(bool neutron = false)
   const double expectedgdfrac = gdcapfrac*nstoptarg/nstop;
 
   char cut[1000];
-  snprintf(cut, 999, "%sdist < %f  && miche < 12 && !earlymich",
+  snprintf(cut, 999, "%sdist < %f  && miche < 12 && !earlymich && dt < 30000",
            dist, neutron?"n==1&&":" ");
 
   ////////////////////////////////////////////////////////////////////
@@ -78,38 +86,47 @@ void li9finalfit(bool neutron = false)
   TTree th("t", "t");
   tg.ReadFile("li9-20141202.Gd.ntuple");
   th.ReadFile("li9-20141202.H.ntuple");
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 59.998)", cut);
+  th.Draw("dt/1000 >> h2fit(1000, 0.001, 59.999)", cut);
   tg.Draw("dt/1000+29.999 >> +h2fit", cut, "e");
 
   //////////////////
 
-  TF1 ee2str("ee2str", Form("%f*%f*"
-    "(%f*(%f*[2]*(1-[1])/0.1783*log(2)*exp(-x*log(2)/0.1783)+" // H Li-9
-         "%f*[3]*(1-[1])/0.1191*log(2)*exp(-x*log(2)/0.1191)+" // H He-8
-         "%f*[4]*(1-[5])/4.173 *log(2)*exp(-x*log(2)/4.173 )+" // H N-17
-         "%f*[6]*(1-[5])/0.747 *log(2)*exp(-x*log(2)/0.747 )+" // H C-16
-          "[0]*(1-[1]))*(x < 30) + "                           // H bg
-     "%f*(%f*[2]*[1]/0.1783*log(2)*exp(-(x-29.999)*log(2)/0.1783)+"// Gd Li-9
-         "%f*[3]*[1]/0.1191*log(2)*exp(-(x-29.999)*log(2)/0.1191)+"// Gd He-8
-         "%f*[4]*[5]/4.173 *log(2)*exp(-(x-29.999)*log(2)/4.173 )+"// Gd N-17
-         "%f*[6]*[5]/0.747 *log(2)*exp(-(x-29.999)*log(2)/0.747 )+"// Gd C-16
-          "[0]*[1])*(x >=30))",                                    // Gd bg
-     h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn, n17ebn,
-     Geff, li9ebn, he8ebn, n17ebn), 0, 60);
-  ee2str.SetParameters(1e-4, 0.38, 1e-4, 1e-5, 0.1,  0.1, 0.01, 1e-4);
-  ee2str.SetParNames(  "hbg", "gdfrac","li9", "he8","n17","ocapgdfrac",
-                     "c16");
+  TF1 ee2str("ee2str", Form("%f*"
+    "(%f*("
+       "%f*[2]*(1-[1])/0.257233*exp(-x/0.257233)+"  // H Li-9
+       "%f*[3]*(1-[1])/0.171825*exp(-x/0.171825)+"  // H He-8
+       "%f*[4]*(1-[5])/6.020366*exp(-x/6.020366)+"  // H N-17
+       "%f*[6]*(1-[5])/1.077693*exp(-x/1.077693)+"  // H C-16
+       "%f*[7]*(1-[1])/0.025002*exp(-x/0.025002)+"  // H B-13
+       "%f*[8]*(1-[1])/0.012624*exp(-x/0.012624)+"  // H Li-11
+        "[0]*(1-[1]))*(x < 30) + "                  // H bg
+     "%f*("
+       "%f*[2]*[1]/0.257233*exp(-(x-29.999)*(x >=30)/0.257233)+" // Gd Li-9
+       "%f*[3]*[1]/0.171825*exp(-(x-29.999)*(x >=30)/0.171825)+" // Gd He-8
+       "%f*[4]*[5]/6.020366*exp(-(x-29.999)*(x >=30)/6.020366)+" // Gd N-17
+       "%f*[6]*[5]/1.077693*exp(-(x-29.999)*(x >=30)/1.077693)+" // Gd C-16
+       "%f*[7]*[1]/0.025002*exp(-(x-29.999)*(x >=30)/0.025002)+" // Gd B-13
+       "%f*[8]*[1]/0.012624*exp(-(x-29.999)*(x >=30)/0.012624)+" // Gd Li-11
+        "[0]*[1])*(x >=30))",                           // Gd bg
+     h2fit->GetBinWidth(1)*denominator,
+     Heff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
+     Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn
+     ), 0, 60);
+  ee2str.SetParameters(1e-4, 0.38, 1e-4, 1e-5, 0.1,  0.1, 0.01, 0.01, 0.01);
+  ee2str.SetParNames("bg", "gdfrac","li9", "he8","n17","ocapgdfrac",
+                     "c16", "b13", "li11");
   ee2str.SetNpx(400);
 
   setupee2str(ee2str, expectedgdfrac);
 
-  const unsigned int nfixforpureli9 = 4;
-  const double fixforpureli9[nfixforpureli9] = { 3, 4, 5, 6 };
+  const unsigned int nfixforpureli9 = 6;
+  const double fixforpureli9[nfixforpureli9] = { 3, 4, 5, 6, 7, 8 };
 
   for(int i = 0; i < nfixforpureli9; i++)
     ee2str.FixParameter(fixforpureli9[i], 0);
 
   h2fit->Fit("ee2str", "le", "", 0, 60);
+
   printf("%sLi-9 prob without other isotopes: %f +%f %f%s\n", RED,
     ee2str.GetParameter(2), gMinuit->fErp[1], gMinuit->fErn[1], CLR);
 
@@ -147,7 +164,7 @@ void li9finalfit(bool neutron = false)
   if(ninty_2d) ninty_2d->SetFillColor(kViolet);
   if(ninty_2d) ninty_2d->Draw("alf");
   if(ninty_2d) ninty_2d->GetXaxis()->SetRangeUser(0, 0.00079);
-  if(ninty_2d) ninty_2d->GetYaxis()->SetRangeUser(0, 0.001);
+  if(ninty_2d) ninty_2d->GetYaxis()->SetRangeUser(0, 0.00149);
   if(ninty_2d) ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(2);
   if(ninty_2d) ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(2);
   if(ninty_1d) ninty_1d->SetLineColor(kRed);
@@ -171,25 +188,32 @@ void li9finalfit(bool neutron = false)
   tg.Draw("dt/1000 >> +hdisp", cut, "e");
 
   TF1 * eedisp = new TF1("eedisp",
-    Form("%f*%f*"
-    "([7]*%f*(%f*[2]*(1-[1])/0.1783*log(2)*exp(-x*log(2)/0.1783) +"// H Li-9
-         "%f*[3]*(1-[1])/0.1191*log(2)*exp(-x*log(2)/0.1191) +"    // H He-8
-         "%f*[4]*(1-[5])/4.173 *log(2)*exp(-x*log(2)/4.173 ) +"    // H N-17
-         "%f*[6]*(1-[5])/0.747 *log(2)*exp(-x*log(2)/0.747 ) +"    // H C-16
-          "[0]*(1-[1])) + "                                        // H bg
-     "[8]*%f*(%f*  [2]*[1]  /0.1783*log(2)*exp(-x*log(2)/0.1783) +"// Gd Li-9
-         "%f*  [3]*[1]  /0.1191*log(2)*exp(-x*log(2)/0.1191) +"    // Gd He-8
-         "%f*  [4]*[5]  /4.173 *log(2)*exp(-x*log(2)/4.173 ) +"    // Gd N-17
-         "%f*  [6]*[5]  /0.747 *log(2)*exp(-x*log(2)/0.747 ) +"    // Gd C-16
-          "[0]*[1]))",                                             // Gd bg
-         h2fit->GetBinWidth(1), denominator, Heff, li9ebn, he8ebn,
-         n17ebn, Geff, li9ebn, he8ebn, n17ebn), 0, 30);
+    Form("%f*"
+    "([9]*%f*("
+       "%f*[2]*(1-[1])/0.257233*exp(-x/0.257233)+"  // H Li-9
+       "%f*[3]*(1-[1])/0.171825*exp(-x/0.171825)+"  // H He-8
+       "%f*[4]*(1-[5])/6.020366*exp(-x/6.020366)+"  // H N-17
+       "%f*[6]*(1-[5])/1.077693*exp(-x/1.077693)+"  // H C-16
+       "%f*[7]*(1-[1])/0.025002*exp(-x/0.025002)+"  // H B-13
+       "%f*[8]*(1-[1])/0.012624*exp(-x/0.012624)+"  // H Li-11
+       "[0]*(1-[1])) + "                            // H bg
+     "[10]*%f*("
+       "%f*[2]*[1]/0.257233*exp(-x/0.257233)+" // Gd Li-9
+       "%f*[3]*[1]/0.171825*exp(-x/0.171825)+" // Gd He-8
+       "%f*[4]*[5]/6.020366*exp(-x/6.020366)+" // Gd N-17
+       "%f*[6]*[5]/1.077693*exp(-x/1.077693)+" // Gd C-16
+       "%f*[7]*[1]/0.025002*exp(-x/0.025002)+" // Gd B-13
+       "%f*[8]*[1]/0.012624*exp(-x/0.012624)+" // Gd Li-11
+       "[0]*[1]))",                                              // Gd bg
+         h2fit->GetBinWidth(1)*denominator,
+         Heff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
+         Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn), 0, 30);
   for(int i = 0; i < eedisp->GetNpar(); i++)
     eedisp->SetParameter(i, ee2str_save->GetParameter(i));
 
-  eedisp->SetParameter(ee2str->GetNpar(),
+  eedisp->SetParameter(ee2str.GetNpar(),
                        hdisp->GetBinWidth(1)/h2fit->GetBinWidth(1));
-  eedisp->SetParameter(ee2str->GetNpar()+1,
+  eedisp->SetParameter(ee2str.GetNpar()+1,
                        hdisp->GetBinWidth(1)/h2fit->GetBinWidth(1));
   eedisp->SetLineColor(kRed);
   eedisp->SetNpx(400);
@@ -197,16 +221,16 @@ void li9finalfit(bool neutron = false)
 
   c1->cd(2);
   TF1 * eedisph = (TF1*)eedisp->Clone("eedisph");
-  eedisph->SetParameter(ee2str->GetNpar(),
+  eedisph->SetParameter(ee2str.GetNpar(),
                         hdisp->GetBinWidth(1)/h2fit->GetBinWidth(1));
-  eedisph->SetParameter(ee2str->GetNpar()+1, 0);
+  eedisph->SetParameter(ee2str.GetNpar()+1, 0);
   hdisph->Draw("e");
   eedisph->Draw("same");
   
   c1->cd(3);
   TF1 * eedispg = (TF1*)eedisp->Clone("eedispg");
-  eedispg->SetParameter(ee2str->GetNpar(), 0);
-  eedispg->SetParameter(ee2str->GetNpar()+1,
+  eedispg->SetParameter(ee2str.GetNpar(), 0);
+  eedispg->SetParameter(ee2str.GetNpar()+1,
                         hdisp->GetBinWidth(1)/h2fit->GetBinWidth(1));
   hdispg->Draw("e");
   eedispg->Draw("same");
