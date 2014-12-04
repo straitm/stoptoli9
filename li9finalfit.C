@@ -1,5 +1,53 @@
+void contour(TH1D * h2fit, const int par1, const int par2, // FORTRAN
+              const double xrange, const double yrange, const int points)
+{
+  TCanvas * c = new TCanvas(Form("c%d%d", par1, par2),
+                            Form("c%d%d", par1, par2), 600, 350);
+  h2fit->Fit("ee2str", "lq", "", 0, 60);
+  const double minx = ee2str->GetParameter(par1-1);
+  const double miny = ee2str->GetParameter(par2-1);
+
+  gMinuit->Command("Set print 0");
+  gMinuit->Command("Set strategy 2");
+
+  gMinuit->fUp = 1.0/2; // 68% in 1D
+  gMinuit->Command(Form("mncont %d %d %d", par1, par2, points));
+  TGraph * sigma_1d =
+    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  gMinuit->fUp = 2.3/2; // 90% in 1D
+  gMinuit->Command(Form("mncont %d %d %d", par1, par2, points));
+  TGraph * ninty_1d =
+    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  gMinuit->fUp = 4.61/2; // 90%
+  gMinuit->Command(Form("mncont %d %d %d", par1, par2, points));
+  TGraph * ninty_2d =
+    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
+
+  if(ninty_2d){
+    ninty_2d->SetFillColor(kViolet);
+    ninty_2d->Draw("alf");
+    ninty_2d->GetXaxis()->SetRangeUser(0, xrange);
+    ninty_2d->GetYaxis()->SetRangeUser(0, yrange);
+    ninty_2d->GetXaxis()->SetTitle(ee2str->GetParName(par1-1));
+    ninty_2d->GetYaxis()->SetTitle(ee2str->GetParName(par2-1));
+    ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(2);
+    ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(2);
+  }
+  if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
+  if(sigma_1d) sigma_1d->SetLineColor(kBlack), sigma_1d->Draw("l");
+
+  TMarker * best = new TMarker(minx, miny, kStar);
+  best->Draw();
+
+  c->Modified();
+  c->Update();
+}
+
 void setupee2str(TF1 & ee2str, const double expectedgdfrac)
 {
+  for(int i = 0; i < ee2str.GetNpar(); i++) ee2str.ReleaseParameter(i);
   ee2str.SetParLimits(0, 0, 1e-3);
   ee2str.SetParLimits(1, 0, 1);
   ee2str.FixParameter(1, expectedgdfrac);
@@ -11,7 +59,7 @@ void setupee2str(TF1 & ee2str, const double expectedgdfrac)
                                 // for other complications.
   ee2str.SetParLimits(5, 0, 0.5);
   ee2str.SetParLimits(6, 0, 1);
-  ee2str.SetParLimits(7, 0, 1);
+  ee2str.SetParLimits(7, 0, 3);
   ee2str.SetParLimits(8, 0, 1);
 }
 
@@ -31,8 +79,8 @@ void li9finalfit(bool neutron = false)
   // to C-12
   const double li9ebn = 0.5080,
                he8ebn = 0.1600,
-               c16ebn = 0.99  * 7.0/nstop,
-               n17ebn = 0.951 * 7.0/nstop,
+               c16ebn = 0.99  * 88.0/102.5*0.00243*7.0/nstop,
+               n17ebn = 0.951 * 88.0/102.5*0.00243*7.0/nstop,
                b13ebn = 0.0029 * 3.7/nstop,
                li11ebn = 0.789 * 3.7/nstop;
                
@@ -86,7 +134,8 @@ void li9finalfit(bool neutron = false)
   TTree th("t", "t");
   tg.ReadFile("li9-20141202.Gd.ntuple");
   th.ReadFile("li9-20141202.H.ntuple");
-  th.Draw("dt/1000 >> h2fit(1000, 0.001, 59.999)", cut);
+  th.Draw("dt/1000 >> h2fit(29999, 0.001, 59.999)", cut);
+  //th.Draw("dt/1000 >> h2fit(1000, 0.001, 59.999)", cut);
   tg.Draw("dt/1000+29.999 >> +h2fit", cut, "e");
 
   //////////////////
@@ -113,67 +162,86 @@ void li9finalfit(bool neutron = false)
      Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn
      ), 0, 60);
   ee2str.SetParameters(1e-4, 0.38, 1e-4, 1e-5, 0.1,  0.1, 0.01, 0.01, 0.01);
-  ee2str.SetParNames("bg", "gdfrac","li9", "he8","n17","ocapgdfrac",
-                     "c16", "b13", "li11");
+  ee2str.SetParNames("bg",     // 0   1
+                     "gdfrac", // 1   2
+                     "li9",    // 2   3
+                     "he8",    // 3   4
+                     "n17",    // 4   5
+                     "ocapgdfrac",//5 6
+                     "c16",    // 6   7
+                     "b13",    // 7   8
+                     "li11");  // 8   9
   ee2str.SetNpx(400);
 
+  {
+    setupee2str(ee2str, expectedgdfrac);
+    const unsigned int nfix = 6;
+    const double fix[nfix] = { 3, 4, 5, 6, 7, 8 };
+    for(int i = 0; i < nfix; i++) ee2str.FixParameter(fix[i], 0);
+    h2fit->Fit("ee2str", "lq", "", 0, 60);
+    gMinuit->Command("MINOS 10000 3");
+    gMinuit->Command("SHOW min");
+    printf("%sLi-9 prob without other isotopes: %f %f +%f%s\n", RED,
+      ee2str.GetParameter(2), gMinuit->fErn[1], gMinuit->fErp[1], CLR);
+  }
+
+  {
+    setupee2str(ee2str, expectedgdfrac);
+    const unsigned int nfix = 5;
+    const double fix[nfix] = { 4, 5, 6, 7, 8 };
+    for(int i = 0; i < nfix; i++) ee2str.FixParameter(fix[i], 0);
+    h2fit->Fit("ee2str", "lq", "", 0, 60);
+    gMinuit->Command("MINOS 10000 3");
+    gMinuit->Command("SHOW min");
+    printf("%sLi-9 prob with only He-8: %f %f +%f%s\n", RED,
+      ee2str.GetParameter(2), gMinuit->fErn[1], gMinuit->fErp[1], CLR);
+  }
+
+  {
+    setupee2str(ee2str, expectedgdfrac);
+    const unsigned int nfix = 1;
+    const double fix[nfix] = { 3 };
+    for(int i = 0; i < nfix; i++) ee2str.FixParameter(fix[i], 0);
+    h2fit->Fit("ee2str", "lq", "", 0, 60);
+    h2fit->Fit("ee2str", "lq", "", 0, 60);
+    gMinuit->Command("MINOS 10000 3 5");
+    gMinuit->Command("SHOW min");
+    printf("%sLi-9 prob with nuisance isotopes, but not He-8: %f %f +%f%s\n", RED,
+      ee2str.GetParameter(2), gMinuit->fErn[1], gMinuit->fErp[1], CLR);
+  }
+
+  {
+    setupee2str(ee2str, expectedgdfrac);
+    h2fit->Fit("ee2str", "lq", "", 0, 60);
+    gMinuit->Command("MINOS 10000 3 5");
+    gMinuit->Command("SHOW min");
+    printf("%sLi-9 prob with all other isotopes: %f %f +%f%s\n", RED,
+      ee2str.GetParameter(2), gMinuit->fErn[1], gMinuit->fErp[1], CLR);
+  }
+
+  const TF1 * const ee2str_save = (TF1 *)ee2str.Clone("ee2str_save");
+
+  const int npoint = 100;
+
+  // Li-9 vs. N-17 with no He-8
   setupee2str(ee2str, expectedgdfrac);
+  ee2str.FixParameter(3, 0);
+  contour((TH1D*)gROOT->FindObject("h2fit"), 3, 5,  0.0079, 30, 100);
 
-  const unsigned int nfixforpureli9 = 6;
-  const double fixforpureli9[nfixforpureli9] = { 3, 4, 5, 6, 7, 8 };
-
-  for(int i = 0; i < nfixforpureli9; i++)
-    ee2str.FixParameter(fixforpureli9[i], 0);
-
-  h2fit->Fit("ee2str", "le", "", 0, 60);
-
-  printf("%sLi-9 prob without other isotopes: %f +%f %f%s\n", RED,
-    ee2str.GetParameter(2), gMinuit->fErp[1], gMinuit->fErn[1], CLR);
-
-  for(int i = 0; i < nfixforpureli9; i++)
-    ee2str.ReleaseParameter(fixforpureli9[i]);
+  // Li-9 vs. B-13 with no Li-11 or He-8
   setupee2str(ee2str, expectedgdfrac);
+  ee2str.FixParameter(3, 0);
+  ee2str.FixParameter(9, 0);
+  contour((TH1D*)gROOT->FindObject("h2fit"), 3, 8,  0.0079, 4, 100);
 
-  h2fit->Fit("ee2str", "le", "", 0, 60);
-  printf("%sLi-9 prob with other isotopes: %f +%f %f%s\n", RED,
-    ee2str.GetParameter(2), gMinuit->fErp[1], gMinuit->fErn[1], CLR);
+  // Li-9 vs. He-8
+  setupee2str(ee2str, expectedgdfrac);
+  contour((TH1D*)gROOT->FindObject("h2fit"), 3, 4, 0.0079, 0.00149, 100);
 
-  TF1 * ee2str_save = (TF1 *)ee2str.Clone("ee2str_save");
+  // B-13 vs. Li-11
+  setupee2str(ee2str, expectedgdfrac);
+  contour((TH1D*)gROOT->FindObject("h2fit"), 8, 9, 3, 0.03, 100);
 
-  double minx = ee2str.GetParameter(2), miny = ee2str.GetParameter(3);
-
-  //TCanvas * c3 = new TCanvas("c3", "c3", 600, 350);
-  gMinuit->Command("Set print 0");
-  gMinuit->Command("Set strategy 2");
-
-  gMinuit->fUp = 1.0/2; // 68% in 1D
-  gMinuit->Command("mncont 3 4 20");
-  TGraph * sigma_1d =
-    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-
-  gMinuit->fUp = 2.3/2; // 90% in 1D
-  gMinuit->Command("mncont 3 4 20");
-  TGraph * ninty_1d =
-    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-
-  gMinuit->fUp = 4.61/2; // 90%
-  gMinuit->Command("mncont 3 4 20");
-  TGraph * ninty_2d =
-    gMinuit->GetPlot()?(TGraph*)((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-
-  if(ninty_2d) ninty_2d->SetFillColor(kViolet);
-  if(ninty_2d) ninty_2d->Draw("alf");
-  if(ninty_2d) ninty_2d->GetXaxis()->SetRangeUser(0, 0.00079);
-  if(ninty_2d) ninty_2d->GetYaxis()->SetRangeUser(0, 0.00149);
-  if(ninty_2d) ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(2);
-  if(ninty_2d) ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(2);
-  if(ninty_1d) ninty_1d->SetLineColor(kRed);
-  if(ninty_1d) ninty_1d->Draw("l");
-  if(sigma_1d) sigma_1d->SetLineColor(kBlack);
-  if(sigma_1d) sigma_1d->Draw("l");
-
-  TMarker * best = new TMarker(minx, miny, kStar);
-  best->Draw();
   
   //////////////////////////////////////////////////////////////////////
  
