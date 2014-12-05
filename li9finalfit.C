@@ -1,3 +1,6 @@
+const char * const RED     = "\033[31;1m"; // bold red
+const char * const CLR      = "\033[m"    ; // clear
+
 const int npar = 9;
 
 const float dist = 300;
@@ -17,8 +20,8 @@ const double li9ebn = 0.5080,
 const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
                            dist == 200?0.565:dist==159?0.376:100000);
 
-// 30s begin-of-run requirement taken into account here
-const double denominator = 0.99127*livetime*nstop*distcuteff;
+// 100s begin-of-run requirement taken into account here
+const double denominator = 0.9709*livetime*nstop*distcuteff;
 
 const double gdcapfrac = 0.871;
 
@@ -47,10 +50,11 @@ const double Heff_sans_prompt_or_mun =
 
 const double expectedgdfrac = gdcapfrac*nstoptarg/nstop;
 
+
 int whichh = 0;
 void drawhist(TTree * tgsel, TTree * thsel,
-              const vector< vector<double> > & parsave, const double high,
-              const int nbin)
+              const vector< vector<double> > & parsave, 
+              const int nbin, const double low, const double high)
 {
   whichh++;
 
@@ -58,14 +62,16 @@ void drawhist(TTree * tgsel, TTree * thsel,
   c1->Divide(1, 3);
   c1->cd(1);
 
-  tgsel->Draw(Form("dt/1000 >> hdispg%d(%d, 0, %f)", whichh, nbin, high));
-  thsel->Draw(Form("dt/1000 >> hdisph%d(%d, 0, %f)", whichh, nbin, high));
-  thsel->Draw(Form("dt/1000 >> hdisp%d (%d, 0, %f)", whichh, nbin, high));
+  tgsel->Draw(Form("dt/1000 >> hdispg%d(%d,%f,%f)", whichh,nbin,low,high));
+  thsel->Draw(Form("dt/1000 >> hdisph%d(%d,%f,%f)", whichh,nbin,low,high));
+  thsel->Draw(Form("dt/1000 >> hdisp%d (%d,%f,%f)", whichh,nbin,low,high));
   tgsel->Draw(Form("dt/1000 >> +hdisp%d", whichh), "", "e");
 
   TH1D * hdispg = gROOT->FindObject(Form("hdispg%d", whichh));
   TH1D * hdisph = gROOT->FindObject(Form("hdisph%d", whichh));
   TH1D * hdisp  = gROOT->FindObject(Form("hdisp%d",  whichh));
+  TH1D * hists[3] = { hdispg, hdisph, hdisp };
+  for(int i = 0; i < 3; i++) hists[i]->SetLineWidth(1);
 
   TF1 * eedisps[parsave.size()];
   for(int i = 0; i < parsave.size(); i++){
@@ -86,12 +92,13 @@ void drawhist(TTree * tgsel, TTree * thsel,
          "%f*[6]*[5]/1.077693*exp(-x/1.077693)+" // Gd C-16
          "%f*[7]*[1]/0.025002*exp(-x/0.025002)+" // Gd B-13
          "%f*[8]*[1]/0.012624*exp(-x/0.012624)+" // Gd Li-11
-         "[0]*[1]))",                                              // Gd bg
+         "[0]*[1]))",                            // Gd bg
            denominator,
            Heff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
-           Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn), 0, 30);
+           Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn), 0, 100);
     for(int j = 0; j < eedisp->GetNpar(); j++)
       eedisp->SetParameter(j, parsave[i][j]);
+    eedisp->SetLineWidth(1);
     eedisps[i] = eedisp;
   }
 
@@ -102,8 +109,6 @@ void drawhist(TTree * tgsel, TTree * thsel,
     eedisp->SetLineColor(kRed);
     eedisp->SetNpx(400);
     eedisp->Draw("Same");
-    if(eedisp->Eval(0) > hdisp->GetMaximum() + sqrt(hdisp->GetMaximum()))
-      hdisp->GetYaxis()->SetRangeUser(0, eedisp->Eval(0)*1.05);
   }
 
   c1->cd(2);
@@ -113,8 +118,6 @@ void drawhist(TTree * tgsel, TTree * thsel,
     eedisph->SetParameter(npar, hdisp->GetBinWidth(1));
     eedisph->SetParameter(npar+1, 0);
     eedisph->Draw("same");
-    if(eedisph->Eval(0) > hdisph->GetMaximum() + sqrt(hdisph->GetMaximum()))
-      hdisph->GetYaxis()->SetRangeUser(0, eedisph->Eval(0)*1.05);
   }
 
   c1->cd(3);
@@ -124,18 +127,19 @@ void drawhist(TTree * tgsel, TTree * thsel,
     eedispg->SetParameter(npar, 0);
     eedispg->SetParameter(npar+1, hdisp->GetBinWidth(1));
     eedispg->Draw("same");
-    if(eedispg->Eval(0) > hdispg->GetMaximum() + sqrt(hdispg->GetMaximum()))
-      hdispg->GetYaxis()->SetRangeUser(0, eedispg->Eval(0)*1.05);
   }
 }
 
+int whichc = -1;
+TCanvas * cans[100]; // oh no
 void contour(TMinuit * mn, const int par1, const int par2,
              const double xrange, const double yrange, const int points,
              const char * const comment)
 {
- return;
-  TCanvas * c = new TCanvas(Form("c%d%d", par1, par2),
-                            Form("c%d%d", par1, par2), 600, 350);
+  whichc++;
+  TCanvas * c = new TCanvas(Form("c%d-%d%d", whichc, par1, par2),
+                            Form("c%d-%d%d", whichc, par1, par2),
+                            600, 350);
   mn->Command("MIGRAD");
   const double minx = getpar(mn, par1-1);
   const double miny = getpar(mn, par2-1);
@@ -143,20 +147,21 @@ void contour(TMinuit * mn, const int par1, const int par2,
   mn->Command("Set print 0");
   mn->Command("Set strategy 2");
 
-  mn->fUp = 1.0/2; // 68% in 1D
-  mn->Command(Form("mncont %d %d %d", par1, par2, points));
+  mn->fUp = 1.0; // 68% in 1D
+  //mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * sigma_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
-  mn->fUp = 2.3/2; // 90% in 1D
+  mn->fUp = 2.3; // 90% in 1D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * ninty_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
-  mn->fUp = 4.61/2; // 90%
+  mn->fUp = 4.61; // 90%
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * ninty_2d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+
 
   if(ninty_2d){
     ninty_2d->SetFillColor(kViolet);
@@ -165,11 +170,18 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ninty_2d->GetYaxis()->SetRangeUser(0, yrange);
     ninty_2d->GetXaxis()->SetTitle(mn->fCpnam[par1-1]);
     ninty_2d->GetYaxis()->SetTitle(mn->fCpnam[par2-1]);
-    ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(2);
-    ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(2);
+    ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
+    ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
   if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
   if(sigma_1d) sigma_1d->SetLineColor(kBlack), sigma_1d->Draw("l");
+/*  mn->fUp = 11.83; // 99.73% in 2D
+  mn->Command(Form("mncont %d %d %d", par1, par2, points));
+  TGraph * threesigma_2d =
+    mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+
+  if(threesigma_2d) threesigma_2d->SetLineStyle(kDashed),
+                    threesigma_2d->Draw("l"); */
 
   TMarker * best = new TMarker(minx, miny, kStar);
   best->Draw();
@@ -181,10 +193,11 @@ void contour(TMinuit * mn, const int par1, const int par2,
     t->Draw();
   }
 
-  c->Modified();
-  c->Update();
-  c->Modified();
-  c->Update();
+  cans[whichc] = c;
+  for(int i = 0; i <= whichc; i++){
+    cans[i]->Modified();
+    cans[i]->Update();
+  }
 }
 
 void setupmn(TMinuit * mn, const double expectedgdfrac)
@@ -193,10 +206,10 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM 1 0 1e-3");
 
   mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
-  mn->Command("FIX 2");
+//  mn->Command("FIX 2");
 
   mn->Command("SET LIM 3 0 1e-3");
-  mn->Command("SET LIM 4 0 1e-3");
+  mn->Command("SET LIM 4 0 3e-3");
   mn->Command("SET LIM 5 0 20"); // allow 100% production plus
                                 // a factor of two for the O capture
                                 // normalization plus a factor of ten
@@ -220,7 +233,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
            c16ebn*par[6]*(1-par[5])+// H C-16
            b13ebn*par[7]*(1-par[1])+// H B-13
           li11ebn*par[8]*(1-par[1])+// H Li-11
-           29.999*par[0]*(1-par[1])) + // H bg
+           99.999*par[0]*(1-par[1])) + // H bg
          denominator*Geff*(
            li9ebn*par[2]*par[1]+ // Gd Li-9
            he8ebn*par[3]*par[1]+ // Gd He-8
@@ -228,9 +241,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
            c16ebn*par[6]*par[5]+ // Gd C-16
            b13ebn*par[7]*par[1]+ // Gd B-13
           li11ebn*par[8]*par[1]+ // Gd Li-11
-           29.999*par[0]*par[1]));     // Gd bg
-
-  //printf("%d %f\n", gtimes.size()+htimes.size(), like);
+           99.999*par[0]*par[1]));     // Gd bg
 
   vector<double> * v[2] = { &gtimes, &htimes };
   for(int j = 0; j < 2; j++){
@@ -255,7 +266,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
           li11ebn*par[8]*par[1]/0.012624*exp(-x/0.012624)+ // Gd Li-11
            par[0]*par[1]);                                 // Gd bg
 
-      like += -log(f);
+      if(f > 0) like += -log(f);
     }
   }
 
@@ -269,29 +280,42 @@ double getpar(TMinuit * mn, int i)
   return answer;
 }
 
+void fixat(TMinuit * mn, int i, float v)
+{
+  mn->Command(Form("SET PAR %d %f", i, v));
+  mn->Command(Form("FIX %d", i));
+}
+
+void fixatzero(TMinuit * mn, int i)
+{
+  mn->Command(Form("SET PAR %d 0", i));
+  mn->Command(Form("FIX %d", i));
+}
+
 void li9finalfit(bool neutron = false)
 {
-  const char * const RED     = "\033[31;1m"; // bold red
-  const char * const CLR      = "\033[m"    ; // clear
-
   // First factor takes into account the efficiency of selecting a
   // neutron after a muon, second is the prompt energy cut, third as
   // documented above
-  Geff=(neutron?0.97*0.64:1)*0.996*Geff_sans_prompt_or_mun,
-  Heff=(neutron?0.97*0.93:1)*0.993*Heff_sans_prompt_or_mun;
+  // 
+  // Neutron efficiencies are assuming any within the Michel window
+  // are rejected.
+  Geff=(neutron?0.97*(0.64-0.0726):1)*0.996*Geff_sans_prompt_or_mun,
+  Heff=(neutron?0.97*(0.93-0.0303):1)*0.993*Heff_sans_prompt_or_mun;
 
   ///////////////////////////////////////////////////////////////////
  
   char cut[1000];
-  snprintf(cut, 999, "%sdist < %f  && miche < 12 && !earlymich && dt < 30000",
-           dist, neutron?"n==1&&":" ");
+  snprintf(cut, 999, "%sdist < %f && miche < 12 && !earlymich && "
+                     "prompttime > 100e9 && dt < 100e3",
+           dist, neutron?"nlate==1&&":" ");
 
   ////////////////////////////////////////////////////////////////////
 
   TTree tg("t", "t");
   TTree th("t", "t");
-  tg.ReadFile("li9-20141203.Gd.ntuple");
-  th.ReadFile("li9-20141203.H.ntuple");
+  tg.ReadFile("li9-20141204.Gd.ntuple");
+  th.ReadFile("li9-20141204.H.ntuple");
 
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
@@ -324,7 +348,29 @@ void li9finalfit(bool neutron = false)
   mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err);
   mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err);
 
+  mn->Command("set print -3");
+
   vector< vector<double> > parsaves;
+  {
+    setupmn(mn, expectedgdfrac);
+    const unsigned int nfix = 7;
+    const int fix[nfix] = { 3, 4, 5, 6, 7, 8, 9 };
+    for(int i = 0; i < nfix; i++){
+      mn->Command(Form("SET LIM %d", fix[i]));
+      mn->Command(Form("SET PAR %d 0", fix[i]));
+      mn->Command(Form("FIX %d", fix[i]));
+    }
+    mn->Command("MIGRAD");
+    mn->Command("MINOS 10000 3");
+    mn->Command("SHOW min");
+    printf("%sNo Li-9 or other bn isotopes (%.2f)%s\n",
+           RED, mn->fAmin, CLR);
+    vector<double> parsave;
+    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
+    parsaves.push_back(parsave);
+  }
+  const double chi2nothing = mn->fAmin;
+
   {
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 6;
@@ -337,12 +383,47 @@ void li9finalfit(bool neutron = false)
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob without other isotopes: %f %f +%f%s\n", RED,
-      getpar(mn, 2), mn->fErn[1], mn->fErp[1], CLR);
+    printf("%sLi-9 prob without other isotopes (%.2f): %f %f +%f%s\n",
+           RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
     parsaves.push_back(parsave);
   }
+  const double chi2justli9 = mn->fAmin;
+
+  {
+    setupmn(mn, expectedgdfrac);
+    const unsigned int nfix = 5;
+    const int fix[nfix] = { 4, 6, 5, 8, 9 };
+    for(int i = 0; i < nfix; i++){
+      mn->Command(Form("SET LIM %d", fix[i]));
+      mn->Command(Form("SET PAR %d 0", fix[i]));
+      mn->Command(Form("FIX %d", fix[i]));
+    }
+    mn->Command("MIGRAD");
+    mn->Command("MINOS 10000 3");
+    mn->Command("SHOW min");
+    printf("%sLi-9 with C-16 only (%.2f): %f %f +%f%s\n", RED,
+      mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
+  }
+  const double chi2_li9_c16 = mn->fAmin;
+
+  {
+    setupmn(mn, expectedgdfrac);
+    const unsigned int nfix = 5;
+    const int fix[nfix] = { 4, 6, 7, 8, 9 };
+    for(int i = 0; i < nfix; i++){
+      mn->Command(Form("SET LIM %d", fix[i]));
+      mn->Command(Form("SET PAR %d 0", fix[i]));
+      mn->Command(Form("FIX %d", fix[i]));
+    }
+    mn->Command("MIGRAD");
+    mn->Command("MINOS 10000 3");
+    mn->Command("SHOW min");
+    printf("%sLi-9 with N-17 only (%.2f): %f %f +%f%s\n", RED,
+      mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
+  }
+  const double chi2_li9_n17 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -356,9 +437,10 @@ void li9finalfit(bool neutron = false)
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob with only He-8: %f %f +%f%s\n", RED,
-      getpar(mn, 2), mn->fErn[1], mn->fErp[1], CLR);
+    printf("%sLi-9 prob with only He-8 (%.2f): %f %f +%f%s\n", RED,
+      mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
+  const double chi2_li9_he8 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -373,58 +455,119 @@ void li9finalfit(bool neutron = false)
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob with nuisance isotopes, but not He-8: %f %f +%f%s\n", RED,
-      getpar(mn, 2), mn->fErn[1], mn->fErp[1], CLR);
+    printf("%sLi-9 prob with everything except He-8 (%.2f): %f %f +%f%s\n",
+           RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
+  const double chi2_allbut_he8 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
     mn->Command("MIGRAD");
+    mn->Command("MINOS 10000 3 5 8");
+    mn->Command("SHOW min");
+    printf("%sLi-9 prob with all other isotopes (%.2f): %f %f +%f%s\n",
+      RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
+    vector<double> parsave;
+    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
+    parsaves.push_back(parsave);
+  }
+  const double chi2_all = mn->fAmin;
+
+  const double maxb13 = getpar(mn, 7) + mn->fErp[7] * sqrt(2.3);
+  printf("%s90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
+
+  {
+    setupmn(mn, expectedgdfrac);
+    fixat(mn, 8, maxb13);
+    mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob with all other isotopes: %f %f +%f%s\n", RED,
-      getpar(mn, 2), mn->fErn[1], mn->fErp[1], CLR);
+    printf("%sLi-9 prob w/everything, B-13 fixed at limit (%.2f): %f %f +%f%s\n", RED,
+      mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
     parsaves.push_back(parsave);
   }
 
-  const int npoint = 40;
+  printf("%s", RED);
+  printf("Li-9 preferred over nothing by %f\n",
+         chi2nothing - chi2justli9 < 0?0:sqrt(chi2nothing - chi2justli9));
 
-  // Li-9 vs. N-17 with no He-8
+  printf("Li-9 + C-16 preferred over just Li-9 by %f\n",
+         chi2justli9 - chi2_li9_c16<0?0:sqrt(chi2justli9 - chi2_li9_c16));
+
+  printf("Li-9 + N-17 preferred over just Li-9 by %f\n",
+         chi2justli9 - chi2_li9_n17<0?0:sqrt(chi2justli9 - chi2_li9_n17));
+
+  printf("All preferred over Li-9 + N-17 by %f\n",
+         chi2_li9_n17 - chi2_all<0?0:sqrt(chi2_li9_n17 - chi2_all));
+  printf("%s", CLR);
+
+
+  const int npoint = 100;
+
+  // Li-9 vs. N-17 with nothing else
   setupmn(mn, expectedgdfrac);
-  mn->Command("SET PAR 4 0");
-  mn->Command("FIX 4");
-  contour(mn, 3, 5,  0.0079, 30, npoint, "No He-8");
+  fixatzero(mn, 4);
+  fixatzero(mn, 7);
+  fixatzero(mn, 8);
+  fixatzero(mn, 9);
+  contour(mn, 3, 5,  0.0079, 20, npoint, "Nothing else");
 
   // Li-9 vs. C-16 with no He-8
   setupmn(mn, expectedgdfrac);
-  mn->Command("SET PAR 4 0");
-  mn->Command("FIX 4");
+  fixatzero(mn, 4);
   contour(mn, 3, 7,  0.0079, 10, npoint, "No He-8");
 
   // Li-9 vs. B-13 with no Li-11 or He-8
   setupmn(mn, expectedgdfrac);
-  mn->Command("SET PAR 4 0");
-  mn->Command("FIX 4");
-  mn->Command("SET PAR 9 0");
-  mn->Command("FIX 9");
+  fixatzero(mn, 4);
+  fixatzero(mn, 9);
   contour(mn, 3, 8,  0.0079, 2, npoint, "No He-8 or Li-11");
 
   // Li-9 vs. He-8
   setupmn(mn, expectedgdfrac);
   contour(mn, 3, 4, 0.0079, 0.00149, npoint, "");
 
+  // Li-9 vs. He-8 with nothing else
+  setupmn(mn, expectedgdfrac);
+  fixatzero(mn, 5);
+  fixatzero(mn, 7);
+  fixatzero(mn, 8);
+  fixatzero(mn, 9);
+  contour(mn, 3, 4, 0.0079, 0.00149, npoint, "Nothing else");
+
   // B-13 vs. Li-11
   setupmn(mn, expectedgdfrac);
-  contour(mn, 8, 9, 3, 0.004, npoint, "");
+  contour(mn, 8, 9, 3, 0.008, npoint, "");
 
   
   //////////////////////////////////////////////////////////////////////
  
-  drawhist(tgsel, thsel, parsaves, 30, 30);
-  drawhist(tgsel, thsel, parsaves, 5, 25);
-  drawhist(tgsel, thsel, parsaves, 0.2, 20);
+  drawhist(tgsel, thsel, parsaves, 48, 1, 97);
+  drawhist(tgsel, thsel, parsaves, 25, 0, 5);
+  drawhist(tgsel, thsel, parsaves, 20, 0, 0.4);
+
+  TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
+  th.Draw("dy:dx", cut, ".");
+  th.Draw("dy:dx", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+  tg.Draw("dy:dx", cut, ".same");
+  tg.Draw("dy:dx", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+
+  TCanvas * rz = new TCanvas("rz", "rz", 200, 200);
+  th.Draw("dz:dx**2+dy**2", cut, ".");
+  th.Draw("dz:dx**2+dy**2", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+  tg.Draw("dz:dx**2+dy**2", cut, ".same");
+  tg.Draw("dz:dx**2+dy**2", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+
+  TCanvas * rzh = new TCanvas("rzh", "rzh", 200, 200);
+  th.Draw("dz >> dzall(10, -1800, 1800)", cut, "hist");
+  th.Draw("dz >> dzn16", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"samee");
+  tg.Draw("dz >> +dzall", cut, "hist");
+  tg.Draw("dz >> +dzn16", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"samee");
+  dzall=dzall;
+  dzn16=dzn16;
+  dzn16->Scale(dzall->Integral()/dzn16->Integral());
 
 return;
   printf("Candidates:\n");
