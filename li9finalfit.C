@@ -48,6 +48,7 @@ const double Heff_sans_prompt_or_mun =
        (1-0.014/100.); // IV delayed -- doc5813
 
 
+// But not the actual gd fraction because of geometrical effects
 const double expectedgdfrac = gdcapfrac*nstoptarg/nstop;
 
 
@@ -148,7 +149,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
   mn->Command("Set strategy 2");
 
   mn->fUp = 1.0; // 68% in 1D
-  //mn->Command(Form("mncont %d %d %d", par1, par2, points));
+  mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * sigma_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
@@ -206,16 +207,15 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM 1 0 1e-3");
 
   mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
-//  mn->Command("FIX 2");
+  mn->Command("Set LIM 2 0 1");
 
   mn->Command("SET LIM 3 0 1e-3");
   mn->Command("SET LIM 4 0 3e-3");
-  mn->Command("SET LIM 5 0 20"); // allow 100% production plus
+  mn->Command("SET LIM 5 0 2"); // allow 100% production plus
                                 // a factor of two for the O capture
-                                // normalization plus a factor of ten
-                                // for other complications.
+                                // normalization
   mn->Command("SET LIM 6 0 0.5");
-  mn->Command("SET LIM 7 0 10");
+  mn->Command("SET LIM 7 0 2");  // as with N-17
   mn->Command("SET LIM 8 0 3");
   mn->Command("SET LIM 9 0 1");
 }
@@ -271,6 +271,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   }
 
   like *= 2;
+
+  // pull terms
+  like += pow((par[4]-0.5)/0.25, 2); // 50%+-25% for N-17
+  like += pow((par[6]-0.05)/0.05, 2); // 5%+-5%  for C-16
 }
 
 double getpar(TMinuit * mn, int i)
@@ -282,17 +286,19 @@ double getpar(TMinuit * mn, int i)
 
 void fixat(TMinuit * mn, int i, float v)
 {
+  mn->Command(Form("SET LIM %d", i));
   mn->Command(Form("SET PAR %d %f", i, v));
   mn->Command(Form("FIX %d", i));
 }
 
 void fixatzero(TMinuit * mn, int i)
 {
+  mn->Command(Form("SET LIM %d", i));
   mn->Command(Form("SET PAR %d 0", i));
   mn->Command(Form("FIX %d", i));
 }
 
-void li9finalfit(bool neutron = false)
+void li9finalfit(bool neutron = false, int contourmask = 0)
 {
   // First factor takes into account the efficiency of selecting a
   // neutron after a muon, second is the prompt energy cut, third as
@@ -507,47 +513,63 @@ void li9finalfit(bool neutron = false)
   const int npoint = 100;
 
   // Li-9 vs. N-17 with nothing else
-  setupmn(mn, expectedgdfrac);
-  fixatzero(mn, 4);
-  fixatzero(mn, 7);
-  fixatzero(mn, 8);
-  fixatzero(mn, 9);
-  contour(mn, 3, 5,  0.0079, 20, npoint, "Nothing else");
+  if(contourmask & 0x01){
+    setupmn(mn, expectedgdfrac);
+    fixatzero(mn, 4);
+    fixatzero(mn, 7);
+    fixatzero(mn, 8);
+    fixatzero(mn, 9);
+    contour(mn, 3, 5,  0.0079, 20, npoint, "Nothing else");
+  }
 
   // Li-9 vs. C-16 with no He-8
-  setupmn(mn, expectedgdfrac);
-  fixatzero(mn, 4);
-  contour(mn, 3, 7,  0.0079, 10, npoint, "No He-8");
+  if(contourmask & 0x02){
+    setupmn(mn, expectedgdfrac);
+    fixatzero(mn, 4);
+    contour(mn, 3, 7, 0.0079, 2, npoint, "No ^{8}He");
+  }
 
   // Li-9 vs. B-13 with no Li-11 or He-8
-  setupmn(mn, expectedgdfrac);
-  fixatzero(mn, 4);
-  fixatzero(mn, 9);
-  contour(mn, 3, 8,  0.0079, 2, npoint, "No He-8 or Li-11");
+  if(contourmask & 0x04){
+    setupmn(mn, expectedgdfrac);
+    fixatzero(mn, 4);
+    fixatzero(mn, 9);
+    contour(mn, 3, 8,  0.0079, 2, npoint, "No ^{8}He or ^{11}Li");
+  }
 
   // Li-9 vs. He-8
-  setupmn(mn, expectedgdfrac);
-  contour(mn, 3, 4, 0.0079, 0.00149, npoint, "");
+  if(contourmask & 0x08){
+    setupmn(mn, expectedgdfrac);
+    contour(mn, 3, 4, 0.0079, 0.00149, npoint, "");
+  }
 
   // Li-9 vs. He-8 with nothing else
-  setupmn(mn, expectedgdfrac);
-  fixatzero(mn, 5);
-  fixatzero(mn, 7);
-  fixatzero(mn, 8);
-  fixatzero(mn, 9);
-  contour(mn, 3, 4, 0.0079, 0.00149, npoint, "Nothing else");
+  if(contourmask & 0x10){
+    setupmn(mn, expectedgdfrac);
+    fixatzero(mn, 5);
+    fixatzero(mn, 6);
+    fixatzero(mn, 7);
+    fixatzero(mn, 8);
+    fixatzero(mn, 9);
+    contour(mn, 3, 4, 0.0079, 0.00149, npoint, "Nothing else");
+  }
 
   // B-13 vs. Li-11
-  setupmn(mn, expectedgdfrac);
-  contour(mn, 8, 9, 3, 0.008, npoint, "");
+  if(contourmask & 0x20){
+    setupmn(mn, expectedgdfrac);
+    contour(mn, 8, 9, 3, 0.008, npoint, "");
+  }
 
   
   //////////////////////////////////////////////////////////////////////
  
+/*
   drawhist(tgsel, thsel, parsaves, 48, 1, 97);
   drawhist(tgsel, thsel, parsaves, 25, 0, 5);
   drawhist(tgsel, thsel, parsaves, 20, 0, 0.4);
+*/
 
+/*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
   th.Draw("dy:dx", cut, ".");
   th.Draw("dy:dx", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
@@ -568,11 +590,13 @@ void li9finalfit(bool neutron = false)
   dzall=dzall;
   dzn16=dzn16;
   dzn16->Scale(dzall->Integral()/dzn16->Integral());
+*/
 
-return;
+/*
   printf("Candidates:\n");
   th.SetScanField(0);
   tg.SetScanField(0);
   th.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", cut);
   tg.Scan("run:trig:dt:sqrt(dx*dx+dy*dy):dx:dy:dz", cut);
+*/
 }

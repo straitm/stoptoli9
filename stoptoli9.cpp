@@ -11,7 +11,7 @@
 
 #include "search.h"
 
-static const double window = 30e9;
+static const double window = 100e9;
 
 static bool earlymich(const int run, const int mutrig)
 {
@@ -36,9 +36,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
   ctree->GetEntry(prompt);
   const double prompttime = parts.trgtime;
-
-  // Can't look back all the way
-  if(prompttime < window) return;
+  const double prompte = parts.ctEvisID;
 
   const double li9x=bamacorrxy(parts.ctX[0], parts.ctEvisID),
                li9y=bamacorrxy(parts.ctX[1], parts.ctEvisID),
@@ -159,13 +157,13 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       if(parts.trgtime - mutime > 5500) nneutronnotmichel++;
     }
 
-    printf("%d %d %d %lf %f %u %u %f %f %f %f %f %f %f %f %f "
-           "%f %f %f %f %f %d\n",
-           parts.run, prompt, prompt-back,
+    printf("%f %d %d %d %lf %f %u %u %f %f %f %f %f %f %f %f %f "
+           "%f %f %f %f %f %d %f\n",
+           prompttime, parts.run, prompt, prompt-back,
            (prompttime - mutime)/1e6, li9tomu, nneutron, nneutronnotmichel,
            li9x, li9y, li9z, mux, muy, muz, imux, imuy, imuz,
            miche, micht, fidoqid, chi2qual, dedxslant,
-           earlymich(parts.run, prompt-back));
+           earlymich(parts.run, prompt-back), prompte);
     fflush(stdout);
   }
 }
@@ -176,9 +174,9 @@ int main()
   unsigned int errcode = 0;
   std::string line;
 
-  printf("run:trig:mutrig:dt:dist:n:nlate:dx:dy:dz:mx:my:mz:"
+  printf("prompttime:run:trig:mutrig:dt:dist:n:nlate:dx:dy:dz:mx:my:mz:"
          "imx:imy:imz:miche:micht:fidoqid:chi2qual:dedxslant:"
-         "earlymich\n");
+         "earlymich:prompte\n");
 
   while(std::getline(std::cin, line)){
     std::stringstream ss(line);
