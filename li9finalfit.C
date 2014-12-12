@@ -1,7 +1,7 @@
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR      = "\033[m"    ; // clear
 
-const int npar = 9;
+const int npar = 10;
 
 const float dist = 300;
 
@@ -60,8 +60,8 @@ void drawhist(TTree * tgsel, TTree * thsel,
   whichh++;
 
   TCanvas * c1 = new TCanvas;
-  c1->Divide(1, 3);
-  c1->cd(1);
+//  c1->Divide(1, 3);
+//  c1->cd(1);
 
   tgsel->Draw(Form("dt/1000 >> hdispg%d(%d,%f,%f)", whichh,nbin,low,high));
   thsel->Draw(Form("dt/1000 >> hdisph%d(%d,%f,%f)", whichh,nbin,low,high));
@@ -72,46 +72,44 @@ void drawhist(TTree * tgsel, TTree * thsel,
   TH1D * hdisph = gROOT->FindObject(Form("hdisph%d", whichh));
   TH1D * hdisp  = gROOT->FindObject(Form("hdisp%d",  whichh));
   TH1D * hists[3] = { hdispg, hdisph, hdisp };
-  for(int i = 0; i < 3; i++) hists[i]->SetLineWidth(1);
+  //for(int i = 0; i < 3; i++) hists[i]->SetLineWidth(1);
 
   TF1 * eedisps[parsave.size()];
   for(int i = 0; i < parsave.size(); i++){
-    TF1 * eedisp = new TF1(Form("eedisp%d-%d", i, whichh),
+    eedisps[i] = new TF1(Form("eedisp%d-%d", i, whichh),
       Form("%f*"
-      "([9]*%f*("
-         "%f*[2]*(1-[1])/0.257233*exp(-x/0.257233)+"  // H Li-9
-         "%f*[3]*(1-[1])/0.171825*exp(-x/0.171825)+"  // H He-8
+      "([10]*%f*("
+         "%f*[2]*(1-[9])/0.257233*exp(-x/0.257233)+"  // H Li-9
+         "%f*[3]*(1-[9])/0.171825*exp(-x/0.171825)+"  // H He-8
          "%f*[4]*(1-[5])/6.020366*exp(-x/6.020366)+"  // H N-17
          "%f*[6]*(1-[5])/1.077693*exp(-x/1.077693)+"  // H C-16
-         "%f*[7]*(1-[1])/0.025002*exp(-x/0.025002)+"  // H B-13
-         "%f*[8]*(1-[1])/0.012624*exp(-x/0.012624)+"  // H Li-11
+         "%f*[7]*(1-[9])/0.025002*exp(-x/0.025002)+"  // H B-13
+         "%f*[8]*(1-[9])/0.012624*exp(-x/0.012624)+"  // H Li-11
          "[0]*(1-[1])) + "                            // H bg
-       "[10]*%f*("
-         "%f*[2]*[1]/0.257233*exp(-x/0.257233)+" // Gd Li-9
-         "%f*[3]*[1]/0.171825*exp(-x/0.171825)+" // Gd He-8
+       "[11]*%f*("
+         "%f*[2]*[9]/0.257233*exp(-x/0.257233)+" // Gd Li-9
+         "%f*[3]*[9]/0.171825*exp(-x/0.171825)+" // Gd He-8
          "%f*[4]*[5]/6.020366*exp(-x/6.020366)+" // Gd N-17
          "%f*[6]*[5]/1.077693*exp(-x/1.077693)+" // Gd C-16
-         "%f*[7]*[1]/0.025002*exp(-x/0.025002)+" // Gd B-13
-         "%f*[8]*[1]/0.012624*exp(-x/0.012624)+" // Gd Li-11
+         "%f*[7]*[9]/0.025002*exp(-x/0.025002)+" // Gd B-13
+         "%f*[8]*[9]/0.012624*exp(-x/0.012624)+" // Gd Li-11
          "[0]*[1]))",                            // Gd bg
            denominator,
            Heff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
            Geff, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn), 0, 100);
-    for(int j = 0; j < eedisp->GetNpar(); j++)
-      eedisp->SetParameter(j, parsave[i][j]);
-    eedisp->SetLineWidth(1);
-    eedisps[i] = eedisp;
+    for(int j = 0; j < eedisps[i]->GetNpar(); j++)
+      eedisps[i]->SetParameter(j, parsave[i][j]);
+    eedisps[i]->SetLineWidth(2);
   }
 
   for(int i = 0; i < parsave.size(); i++){
-    TF1 * eedisp = eedisps[i];
-    eedisp->SetParameter(npar, hdisp->GetBinWidth(1));
-    eedisp->SetParameter(npar+1, hdisp->GetBinWidth(1));
-    eedisp->SetLineColor(kRed);
-    eedisp->SetNpx(400);
-    eedisp->Draw("Same");
+    eedisps[i]->SetParameter(npar, hdisp->GetBinWidth(1));
+    eedisps[i]->SetParameter(npar+1, hdisp->GetBinWidth(1));
+    eedisps[i]->SetLineColor(kRed);
+    eedisps[i]->SetNpx(400);
+    eedisps[i]->Draw("Same");
   }
-
+/*
   c1->cd(2);
   hdisph->Draw("e");
   for(int i = 0; i < parsave.size(); i++){
@@ -129,6 +127,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
     eedispg->SetParameter(npar+1, hdisp->GetBinWidth(1));
     eedispg->Draw("same");
   }
+*/
 }
 
 int whichc = -1;
@@ -138,15 +137,16 @@ void contour(TMinuit * mn, const int par1, const int par2,
              const char * const comment)
 {
   whichc++;
-  TCanvas * c = new TCanvas(Form("c%d-%d%d", whichc, par1, par2),
-                            Form("c%d-%d%d", whichc, par1, par2),
+  TCanvas * c = new TCanvas(Form("c%d_%d%d", whichc, par1, par2),
+                            Form("c%d_%d%d", whichc, par1, par2),
                             600, 350);
   mn->Command("MIGRAD");
   const double minx = getpar(mn, par1-1);
   const double miny = getpar(mn, par2-1);
 
+  const int oldprintlevel = mn->fISW[4];
   mn->Command("Set print 0");
-  mn->Command("Set strategy 2");
+  //mn->Command("Set strategy 2");
 
   mn->fUp = 1.0; // 68% in 1D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
@@ -199,6 +199,8 @@ void contour(TMinuit * mn, const int par1, const int par2,
     cans[i]->Modified();
     cans[i]->Update();
   }
+
+  mn->Command(Form("set print %d", oldprintlevel));
 }
 
 void setupmn(TMinuit * mn, const double expectedgdfrac)
@@ -207,7 +209,7 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM 1 0 1e-3");
 
   mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
-  mn->Command("Set LIM 2 0 1");
+  mn->Command("Set LIM 2 0 0.5");
 
   mn->Command("SET LIM 3 0 1e-3");
   mn->Command("SET LIM 4 0 3e-3");
@@ -218,6 +220,9 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM 7 0 2");  // as with N-17
   mn->Command("SET LIM 8 0 3");
   mn->Command("SET LIM 9 0 1");
+
+  mn->Command(Form("SET PAR 10 %f", expectedgdfrac));
+  mn->Command("Set LIM 10 0 0.5");
 }
 
 vector<double> gtimes, htimes;
@@ -227,20 +232,20 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   like = (
         denominator*Heff*(
-           li9ebn*par[2]*(1-par[1])+// H Li-9
-           he8ebn*par[3]*(1-par[1])+// H He-8
+           li9ebn*par[2]*(1-par[9])+// H Li-9
+           he8ebn*par[3]*(1-par[9])+// H He-8
            n17ebn*par[4]*(1-par[5])+// H N-17
            c16ebn*par[6]*(1-par[5])+// H C-16
-           b13ebn*par[7]*(1-par[1])+// H B-13
-          li11ebn*par[8]*(1-par[1])+// H Li-11
+           b13ebn*par[7]*(1-par[9])+// H B-13
+          li11ebn*par[8]*(1-par[9])+// H Li-11
            99.999*par[0]*(1-par[1])) + // H bg
          denominator*Geff*(
-           li9ebn*par[2]*par[1]+ // Gd Li-9
-           he8ebn*par[3]*par[1]+ // Gd He-8
+           li9ebn*par[2]*par[9]+ // Gd Li-9
+           he8ebn*par[3]*par[9]+ // Gd He-8
            n17ebn*par[4]*par[5]+ // Gd N-17
            c16ebn*par[6]*par[5]+ // Gd C-16
-           b13ebn*par[7]*par[1]+ // Gd B-13
-          li11ebn*par[8]*par[1]+ // Gd Li-11
+           b13ebn*par[7]*par[9]+ // Gd B-13
+          li11ebn*par[8]*par[9]+ // Gd Li-11
            99.999*par[0]*par[1]));     // Gd bg
 
   vector<double> * v[2] = { &gtimes, &htimes };
@@ -250,20 +255,20 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   
       double f = j == 1?
         Heff*(
-           li9ebn*par[2]*(1-par[1])/0.257233*exp(-x/0.257233)+// H Li-9
-           he8ebn*par[3]*(1-par[1])/0.171825*exp(-x/0.171825)+// H He-8
+           li9ebn*par[2]*(1-par[9])/0.257233*exp(-x/0.257233)+// H Li-9
+           he8ebn*par[3]*(1-par[9])/0.171825*exp(-x/0.171825)+// H He-8
            n17ebn*par[4]*(1-par[5])/6.020366*exp(-x/6.020366)+// H N-17
            c16ebn*par[6]*(1-par[5])/1.077693*exp(-x/1.077693)+// H C-16
-           b13ebn*par[7]*(1-par[1])/0.025002*exp(-x/0.025002)+// H B-13
-          li11ebn*par[8]*(1-par[1])/0.012624*exp(-x/0.012624)+// H Li-11
+           b13ebn*par[7]*(1-par[9])/0.025002*exp(-x/0.025002)+// H B-13
+          li11ebn*par[8]*(1-par[9])/0.012624*exp(-x/0.012624)+// H Li-11
            par[0]*(1-par[1])) :                               // H bg
          Geff*(
-           li9ebn*par[2]*par[1]/0.257233*exp(-x/0.257233)+ // Gd Li-9
-           he8ebn*par[3]*par[1]/0.171825*exp(-x/0.171825)+ // Gd He-8
+           li9ebn*par[2]*par[9]/0.257233*exp(-x/0.257233)+ // Gd Li-9
+           he8ebn*par[3]*par[9]/0.171825*exp(-x/0.171825)+ // Gd He-8
            n17ebn*par[4]*par[5]/6.020366*exp(-x/6.020366)+ // Gd N-17
            c16ebn*par[6]*par[5]/1.077693*exp(-x/1.077693)+ // Gd C-16
-           b13ebn*par[7]*par[1]/0.025002*exp(-x/0.025002)+ // Gd B-13
-          li11ebn*par[8]*par[1]/0.012624*exp(-x/0.012624)+ // Gd Li-11
+           b13ebn*par[7]*par[9]/0.025002*exp(-x/0.025002)+ // Gd B-13
+          li11ebn*par[8]*par[9]/0.012624*exp(-x/0.012624)+ // Gd Li-11
            par[0]*par[1]);                                 // Gd bg
 
       if(f > 0) like += -log(f);
@@ -298,7 +303,7 @@ void fixatzero(TMinuit * mn, int i)
   mn->Command(Form("FIX %d", i));
 }
 
-void li9finalfit(bool neutron = false, int contourmask = 0)
+void li9finalfit(int neutrons = -1, int contourmask = 0)
 {
   // First factor takes into account the efficiency of selecting a
   // neutron after a muon, second is the prompt energy cut, third as
@@ -306,15 +311,17 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
   // 
   // Neutron efficiencies are assuming any within the Michel window
   // are rejected.
-  Geff=(neutron?0.97*(0.64-0.0726):1)*0.996*Geff_sans_prompt_or_mun,
-  Heff=(neutron?0.97*(0.93-0.0303):1)*0.993*Heff_sans_prompt_or_mun;
+  Geff=(neutrons > 0?pow(0.97*(0.64-0.0726), neutrons):1)*0.996
+        *Geff_sans_prompt_or_mun,
+  Heff=(neutrons > 0?pow(0.97*(0.93-0.0303), neutrons):1)*0.993
+        *Heff_sans_prompt_or_mun;
 
   ///////////////////////////////////////////////////////////////////
  
   char cut[1000];
   snprintf(cut, 999, "%sdist < %f && miche < 12 && !earlymich && "
                      "prompttime > 100e9 && dt < 100e3",
-           dist, neutron?"nlate==1&&":" ");
+           dist, neutrons >= 0?Form("nlate==%d&&", neutrons):" ");
 
   ////////////////////////////////////////////////////////////////////
 
@@ -332,11 +339,11 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
 
   for(int i = 0; i < tgsel->GetEntries(); i++){
     tgsel->GetEntry(i);
-    gtimes.push_back(tim/1000);
+    gtimes.push_back((tim - 0.002)/1000);
   }
   for(int i = 0; i < thsel->GetEntries(); i++){
     thsel->GetEntry(i);
-    htimes.push_back(tim/1000);
+    htimes.push_back((tim - 0.002)/1000);
   }
 
   //////////////////
@@ -345,7 +352,7 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
   mn->SetFCN(fcn);
   int err;
   mn->mnparm(1 -1, "bg",     1e-4,  5e-6, 0, 0, err);
-  mn->mnparm(2 -1, "gdfrac", 0.38,  0.01, 0, 0, err);
+  mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
   mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err);
   mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err);
   mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err);
@@ -353,8 +360,9 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
   mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err);
   mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err);
   mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err);
+  mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
 
-  mn->Command("set print -3");
+  mn->Command("set print -10");
 
   vector< vector<double> > parsaves;
   {
@@ -373,7 +381,7 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
            RED, mn->fAmin, CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    parsaves.push_back(parsave);
+    //parsaves.push_back(parsave);
   }
   const double chi2nothing = mn->fAmin;
 
@@ -393,7 +401,7 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    parsaves.push_back(parsave);
+    //parsaves.push_back(parsave);
   }
   const double chi2justli9 = mn->fAmin;
 
@@ -492,7 +500,7 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    parsaves.push_back(parsave);
+    //parsaves.push_back(parsave);
   }
 
   printf("%s", RED);
@@ -507,6 +515,8 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
 
   printf("All preferred over Li-9 + N-17 by %f\n",
          chi2_li9_n17 - chi2_all<0?0:sqrt(chi2_li9_n17 - chi2_all));
+  printf("All preferred over nothing by %f\n",
+         chi2nothing - chi2_all<0?0:sqrt(chi2nothing - chi2_all));
   printf("%s", CLR);
 
 
@@ -519,7 +529,7 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
     fixatzero(mn, 7);
     fixatzero(mn, 8);
     fixatzero(mn, 9);
-    contour(mn, 3, 5,  0.0079, 20, npoint, "Nothing else");
+    contour(mn, 3, 5,  0.0079, 2, npoint, "Nothing else");
   }
 
   // Li-9 vs. C-16 with no He-8
@@ -563,11 +573,9 @@ void li9finalfit(bool neutron = false, int contourmask = 0)
   
   //////////////////////////////////////////////////////////////////////
  
-/*
   drawhist(tgsel, thsel, parsaves, 48, 1, 97);
   drawhist(tgsel, thsel, parsaves, 25, 0, 5);
   drawhist(tgsel, thsel, parsaves, 20, 0, 0.4);
-*/
 
 /*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
