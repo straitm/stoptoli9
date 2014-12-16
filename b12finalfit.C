@@ -18,15 +18,17 @@ static void printfr(const char * const msg, ...)
 }
 
 double eff = 0.82 * 0.977 * 0.962 * 0.9709;
-double b12frac = 0.186;
+double b12frac = 0.18602;
 double livedays = 489.509;
 double ferror1213 = 0.01;
 double ferrorecut = 0.01;
-double ferrorb12 = 0.7/18.6;
+double ferrorb12 = 0.712/18.602;
 double f12 = 0.9893;
-double ferrorc13 = 0.08/1.07;
-double p13op12 = 0.93;
-double ferrorp13op12 = 0.06/0.93;
+double ferrorc13 = 0.05; // my gaussianaztion of IUPAC's range
+double p13op12 = (35.0/(35.0 + 1/2197e-6)) / (37.9 / (37.9 + 1/2197e-6));
+double ferrorp13op12 = sqrt(pow(2./35,2) + pow(5./379.,2))/p13op12;
+double capprob = (37.9/(37.9 + 1/2197e-6));
+double ferrcapprob = 5./379.;
  
 void all(TTree * t, TF1 * ee)
 {
@@ -49,6 +51,14 @@ void all(TTree * t, TF1 * ee)
   printfr("per day c12 cap rate %f +- %f\n",
          rawintegral / eff / b12frac / livedays * f12,
          rawintegral / eff / b12frac / livedays * f12 * ferror2);
+
+  double ferrorstop=sqrt(pow(ferrorfit, 2)+ pow(ferrorecut, 2)+
+                         pow(2*(1-f12)/sqrt(12), 2)+ // accounts for unknonwn B13 prob, allowing 0-2(B12 prob), gaussianized
+                         pow(ferrorb12, 2)+ pow(ferrcapprob, 2));
+
+  printfr("per day mu- stop rate %f +- %f\n",
+         rawintegral / eff / b12frac / livedays / capprob,
+         rawintegral / eff / b12frac / livedays / capprob * ferrorstop);
 
   double ferror3 = sqrt(pow(ferrorfit,  2)+ pow(ferrorecut, 2)+
                         pow(ferror1213, 2)+ pow(ferrorb12, 2)+
