@@ -20,10 +20,10 @@ const int nrbins = 5;
 bool rbinson[nrbins] = { true, true, true, true, true };
 
 double bgerr[nrbins] = {0};
-double abg[nrbins][120], asig[nrbins][120], an16[nrbins][120], ali8[nrbins][120], ahe6[120];
+double abg[nrbins][120], asig[nrbins][120], an16[nrbins][120], ali8[nrbins][120], ahe6[nrbins][120];
 
 TH2D * ehistsig = NULL, * ehistbg = NULL;
-TH1D * li8spec[5] = {NULL}, * he6spec = NULL, * n16spec[5] = {NULL};
+TH1D * li8spec[5] = {NULL}, * he6spec[5] = {NULL}, * n16spec[5] = {NULL};
 
 TH2D * mdispbg = NULL;
 
@@ -60,7 +60,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
       double model = mnbgnorm[j]*abg[j][i]
                    + mnn16norm[j]*an16[j][i]
                    + mnli8norm[j]*ali8[j][i]
-                   + mnhe6norm*mus[j]*ahe6[i]*(j < nrbins-1?teff:gceff);
+                   + mnhe6norm*mus[j]*ahe6[j][i]*(j < nrbins-1?teff:gceff);
       if(model < 0) model = 0;
       double data = asig[j][i];
       if(datahasstarted || data > 0) datahasstarted = true;
@@ -200,19 +200,21 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     t->Draw("e:classi(dx, dy, dz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
   }
   
-  TF1 betahe6("betahe6", "(x+0.511)*sqrt((x+0.511)**2 - 0.511**2) * (3.5076 - x)**2", 0, 3.51);
-  he6spec = new TH1D("he6spec", "", 120, 0, 15);
   for(int j = 0; j < 5; j++){
     n16spec[j] = new TH1D(Form("n16spec%d", j), "", 120, 0, 15);
     li8spec[j] = new TH1D(Form("li8spec%d", j), "", 120, 0, 15);
+    he6spec[j] = new TH1D(Form("he6spec%d", j), "", 120, 0, 15);
   }
-  for(int i = 0; i < 1e8; i++){
-    const double et=betahe6.GetRandom();
-    he6spec->Fill(gRandom->Gaus(et, sqrt(et*pow(0.077, 2)
-                                     +et*et*pow(0.018, 2)
-                                          + pow(0.017, 2)) ));
-  }
-  
+
+
+  TChain he6mc("data");
+  he6mc.Add("/cp/s4/strait/he6mc/*.root");
+  for(int j = 0; j < nrbins; j++)
+    he6mc.Draw(Form("ctEvisID >> he6spec%d", j),
+               Form("classi(bamacorrxy(ctX[0], ctEvisID),"
+                           "bamacorrxy(ctX[1], ctEvisID),"
+                           "bamacorrz (ctX[2], ctEvisID)) == %d", j));
+
   TChain li8mc("data");
   li8mc.Add("/cp/s4/strait/li8mc/*.root");
   for(int j = 0; j < nrbins; j++)
@@ -229,19 +231,19 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
                            "bamacorrxy(ctX[1], ctEvisID),"
                            "bamacorrz (ctX[2], ctEvisID)) == %d", j));
 
-  he6spec->Scale(ehistsig->Integral()/he6spec->Integral());
   for(int j = 0; j < nrbins; j++){
     li8spec[j]->Scale(ehistsig->Integral()/li8spec[j]->Integral());
     n16spec[j]->Scale(ehistsig->Integral()/n16spec[j]->Integral());
+    he6spec[j]->Scale(ehistsig->Integral()/he6spec[j]->Integral());
   }
 
   for(int i = 0; i < 120; i++){
-    ahe6[i] = he6spec->GetBinContent(i+1);
     for(int j = 0; j < nrbins; j++){
       abg[j][i]  =ehistbg ->GetBinContent(j+1, i+1);
       asig[j][i] =ehistsig->GetBinContent(j+1, i+1);
       an16[j][i] = n16spec[j]->GetBinContent(i+1);
       ali8[j][i] = li8spec[j]->GetBinContent(i+1);
+      ahe6[j][i] = he6spec[j]->GetBinContent(i+1);
     }
   }
 
@@ -330,19 +332,17 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   const double captures = 489.509 * 367.;
 
-  const double raw_nhe6 = he6spec->Integral() * he6norm *
-                      ((mus[0] + mus[1] + mus[2] + mus[3])*teff + mus[4]*gceff);
-  const double raw_signhe6up = he6spec->Integral() * he6normerrup *
-                      ((mus[0] + mus[1] + mus[2] + mus[3])*teff + mus[4]*gceff);
-  const double raw_signhe6lo = he6spec->Integral() * he6normerrlo *
-                      ((mus[0] + mus[1] + mus[2] + mus[3])*teff + mus[4]*gceff);
+  double raw_nhe6 = 0, raw_signhe6up = 0, raw_signhe6lo = 0;
+  double cooked_nhe6 = 0, cooked_signhe6up = 0, cooked_signhe6lo = 0;
+  for(int i = 0; i < nrbins; i++){
+    raw_nhe6 += he6spec[i]->Integral() * he6norm * mus[i] * (i < nrbins-1?teff:gceff);
+    raw_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i]*(i<nrbins-1?teff:gceff);
+    raw_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i]*(i<nrbins-1?teff:gceff);
 
-  const double cooked_nhe6 = he6spec->Integral() * he6norm *
-                      (mus[0] + mus[1] + mus[2] + mus[3] + mus[4]);
-  const double cooked_signhe6up = he6spec->Integral() * he6normerrup *
-                      (mus[0] + mus[1] + mus[2] + mus[3] + mus[4]);
-  const double cooked_signhe6lo = he6spec->Integral() * he6normerrlo *
-                      (mus[0] + mus[1] + mus[2] + mus[3] + mus[4]);
+    cooked_nhe6    += he6spec[i]->Integral() * he6norm  * mus[i];
+    cooked_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i];
+    cooked_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i];
+  }
 
   printf("%sefficiency: %f %f%s\n", RED, teff, gceff, CLR);
   printf("%sraw    He-6: %f - %f + %f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
@@ -393,8 +393,8 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     TH1D * ehistbg_p=ehistbg->ProjectionY(Form("ehistbg_%d", j), j, j);
     TH1D * ehistsig_p=ehistsig->ProjectionY(Form("ehistsig_%d", j), j, j);
     TH1D * li8spec_p = (TH1D * )li8spec[j-1]->Clone(Form("li8specp_%d", j));
-    TH1D * he6spec_p = (TH1D * )he6spec->Clone(Form("he6spec_%d", j));
-    TH1D * he6demo   = (TH1D * )he6spec->Clone(Form("he6demo_%d", j));
+    TH1D * he6spec_p = (TH1D * )he6spec[j-1]->Clone(Form("he6specp_%d", j));
+    TH1D * he6demo   = (TH1D * )he6spec[j-1]->Clone(Form("he6demo_%d", j));
     TH1D * n16spec_p = (TH1D * )n16spec[j-1]->Clone(Form("n16specp_%d", j));
 
     const double thiseff = j < nrbins?teff:gceff;
