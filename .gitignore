@@ -6,3 +6,7 @@ b12search
 tmp*
 *.pdf
 microdst
+he6out/*
+li9ntuples/*
+*.o
+fissionsearch

@@ -9,9 +9,6 @@ microdst: microdst.cpp
 fissionsearch: fissionsearch.cpp
 	g++ -O2 -o fissionsearch fissionsearch.cpp `root-config --libs --cflags` -Wall -Wextra
 
-nsearch: nsearch.cpp
-	g++ -O2 -o nsearch nsearch.cpp `root-config --libs --cflags` -Wall -Wextra
-
 b12search.o: b12search.cpp search.h
 	g++ -ffast-math -O3 -c b12search.cpp `root-config --cflags` -Wall -Wextra
 

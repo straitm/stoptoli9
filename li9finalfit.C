@@ -328,8 +328,8 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   TTree tg("t", "t");
   TTree th("t", "t");
-  tg.ReadFile("li9-20141204.Gd.ntuple");
-  th.ReadFile("li9-20141204.H.ntuple");
+  tg.ReadFile("li9nuples/li9-20141204.Gd.ntuple");
+  th.ReadFile("li9nuples/li9-20141204.H.ntuple");
 
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
