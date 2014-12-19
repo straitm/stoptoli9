@@ -203,9 +203,9 @@ void b13finalfit()
   b13->SetNpx(400);
 
   li8->Draw("same");
-//  c15->Draw("same");
-//  n16->Draw("same");
-//  be11->Draw("same");
+//c15->Draw("same");
+//n16->Draw("same");
+//be11->Draw("same");
   b13->Draw("same");
   b12->Draw("same");
 
@@ -219,5 +219,14 @@ void b13finalfit()
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
   if(ninty_1d) ninty_1d->Draw("alf");
+
+  mn->Command("set print -3");
+  for(int i = 0; i < 10; i++){
+    mn->Command(Form("SET PAR 7 %f", i*0.1*3.68e4));
+    mn->Command("FIX 7");
+    mn->Command("MIGRAD");
+    printf("%f: %f\n", i*0.1, mn->fAmin);
+  }
+
   
 }
