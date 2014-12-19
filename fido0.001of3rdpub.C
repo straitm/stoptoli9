@@ -1,0 +1,14 @@
+{
+r->Add("/cp/s4/strait/fido_seq010/fido.0011220.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0018210.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0024484.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0031245.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0032119.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0037030.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0037812.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0049788.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0051147.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0056894.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0058354.root");
+r->Add("/cp/s4/strait/fido_seq010/fido.0058494.root");
+}
