@@ -6,6 +6,7 @@ const int npar = 10;
 const float dist = 300;
 
 const double livetime = 489.509, nstop = 367.;
+const double nreallystop = 4825.528031;
 const double nstoptarg = 139.0;
 
 // bn decay probability multiplied by the number of captures relative
@@ -353,13 +354,13 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   int err;
   mn->mnparm(1 -1, "bg",     1e-4,  5e-6, 0, 0, err);
   mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
-  mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err);
-  mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err);
-  mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err);
+  mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err); // n: yes
+  mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err); // n: yes
+  mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err); // n: yes
   mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
-  mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err);
-  mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err);
-  mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err);
+  mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err); // n: no
+  mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err); // n: no
   mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
 
   mn->Command("set print -10");
@@ -465,17 +466,39 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
       mn->Command(Form("SET PAR %d 0", fix[i]));
       mn->Command(Form("FIX %d", fix[i]));
     }
+    if(neutrons > 0){
+      const unsigned int nfixn = 2;
+      const int fixn[nfixn] = { 8, 9 };
+      for(int i = 0; i < nfixn; i++){
+        mn->Command(Form("SET LIM %d", fixn[i]));
+        mn->Command(Form("SET PAR %d 0", fixn[i]));
+        mn->Command(Form("FIX %d", fixn[i]));
+      }
+    }
     mn->Command("MIGRAD");
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob with everything except He-8 (%.2f): %f %f +%f%s\n",
+    printf("%sLi-9 prob/C-12 capture with everything except He-8 (%.2f): %f %f +%f%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
+    printf("%sLi-9 prob/stop with everything except He-8 (%.2f): %g %g +%g%s\n",
+           RED, mn->fAmin, getpar(mn, 2)*nstop/nreallystop,
+           mn->fErn[2]*nstop/nreallystop, mn->fErp[2]*nstop/nreallystop,
+           CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
+    if(neutrons > 0){
+      const unsigned int nfixn = 2;
+      const int fixn[nfixn] = { 8, 9 };
+      for(int i = 0; i < nfixn; i++){
+        mn->Command(Form("SET LIM %d", fixn[i]));
+        mn->Command(Form("SET PAR %d 0", fixn[i]));
+        mn->Command(Form("FIX %d", fixn[i]));
+      }
+    }
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5 8");
     mn->Command("SHOW min");
@@ -490,7 +513,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   const double maxb13 = getpar(mn, 7) + mn->fErp[7] * sqrt(2.3);
   printf("%s90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
 
-  {
+  if(neutrons < 1){
     setupmn(mn, expectedgdfrac);
     fixat(mn, 8, maxb13);
     mn->Command("MIGRAD");
@@ -500,7 +523,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    //parsaves.push_back(parsave);
+    parsaves.push_back(parsave);
   }
 
   printf("%s", RED);
@@ -575,7 +598,15 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
  
   drawhist(tgsel, thsel, parsaves, 48, 1, 97);
   drawhist(tgsel, thsel, parsaves, 25, 0, 5);
-  drawhist(tgsel, thsel, parsaves, 20, 0, 0.4);
+  drawhist(tgsel, thsel, parsaves, 10, 0.001, 0.501);
+
+  setupmn(mn, expectedgdfrac);
+  for(int i = 0; i < 10; i++){
+    mn->Command(Form("SET PAR 8 %f", i*0.1));
+    mn->Command("FIX 8");
+    mn->Command("MIGRAD");
+    printf("%f: %f\n", i*0.1, mn->fAmin); 
+  }
 
 /*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
