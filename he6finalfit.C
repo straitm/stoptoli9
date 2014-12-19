@@ -122,10 +122,11 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
+    "miche < 12 && dist < %f && timeleft > 100e3 && " // XXX miche > 0.8MeV?
     "b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
-    "&& miche < 12 && dist < %f && timeleft > 100e3", distcut);
+    , distcut);
   char cut[1000];
-  snprintf(cut, 999, "n >= %d && n <= %d && %s", ncutmin, ncutmax, distcut, cutnoncut);
+  snprintf(cut, 999, "latennear >= %d && latennear <= %d && %s", ncutmin, ncutmax, distcut, cutnoncut);
 
   const double distcuteff = (distcut == 400?0.948:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
 
@@ -141,8 +142,8 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
-  teff  = eff * pow(0.64, ncutmin);
-  gceff = eff * pow(0.93, ncutmin);
+  teff  = eff * pow(0.64-0.0726, ncutmin); // must be late
+  gceff = eff * pow(0.93-0.303, ncutmin);  // must be late
 
   const double li8eff = 1
     * 0.981 // subsequent muons
@@ -162,7 +163,8 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   double nfracerr[nrbins];
 
   TH2D tmp("tmp", "", 2, 0, 2, nrbins, 0, nrbins);
-  t->Draw(Form("classi(dx, dy, dz):n>=%d && n <= %d >> tmp", ncutmin, ncutmax), "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
+  t->Draw(Form("classi(dx, dy, dz):latennear>=%d && latennear <= %d >> tmp", ncutmin, ncutmax),
+          "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
   for(int i = 0; i < nrbins; i++){
     double muonswithn = tmp.GetBinContent(2, i+1);
     double allmuons   = tmp.GetBinContent(1, i+1) + muonswithn;
@@ -255,22 +257,22 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   const int li8fpn = nrbins+1+1, n16fpn = 2*nrbins+1+1,
             he6fpn = nrbins+1;
 
-  mn->mnparm(0, "bgtargin",   1, 0.01,  0,  2, err);
-  mn->mnparm(1, "bgtargmid1", 1, 0.01,  0,  2, err);
-  mn->mnparm(2, "bgtargmid2", 1, 0.01,  0,  2, err);
-  mn->mnparm(3, "bgtargout",  1, 0.01,  0,  2, err);
-  mn->mnparm(4, "bggc",       1, 0.01,  0,  0, err);
-  mn->mnparm(5, "he6",        1, 0.001, 0,  1*(ncutmin>2?100:ncutmin>1?10:1), err);
-  mn->mnparm(6, "li8targin",  1, 0.001, 0,  1, err);
-  mn->mnparm(7, "li8targmid1",1, 0.001, 0,  1, err);
-  mn->mnparm(8, "li8targmid2",1, 0.001, 0,  1, err);
-  mn->mnparm(9, "li8targout", 1, 0.001, 0,  1, err);
-  mn->mnparm(10, "li8gc",      1, 0.001, 0,  1, err);
-  mn->mnparm(11, "n16targin",  1, 0.001, 0, 0.1, err);
-  mn->mnparm(12, "n16targmid1",1, 0.001, 0, 0.1, err);
-  mn->mnparm(13, "n16targmid2",1, 0.001, 0, 0.1, err);
-  mn->mnparm(14,"n16targout", 1, 0.001, 0, 0.1, err);
-  mn->mnparm(15,"n16gc",      1, 0.001, 0, 0.1, err);
+  mn->mnparm(0, "bgtargin",    1,     0.03,  0, 0, err);
+  mn->mnparm(1, "bgtargmid1",  1,     0.03,  0, 0, err);
+  mn->mnparm(2, "bgtargmid2",  1,     0.03,  0, 0, err);
+  mn->mnparm(3, "bgtargout",   1,     0.03,  0, 0, err);
+  mn->mnparm(4, "bggc",        1,     0.03,  0, 0, err);
+  mn->mnparm(5, "he6",         1,     0.01,  0, 1*(ncutmin>2?100:ncutmin>1?10:10), err);
+  mn->mnparm(6, "li8targin",   0.003, 0.001, 0, 0.1, err);
+  mn->mnparm(7, "li8targmid1", 0.003, 0.001, 0, 0.1, err);
+  mn->mnparm(8, "li8targmid2", 0.003, 0.001, 0, 0.1, err);
+  mn->mnparm(9, "li8targout",  0.003, 0.001, 0, 0.1, err);
+  mn->mnparm(10, "li8gc",      0.003, 0.001, 0, 0.1, err);
+  mn->mnparm(11, "n16targin",  0.001, 0.001, 0, 0.1, err);
+  mn->mnparm(12, "n16targmid1",0.001, 0.001, 0, 0.1, err);
+  mn->mnparm(13, "n16targmid2",0.001, 0.001, 0, 0.1, err);
+  mn->mnparm(14,"n16targout",  0.001, 0.001, 0, 0.1, err);
+  mn->mnparm(15,"n16gc",           1, 0.001, 0,  1,  err);
   printf("err? %d\n", err);
 
   // Don't float accidentals, Li8 or N16 in regions that we ignore.
@@ -345,25 +347,23 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   }
 
   printf("%sefficiency: %f %f%s\n", RED, teff, gceff, CLR);
-  printf("%sraw    He-6: %f - %f + %f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
-  printf("%scooked He-6: %f - %f + %f%s\n", RED, cooked_nhe6, cooked_signhe6lo, cooked_signhe6up, CLR);
-  printf("%sHe-6 prob: %f - %f + %f%s\n", RED, cooked_nhe6/captures, cooked_signhe6lo/captures, cooked_signhe6up/captures, CLR);
+  printf("%sraw    He-6: %f %f +%f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
+  printf("%scooked He-6: %f %f +%f%s\n", RED, cooked_nhe6, cooked_signhe6lo, cooked_signhe6up, CLR);
+  printf("%sHe-6 prob: %f %f +%f%s\n", RED, cooked_nhe6/captures, cooked_signhe6lo/captures, cooked_signhe6up/captures, CLR);
 
   const double defaultfup = mn->fUp;
   mn->fUp = upforlim;
-  mn->Command(Form("MINOS 10000 %d", he6fpn));
+  //mn->Command(Form("MINOS 10000 %d", he6fpn));
   mn->fUp = defaultfup;
  
-  double he6up90;
-  mn->GetParameter(he6fpn-1, he6norm, dum);
-  mn->mnerrs(he6fpn, he6up90, dum, dum, dum);
+  double he6up90 = mn->fErp[he6fpn-1];
 
   printf("%s 90%% upper limit: %f+%f = %f%s\n", RED, he6norm, he6up90, he6norm+he6up90, CLR);
-  
+
   mn->Command(Form("Fix %d", he6fpn));
 
   const double scan = he6up90 > 0.0001? he6up90: 0.001;
-
+/*
   double sump = 0;
   for(int i =0;i<1000; i++){
     mn->Command(Form("set  par %d %f", he6fpn, i*0.01*scan));
@@ -383,9 +383,10 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     printf("%f\t%g\n", i*0.01*scan, sump2/sump);
     if(sump2>sump*0.9){ printf("%s 90% bays lim: %f (best = %f)%s\n", RED, i*0.01*scan, scan, CLR); break;}
   }
-
   const double he6norm90 = i*0.01*scan;
+*/
 
+  const double he6norm90 = he6up90; // XXX?
   double n90he6 = 0;
   for(int j = 1; j <= nrbins; j++){
     c2->cd(j);
