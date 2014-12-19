@@ -1,2 +1,7 @@
 stoptoli9
 b12search
+*.swp
+*.so
+*.d
+tmp*
+*.pdf

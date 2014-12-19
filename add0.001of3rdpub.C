@@ -1,0 +1,14 @@
+{
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0048734_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0044490_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0040603_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0040240_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0017839_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0036018_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0038719_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0014870_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0034320_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0042726_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0011714_Seq010.root");
+data->Add("/cp/s4/dchooz/cheetah/prod-08-05_p01_v2/reduced.Run0037119_Seq010.root");
+}
