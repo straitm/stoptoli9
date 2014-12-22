@@ -13,9 +13,9 @@
 
 int ncutmin = 0, ncutmax = 100;
 
-double teff = 0, gceff = 0;
-
 const int nrbins = 5;
+
+double teff[nrbins] = {0};
 
 bool rbinson[nrbins] = { true, true, true, true, true };
 
@@ -60,7 +60,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
       double model = mnbgnorm[j]*abg[j][i]
                    + mnn16norm[j]*an16[j][i]
                    + mnli8norm[j]*ali8[j][i]
-                   + mnhe6norm*mus[j]*ahe6[j][i]*(j < nrbins-1?teff:gceff);
+                   + mnhe6norm*mus[j]*ahe6[j][i]*teff[j];
       if(model < 0) model = 0;
       double data = asig[j][i];
       if(datahasstarted || data > 0) datahasstarted = true;
@@ -142,8 +142,12 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
-  teff  = eff * pow(0.64-0.0726, ncutmin); // must be late
-  gceff = eff * pow(0.93-0.303, ncutmin);  // must be late
+  // must cut on late neutrons for these to be valid
+  teff[0] = eff * pow(0.5685, ncutmin);
+  teff[1] = eff * pow(0.6437, ncutmin);
+  teff[2] = eff * pow(0.6634, ncutmin);
+  teff[3] = eff * pow(0.6906, ncutmin);
+  teff[4] = eff * pow(0.90,   ncutmin);
 
   const double li8eff = 1
     * 0.981 // subsequent muons
@@ -337,16 +341,15 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   double raw_nhe6 = 0, raw_signhe6up = 0, raw_signhe6lo = 0;
   double cooked_nhe6 = 0, cooked_signhe6up = 0, cooked_signhe6lo = 0;
   for(int i = 0; i < nrbins; i++){
-    raw_nhe6 += he6spec[i]->Integral() * he6norm * mus[i] * (i < nrbins-1?teff:gceff);
-    raw_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i]*(i<nrbins-1?teff:gceff);
-    raw_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i]*(i<nrbins-1?teff:gceff);
+    raw_nhe6 += he6spec[i]->Integral() * he6norm * mus[i] * teff[i];
+    raw_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i]* teff[i];
+    raw_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i]* teff[i];
 
     cooked_nhe6    += he6spec[i]->Integral() * he6norm  * mus[i];
     cooked_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i];
     cooked_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i];
   }
 
-  printf("%sefficiency: %f %f%s\n", RED, teff, gceff, CLR);
   printf("%sraw    He-6: %f %f +%f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
   printf("%scooked He-6: %f %f +%f%s\n", RED, cooked_nhe6, cooked_signhe6lo, cooked_signhe6up, CLR);
   printf("%sHe-6 prob: %f %f +%f%s\n", RED, cooked_nhe6/captures, cooked_signhe6lo/captures, cooked_signhe6up/captures, CLR);
@@ -398,7 +401,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     TH1D * he6demo   = (TH1D * )he6spec[j-1]->Clone(Form("he6demo_%d", j));
     TH1D * n16spec_p = (TH1D * )n16spec[j-1]->Clone(Form("n16specp_%d", j));
 
-    const double thiseff = j < nrbins?teff:gceff;
+    const double thiseff = teff[j-1];
 
     ehistbg_p->Scale(bgnorm[j-1]);
     n16spec_p->Scale(n16norm[j-1]);
