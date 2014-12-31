@@ -41,6 +41,14 @@ static const double neffsmaller[3] = {0.5685*0.97, 0.6437*0.97, 0.6634*0.97 };
 
 TRandom3 ran;
 
+static const double f13 = 0.0107;
+static const double f13_hi = 0.01147, f13_lo = 0.00963;
+
+// ratio of probability of capture on C-13 / C-12
+static const double caprat = capprob13 / capprob12;
+static const double ferrorp13op12 =
+  sqrt(pow(ferrcapprob13,2)+pow(ferrcapprob12,2));
+
 // Convert between observed B-12 decays and muon captures given
 // some parameters
 double conversion(const bool nominal = false)
@@ -51,12 +59,6 @@ double conversion(const bool nominal = false)
   const double p1212 = 0.18602; // NOM
   const double p1212_hi = 0.1981, p1212_lo = 0.1739;
 
-  // ratio of probability of capture on C-13 / C-12
-  const double caprat = capprob13 / capprob12;
-  const double ferrorp13op12=sqrt(pow(ferrcapprob13,2)+pow(ferrcapprob12,2));
-
-  const double f13 = 0.0107;
-  const double f13_hi = 0.01147, f13_lo = 0.00963;
 
   // my guesses for the 13->13 and 13-12 reactions
   const double p1313 = 0.2, p1312 = 0.5;
@@ -152,8 +154,61 @@ void all(TTree * t, TF1 * ee)
   printfr("Capture rate for both C-12 and C-13:\n"
           "%f +- %f (stat) +- %f (syst) --- +- %f total\n"
           "Total fractional error: %.2f%%\n",
-         caprate, caprate * ferrorfit, caprate * fsyst,
-         caprate * totferr, caprate*totferr/caprate*100);
+         caprate,
+         caprate * ferrorfit,
+         caprate * fsyst,
+         caprate * totferr,
+         totferr*100);
+
+  const double c13capfrac = 
+   f13*capprob13/( f13*capprob13 + (1-f13)*capprob12 );
+  
+  const double c13capfrac_err = 
+   sqrt(pow((f13_hi-f13_lo)/sqrt(12)/f13,2) + pow(ferrorp13op12,2));
+
+  const double fsyst13 = sqrt(pow(fsyst,2)+pow(c13capfrac_err,2));
+  const double totferr13 = sqrt(pow(totferr,2)+pow(c13capfrac_err,2));
+  
+  printfr("\nCapture rate for C-13:\n"
+          "%f +- %f (stat) +- %f (syst) --- +- %f total\n"
+          "Total fractional error: %.2f%%\n",
+          c13capfrac*caprate,
+          c13capfrac*caprate * ferrorfit,
+          c13capfrac*caprate * fsyst13,
+          c13capfrac*caprate * totferr13,
+          totferr13*100);
+
+  const double c12capfrac = 
+   (1-f13)*capprob12/( f13*capprob13 + (1-f13)*capprob12 );
+  
+  const double c12capfrac_err = 
+   ((1-f13_hi)-(1-f13_lo))/sqrt(12)/(1-f13);
+
+  const double fsyst12 = sqrt(pow(fsyst,2)+pow(c12capfrac_err,2));
+  const double totferr12 = sqrt(pow(totferr,2)+pow(c12capfrac_err,2));
+  
+  printfr("\nCapture rate for C-12:\n"
+          "%f +- %f (stat) +- %f (syst) --- +- %f total\n"
+          "Total fractional error: %.2f%%\n",
+          c12capfrac*caprate,
+          c12capfrac*caprate * ferrorfit,
+          c12capfrac*caprate * fsyst12,
+          c12capfrac*caprate * totferr12,
+          totferr12*100);
+
+
+  const double capprob = capprob12*(1-f13) + capprob13*f13;
+  const double fsystmu = sqrt(pow(fsyst,2)+pow(ferrcapprob12,2));
+  const double totferrmu = sqrt(pow(ferrorfit,2)+pow(fsystmu,2));
+
+  printfr("Mu- stop rate:\n"
+          "%f +- %f (stat) +- %f (syst) --- +- %f total\n"
+          "Total fractional error: %.2f%%\n",
+         caprate/capprob,
+         caprate/capprob * ferrorfit,
+         caprate/capprob * fsystmu,
+         caprate/capprob * totferrmu,
+         totferrmu*100);
 }
 
 void targ(const int nn, TTree * t, TF1 * ee)
