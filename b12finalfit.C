@@ -3,7 +3,10 @@
 #include "TF1.h"
 #include "TH1.h"
 #include "TROOT.h"
+#include "TRandom3.h"
 #include <stdio.h>
+#include <vector>
+using std::vector;
 
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR      = "\033[m"    ; // clear
@@ -17,28 +20,30 @@ static void printfr(const char * const msg, ...)
   printf(CLR);
 }
 
-double eff = 0.82  // B-12 energy cut
-           * 0.977 // previous muons
-           * 0.962 // subsequent muons
-           * 0.9709; // time until end of run
-double ferrorecut = 0.01;
-double livedays = 489.509;
+static const double energyeff = 0.83;  // B-12 energy cut
+static const double othereff = 0.977 // previous muons
+                             * 0.962 // subsequent muons
+                             * 0.9709; // time until end of run
+static const double errorecut = 0.02;
+static const double eff = othereff * energyeff;
+static const double ferr_energy = errorecut/energyeff;
+static const double livedays = 489.509;
 
-double capprob12 = (37.9/(37.9 + 1/2197e-6));
-double ferrcapprob12 = 5./379.;
+static const double capprob12 = (37.9/(37.9 + 1/2197e-6));
+static const double ferrcapprob12 = 5./379.;
 
-double capprob13 = (35.0/(35.0 + 1/2197e-6));
-double ferrcapprob13 = 2./35.0;
+static const double capprob13 = (35.0/(35.0 + 1/2197e-6));
+static const double ferrcapprob13 = 2./35.0;
 
-double nefftarg = 0.63*0.97;
+static const double nefftarg = 0.63*0.97;
 // innermost first
-double neffsmaller[3] = {0.5685*0.97, 0.6437*0.97, 0.6634*0.97 };
+static const double neffsmaller[3] = {0.5685*0.97, 0.6437*0.97, 0.6634*0.97 };
+
+TRandom3 ran;
 
 // Convert between observed B-12 decays and muon captures given
 // some parameters
-double conversion(const bool isef13hi, const bool isp1212hi,
-                  const bool isp1313hi, const bool isp1312hi,
-                  const bool nomoverride = false)
+double conversion(const bool nominal = false)
 {
   const double e0 = 0.99983;
   const double e1 = 0.8162*0.97;
@@ -53,39 +58,54 @@ double conversion(const bool isef13hi, const bool isp1212hi,
   const double f13 = 0.0107;
   const double f13_hi = 0.01147, f13_lo = 0.00963;
 
-  // the gaussianized f13 error
-  const double gf13err = (f13_hi-f13_lo)/sqrt(12);
-
-  // the gaussian f13 error added in quadrature with the capture ratio
-  // error to produce the "effective f13 fraction error"
-  const double gef13err = sqrt(pow(gf13err,2) + pow(ferrorp13op12*f13,2));
-  const double ef13 = f13 * caprat; // NOM
-
-  // converted to a range.
-  const double ef13_hi = ef13 + sqrt(12)/2 * gef13err,
-               ef13_lo = ef13 - sqrt(12)/2 * gef13err;
-
   // my guesses for the 13->13 and 13-12 reactions
   const double p1313 = 0.2, p1312 = 0.5;
   const double p1313_lo = 0.1, p1313_hi = 0.3;
   const double p1312_lo = 0.3, p1312_hi = 0.7;
 
-  double ef13_now = isef13hi?ef13_hi:ef13_lo;
-  double p1212_now = isp1212hi?p1212_hi:p1212_lo;
-  double p1313_now = isp1313hi?p1313_hi:p1313_lo;
-  double p1312_now = isp1312hi?p1312_hi:p1312_lo;
+  double caprat_now = caprat + ran.Gaus(0, ferrorp13op12*caprat);
+  if(caprat_now < 0) caprat_now = 0;
+  double f13_now   = ran.Rndm()*(ran.Rndm() > 0.5?
+                                (f13_hi - f13   ) + f13:
+                                (f13    - f13_lo) + f13_lo);
+  double p1212_now = ran.Rndm()*(p1212_hi-p1212_lo) + p1212_lo;
+  double p1313_now = ran.Rndm()*(p1313_hi-p1212_lo) + p1313_lo;
+  double p1312_now = ran.Rndm()*(p1312_hi-p1312_lo) + p1312_lo;
 
-  if(nomoverride){
-    ef13_now = ef13;
+  // If nominal, throw all that out and set to nominal values.
+  // (const-correct, what's that?)
+  if(nominal){
+    f13_now = f13;
+    caprat_now = caprat;
     p1212_now = p1212;
     p1313_now = p1313;
     p1312_now = p1312;
   }
 
-  const double dem = (1-ef13_now)*p1212_now*e0
-                   +   ef13_now  *p1313_now*e0
-                   +   ef13_now  *p1312_now*(1-e1);
+  const double dem = (1-caprat_now*f13_now)*p1212_now*e0
+                   +   caprat_now*f13_now  *p1313_now*e0
+                   +   caprat_now*f13_now  *p1312_now*(1-e1);
   return 1/dem;
+}
+
+static double mean(const vector<double> & vals)
+{
+  if(vals.empty()) return 0;
+  double tot = 0;
+  for(unsigned int i = 0; i < vals.size(); i++) tot += vals[i];
+  return tot/vals.size();
+}
+
+static double rms(const vector<double> & vals)
+{
+  if(vals.empty()) return 0;
+
+  const double m = mean(vals);
+  double sum = 0;
+  for(unsigned int i = 0; i < vals.size(); i++)
+    sum += pow(vals[i] - m,2);
+  return sqrt(sum / vals.size());
+  
 }
 
 // Find the fractional systematic error associated with the uncertainties
@@ -93,22 +113,20 @@ double conversion(const bool isef13hi, const bool isp1212hi,
 // probability of C-13 -> B-12
 static double fsysterr()
 {
-  double min = 1e38, max = 0;
-  for(int i = 0; i < 0x10; i++){
-    const double val = conversion(i & 0x01, i & 0x02, i & 0x04, i & 0x08);
-    if(val > max) max = val;
-    if(val < min) min = val;
-  }
+  vector<double> vals;
+  for(int i = 0; i < 10000; i++) vals.push_back(conversion(false));
+  rms(vals);
 
-  const double range = max - min;
-  return range/sqrt(12)/conversion(0,0,0,0,1);
+  return rms(vals)/conversion(true);
 }
+
+const int nbin = 1000;
  
 void all(TTree * t, TF1 * ee)
 {
-  t->Draw("dt/1000 - 2.028e-6 >> h(1000, 0.001, 100)",
+  t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
           "latennear == 0 && timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 14.5 && !earlymich", "e");
+          "e > 4 && e < 15 && !earlymich", "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "li");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
@@ -117,38 +135,35 @@ void all(TTree * t, TF1 * ee)
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
 
-  double ferror = sqrt(pow(ferrorfit, 2) + pow(ferrorecut, 2));
   printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
 
   const double integral_pd_oec = rawintegral/livedays/eff;
   printf("b12 raw per day with overall eff corrected\n\t%f +- %f\n",
          integral_pd_oec, ferrorfit * integral_pd_oec);
 
-  const double fsyst = fsysterr();
+  const double fsyst = sqrt(pow(fsysterr(),2) + pow(ferr_energy,2));
   printf("fractional stat err from fit: %f\n", ferrorfit);
   printf("fractional systematic error:  %f\n", fsyst);
 
   const double totferr = sqrt(pow(ferrorfit,2)+pow(fsyst,2));
 
-  const double caprate = integral_pd_oec * conversion(0,0,0,0,1);
+  const double caprate = integral_pd_oec * conversion(true);
 
-  printfr("Capture rate: %f +- %f (stat) +- %f (syst)\n+- %f total\n",
+  printfr("Capture rate for both C-12 and C-13:\n"
+          "%f +- %f (stat) +- %f (syst) --- +- %f total\n"
+          "Total fractional error: %.2f%%\n",
          caprate, caprate * ferrorfit, caprate * fsyst,
-         caprate * totferr);
-
-  // Haven't yet put in efficiency errors
-
-        
+         caprate * totferr, caprate*totferr/caprate*100);
 }
 
 void targ(const int nn, TTree * t, TF1 * ee)
 {
   printf("\nIn the target only:\n");
-  t->Draw("dt/1000 - 2.028e-6 >> h(10000, 0.001, 100)",
+  t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
           Form("latennear == %d && dx**2 + dy**2 < 1150**2 && "
           "abs(dz) < 1229+0.03*(1150-sqrt(dx**2+dy**2)) &&"
           "timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 14.5 && !earlymich", nn), "e");
+          "e > 4 && e < 15 && !earlymich", nn), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "l");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
@@ -157,7 +172,6 @@ void targ(const int nn, TTree * t, TF1 * ee)
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
 
-  double ferror = sqrt(pow(ferrorfit, 2) + pow(ferrorecut, 2));
   printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
 }
 
@@ -165,10 +179,10 @@ void innertarg(const int nn, TTree * t, TF1 * ee, const double limr,
                const double limz)
 {
   printf("\nIn the inner %.1fx%.1f target only:\n", limr, limz);
-  t->Draw(Form("dt/1000 - 2.028e-6 >> h%.0f(10000, 0.001, 100)", limr),
+  t->Draw(Form("dt/1000 - 2.028e-6 >> h%.0f(%d, 0.001, 100)", limr, nbin),
           Form("latennear == %d && dx**2 + dy**2 < %f**2 && "
           "abs(dz) < %f &&  timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 14.5 && !earlymich", nn, limr, limz), "e");
+          "e > 4 && e < 15 && !earlymich", nn, limr, limz), "e");
   TH1D * h = (TH1D*)gROOT->FindObject(Form("h%.0f", limr));
   h->Fit("ee", "l");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
@@ -177,7 +191,6 @@ void innertarg(const int nn, TTree * t, TF1 * ee, const double limr,
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
 
-  double ferror = sqrt(pow(ferrorfit, 2) + pow(ferrorecut, 2));
   printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
 }
 
@@ -192,17 +205,17 @@ void b12finalfit()
      "[4]*exp(-x*log(2)/[5]) + "
      "[6]*exp(-x*log(2)/[7]) + "
      "[8]", 0, 100);
-  ee->SetParLimits(1, 0, 100);
+  ee->SetParLimits(1, 0, 1e5/nbin);
 
-  ee->SetParLimits(2, 0, 300);
+  ee->SetParLimits(2, 0, 3e5/nbin);
   ee->SetParameter(3, 7.13);
   ee->SetParLimits(3, 1.5, 10);
 
-  ee->SetParLimits(4, 0, 300);
+  ee->SetParLimits(4, 0, 3e5/nbin);
   ee->SetParameter(5, 15);
   ee->SetParLimits(5, 10, 20);
 
-  ee->SetParLimits(6, 0, 300);
+  ee->SetParLimits(6, 0, 3e5/nbin);
   ee->SetParameter(7, 0.2);
   ee->SetParLimits(7, 0.05, 0.4);
   ee->FixParameter(6, 0);
