@@ -7,8 +7,12 @@
 #include "TTree.h"
 #include "TCanvas.h"
 #include "TMinuit.h"
+#include "TGaxis.h"
 #include <string>
 
+const double Ccaptures = 356*489.509;
+const double Ocaptures = 7.1*489.509;
+ 
 static const int nbins = 10000;
 static double lowtime = 0.001;
 static double hightime = 300;
@@ -18,7 +22,7 @@ static double sig[nbins] = {0};
 static double b12life = 0.0202/log(2.), // +- 0.00002 (0.02ms) (0.1%)
               li8life = 0.8399/log(2.), // +- 0.0009 (0.9ms) (0.1%)
               c15life = 2.449 /log(2.), // +- 0.005 (0.2%)
-              n16life = 7.13  /log(2.), // +- 0.02 (0.3%) 
+              n16life = 7.13  /log(2.), // +- 0.02 (0.3%
               be11life=13.81  /log(2.); // +- 0.08 (0.6%)
 
 static const double n16eff = 1
@@ -29,7 +33,7 @@ static const double n16eff = 1
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.959 // b12
 ;
 
 static const double be11eff = 1
@@ -40,7 +44,7 @@ static const double be11eff = 1
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.959 // b12
 ;
 
 static const double c15eff = 1
@@ -51,7 +55,7 @@ static const double c15eff = 1
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.959 // b12
 ;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
@@ -78,14 +82,18 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   like *= 2;
 
-  //like += pow((n16 - n16eff*410./n16life)/(n16eff*100./n16life),2);
-
+  // pull term for N-16, which is already measured by other people to be
+  // 11+-1%. I take this to be 10.7+-1, where I recompute the central
+  // value from Measday table 5.13, Kane column, but take Measday's 1%
+  // error rather than the ~0.5% that Kane's errors sume to since he
+  // probably knows better than me how much to trust Kane's errors.
+  like += pow((n16 - n16eff*Ocaptures*0.107/n16life)/(n16eff*Ocaptures*0.035/n16life),2);
 }
 
 static void scalemarker(TMarker * m)
 {
-  const double newx = m->GetX() * c15life/c15eff;
-  const double newy = m->GetY() * be11life/be11eff;
+  const double newx = m->GetX() * c15life/c15eff / Ocaptures * 100;
+  const double newy = m->GetY() * be11life/be11eff / Ccaptures * 100;
   m->SetX(newx);
   m->SetY(newy);
 }
@@ -93,8 +101,8 @@ static void scalemarker(TMarker * m)
 static void scalegraph(TGraph * g)
 {
   for(int i = 0; i < g->GetN(); i++){
-    const double newx = g->GetX()[i] * c15life/c15eff;
-    const double newy = g->GetY()[i] * be11life/be11eff;
+    const double newx = g->GetX()[i] * c15life/c15eff / Ocaptures * 100;
+    const double newy = g->GetY()[i] * be11life/be11eff / Ccaptures * 100;
     g->SetPoint(i, newx, newy);
   }
 }
@@ -112,17 +120,14 @@ void n16finalfit()
   const char * const RED = "\033[31;1m"; // bold red
   const char * const CLR = "\033[m"    ; // clear
 
-  const char * const scutwoe = "!earlymich && nnear == 0 && miche < 12 "
+  const char * const scutwoe = "!earlymich && latennear == 0 && miche < 12 "
     "&& dist < 200 && ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 ";
 
   const char * const cute = "e > 4 && e < 10";
 
-  const char * const cutb12 = "b12like < 0.4";
+  const char * const cutb12 = "b12like < 0.06";
 
   const string scut = Form("%s && %s && %s", scutwoe, cutb12, cute);
-
-  const char * xscut = string(Form("%s && dt > 4e3 && dt < 20e3 && %s && %s",
-                                   scutwoe, cute, cutb12)).c_str();
 
   printf("Drawing...\n");
   t->Draw(Form("dt/1000 >> hfit(%d, %f, %f)", nbins, lowtime, hightime),
@@ -130,8 +135,7 @@ void n16finalfit()
   TH1D * hfit = (TH1D*)gROOT->FindObject("hfit");
 
   printf("Drawing...\n");
-  t->Draw(Form("dt/1000 >> hdisp(%d, %f, %f)", 149, 2., hightime),
-          scut.c_str(), "e");
+  t->Draw("dt/1000 >> hdisp(25, 3, 103)", scut.c_str(), "e");
   TH1D * hdisp = (TH1D*)gROOT->FindObject("hdisp");
 
   for(int i = 0; i < nbins; i++) sig[i] = hfit->GetBinContent(i+1);
@@ -145,9 +149,38 @@ void n16finalfit()
   mn->mnparm(2 -1, "b12",     4e5, 1, 0, 1e6, err);
   mn->mnparm(3 -1, "li8",   200, 0.1, 0, 1000, err);
   mn->mnparm(4 -1, "c15",   1, 0.01, 0, 1000, err);
-  mn->mnparm(5 -1, "n16",   1, 0.01, 0, 100, err);
+  mn->mnparm(5 -1, "n16",   1, 0.01, 0, 0, err);
   mn->mnparm(6 -1, "be11",  1, 0.01, 0, 1000, err);
 
+  mn->Command("SET PAR 6 0");
+  mn->Command("SET PAR 4 0");
+  mn->Command("FIX 6");
+  mn->Command("FIX 4");
+
+  mn->Command("MIGRAD");
+
+  TF1 * eep = new TF1("eep", Form(
+    " [0]"
+    "+[1]*exp(-x/%f)"
+    "+[2]*exp(-x/%f)"
+    "+[3]*exp(-x/%f)"
+    "+[4]*exp(-x/%f)"
+    "+[5]*exp(-x/%f)", b12life, li8life, c15life, n16life, be11life),
+    0, hightime);
+  eep->SetNpx(200);
+
+  double val[6];
+
+  for(int i = 0; i < 6; i++){
+    double derr;
+    mn->GetParameter(i, val[i], derr);
+    eep->SetParameter(i, val[i]*hdisp->GetBinWidth(1));
+  }
+  //eep->SetParameter(0, 0);
+  eep->Draw("same");
+
+  mn->Command("REL 4");
+  mn->Command("REL 6");
   mn->Command("MIGRAD");
 
   TF1 * ee = new TF1("ee", Form(
@@ -160,18 +193,16 @@ void n16finalfit()
     0, hightime);
   ee->SetNpx(200);
 
-  double val[6];
-
   for(int i = 0; i < 6; i++){
-    double err;
-    mn->GetParameter(i, val[i], err);
+    double derr;
+    mn->GetParameter(i, val[i], derr);
     ee->SetParameter(i, val[i]*hdisp->GetBinWidth(1));
   }
 
-  for(int i = 1; i <= hdisp->GetNbinsX(); i++)
-    hdisp->SetBinContent(i, hdisp->GetBinContent(i) - ee->GetParameter(0));
+  //for(int i = 1; i <= hdisp->GetNbinsX(); i++)
+    //hdisp->SetBinContent(i, hdisp->GetBinContent(i) - ee->GetParameter(0));
 
-  ee->SetParameter(0, 0);
+  //ee->SetParameter(0, 0);
   ee->Draw("same");
 
   TF1* b12= new TF1("b12", Form("[0]*exp(-x/%f)", b12life), 0, hightime);
@@ -191,32 +222,35 @@ void n16finalfit()
   be11->SetNpx(400);
   li8->SetNpx(400);
 
-  li8->Draw("same");
-  c15->Draw("same");
-  n16->Draw("same");
-  be11->Draw("same");
+  b12->SetLineStyle(kDashed);
+  n16->SetLineStyle(kDashed);
+  be11->SetLineStyle(kDashed);
+  li8->SetLineStyle(kDashed);
 
-  const double Ccaptures = 367*489.509;
-  const double Ocaptures = 7.6*489.509;
- 
+  li8->Draw("same");
+  //c15->Draw("same");
+  n16->Draw("same");
+  //be11->Draw("same");
+
+return;
+
   gMinuit->Command("set print 0");
 
   TMarker * best = new TMarker(val[3], val[5], kStar);
   scalemarker(best);
 
-
-  gMinuit->fUp = 1.; // 68% contour in 1D
+  gMinuit->fUp = 2.296; // 68% contour in 2D
   gMinuit->Command("mncont 4 6 100");
-  TGraph * onesigma_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
-  scalegraph(onesigma_1d);
+  TGraph * onesigma_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
+  scalegraph(onesigma_2d);
 
   double be11min = 10000, be11max = 0, c15min = 10000, c15max = 0;
-  for(int i = 0; i < onesigma_1d->GetN(); i++){
-    if(onesigma_1d->GetY()[i] > be11max) be11max=onesigma_1d->GetY()[i];
-    if(onesigma_1d->GetX()[i] > c15max)  c15max =onesigma_1d->GetX()[i];
+  for(int i = 0; i < onesigma_2d->GetN(); i++){
+    if(onesigma_2d->GetY()[i] > be11max) be11max=onesigma_2d->GetY()[i];
+    if(onesigma_2d->GetX()[i] > c15max)  c15max =onesigma_2d->GetX()[i];
 
-    if(onesigma_1d->GetY()[i] < be11min) be11min=onesigma_1d->GetY()[i];
-    if(onesigma_1d->GetX()[i] < c15min)  c15min =onesigma_1d->GetX()[i];
+    if(onesigma_2d->GetY()[i] < be11min) be11min=onesigma_2d->GetY()[i];
+    if(onesigma_2d->GetX()[i] < c15min)  c15min =onesigma_2d->GetX()[i];
   }
 
   printf("%sBe-11 68%% CL events: %.3lf-%.3lf %s\n",
@@ -229,7 +263,7 @@ void n16finalfit()
   printf("%sC-15 68%% CL upper limit prob: %.3lg-%.3lg %s\n",
          RED, c15min/Ocaptures, c15max/Ocaptures, CLR);
 
-  gMinuit->fUp = 2.3; // 90% in 1D
+  gMinuit->fUp = 2.71; // 90% in 1D
   gMinuit->Command("mncont 4 6 100");
   TGraph * ninty_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
   scalegraph(ninty_1d);
@@ -248,35 +282,22 @@ void n16finalfit()
   printf("%sC-15 90%% CL upper limit prob: %.3lg %s\n",
          RED, c15lim/Ocaptures, CLR);
 
-  TF1 *  fc15lim = (TF1*) c15->Clone( "fc15lim");
-  TF1 * fbe11lim = (TF1*)be11->Clone("fbe11lim");
-
-  fc15lim ->SetParameter(0,  c15lim /  c15life* c15eff * hdisp->GetBinWidth(1));
-  fbe11lim->SetParameter(0, be11lim / be11life*be11eff * hdisp->GetBinWidth(1));
-
-  fc15lim->SetLineStyle(kDashed);
-  fbe11lim->SetLineStyle(kDashed);
-
-  fc15lim->Draw("same");
-  fbe11lim->Draw("same");
-
   TCanvas * c2 = new TCanvas("c2", "c2", 1000, 1000);
 
-  gMinuit->fUp = 4.61; // 90% CL contour in 2D
+  gMinuit->fUp = 4.6051; // 90% CL contour in 2D
   gMinuit->Command("mncont 4 6 100");
   TGraph * ninty_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
   scalegraph(ninty_2d);
 
-/*  gMinuit->fUp = 11.83; // 99.73% contour in 2D
-  gMinuit->Command("mncont 4 6 100");
-  TGraph * ninty983_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
-  scalegraph(ninty983_2d); */
-
-  ninty_2d->GetXaxis()->SetTitle("N C-15");
-  ninty_2d->GetYaxis()->SetTitle("N Be-11");
+  ninty_2d->GetXaxis()->SetTitle("Probability of ^{15}C (%)");
+  ninty_2d->GetYaxis()->SetTitle("Probability of ^{11}Be (%)");
+  ninty_2d->GetXaxis()->CenterTitle();
+  ninty_2d->GetYaxis()->CenterTitle();
+  ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
+  ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   ninty_2d->Draw("al");
-  ninty_1d->Draw("l");
-  onesigma_1d->Draw("l");
+  //ninty_1d->Draw("l");
+  onesigma_2d->Draw("l");
   best->Draw();
   printf("best fit marker at %f %f\n", best->GetX(), best->GetY());
 }
