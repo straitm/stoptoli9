@@ -827,6 +827,7 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
     * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
     * const qdiffbr    = chtree->GetBranch("qdiff"),
     * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
+    * const ctqbr      = chtree->GetBranch("ctq"),
     * const trgtimebr  = chtree->GetBranch("trgtime");
 
   const double mindtmu      = 1e6;//dt to look for prev neutrons/veto
@@ -855,6 +856,11 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
                   bits.ctrmsts, bits.qdiff)) continue;
 
     ctEvisIDbr->GetEntry(i);
+    if(bits.ctEvisID == 0){
+      ctqbr->GetEntry(i);
+      bits.ctEvisID = bits.ctq/34e3;
+    }
+
     // right energy for a neutron capture
     if(!isnenergy(bits.ctEvisID)) continue;
 
@@ -917,12 +923,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endybr     = chtree->GetBranch("fido_endy"),
     * const fido_endzbr     = chtree->GetBranch("fido_endz"),
     * const ctEvisIDbr      = chtree->GetBranch("ctEvisID"),
+    * const ctqbr           = chtree->GetBranch("ctq"),
     * const trgtimebr       = chtree->GetBranch("trgtime");
   
   double deadtime = 0, nondeadenergy = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
     trgtimebr->GetEntry(i);
     ctEvisIDbr->GetEntry(i);
+    if(bits.ctEvisID == 0){
+      ctqbr->GetEntry(i);
+      bits.ctEvisID = bits.ctq/34e3;
+    }
     if(bits.trgtime-mutime < 6000) continue;
     deadtime = bits.trgtime-mutime;
     nondeadenergy = bits.ctEvisID;
@@ -952,6 +963,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // count by accident.  
     if(dt < 5500 && !bits.coinov){
       ctEvisIDbr->GetEntry(i);
+      if(bits.ctEvisID == 0){
+        ctqbr->GetEntry(i);
+        bits.ctEvisID = bits.ctq/34e3;
+        static int count = 0;
+        if(count++ < 10)
+          fprintf(stderr, "Used ctq instead of zero ctEvisID\n");
+      }
       ctXbr->GetEntry(i);
       if(bits.ctEvisID > michele){
         michele = bits.ctEvisID, michelt = dt;
@@ -990,6 +1008,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                   bits.ctrmsts, bits.qdiff)) continue;
 
     ctEvisIDbr->GetEntry(i);
+    if(bits.ctEvisID == 0){
+      ctqbr->GetEntry(i);
+      bits.ctEvisID = bits.ctq/34e3;
+    }
     // right energy for a neutron capture
     if(!isnenergy(bits.ctEvisID)) continue;
 
@@ -1077,6 +1099,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     ctEvisIDbr->GetEntry(i);
+    if(bits.ctEvisID == 0){
+      ctqbr->GetEntry(i);
+      bits.ctEvisID = bits.ctq/34e3;
+    }
 
     // Ignore low energy accidentals and H-neutrons
     if(bits.ctEvisID < minenergy) goto end;
@@ -1148,6 +1174,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     fido_qivbr->GetEntry(i);
     fido_didfitbr->GetEntry(i);
     ctEvisIDbr->GetEntry(i);
+    if(bits.ctEvisID == 0){
+      ctqbr->GetEntry(i);
+      bits.ctEvisID = bits.ctq/34e3;
+    }
 
     if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
