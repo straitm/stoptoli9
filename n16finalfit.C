@@ -11,7 +11,7 @@
 #include <string>
 
 const double Ccaptures = 356*489.509;
-const double Ocaptures = 7.1*489.509;
+const double Ocaptures = (1.1+6.2+0.1+2.1)*489.509;
  
 static const int nbins = 10000;
 static double lowtime = 0.001;
@@ -135,7 +135,7 @@ void n16finalfit()
   TH1D * hfit = (TH1D*)gROOT->FindObject("hfit");
 
   printf("Drawing...\n");
-  t->Draw("dt/1000 >> hdisp(25, 3, 103)", scut.c_str(), "e");
+  t->Draw("dt/1000 >> hdisp(50, 3, 203)", scut.c_str(), "e");
   TH1D * hdisp = (TH1D*)gROOT->FindObject("hdisp");
 
   for(int i = 0; i < nbins; i++) sig[i] = hfit->GetBinContent(i+1);
@@ -231,8 +231,6 @@ void n16finalfit()
   //c15->Draw("same");
   n16->Draw("same");
   //be11->Draw("same");
-
-return;
 
   gMinuit->Command("set print 0");
 
