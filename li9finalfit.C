@@ -6,6 +6,7 @@ const int npar = 10;
 const float dist = 300;
 
 const double livetime = 489.509, n_c12cap = 356., n_c13cap=3.54;
+const double n_o16cap = 8.3; // after all acrylic efficiencies
 const double nstop = 4.63e3;
 const double nstoptarg = 139.0;
 
@@ -13,10 +14,10 @@ const double nstoptarg = 139.0;
 // to C-12
 const double li9ebn = 0.5080,
              he8ebn = 0.1600,
-             c16ebn = 0.99  * 88.0/102.5*0.00243*7.0/n_c12cap,
-             n17ebn = 0.951 * 88.0/102.5*0.00243*7.0/n_c12cap,
-             b13ebn = 0.0029 * 3.7/n_c12cap,
-             li11ebn = 0.789 * 3.7/n_c12cap;
+             c16ebn = 0.99  * 88.0/102.5*0.00243*n_o16cap/n_c12cap,
+             n17ebn = 0.951 * 88.0/102.5*0.00243*n_o16cap/n_c12cap,
+             b13ebn = 0.0029 * n_c13cap/n_c12cap,
+             li11ebn = 0.789 * n_c13cap/n_c12cap;
              
 const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
                            dist == 200?0.565:dist==159?0.376:100000);
