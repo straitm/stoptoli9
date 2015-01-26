@@ -6,7 +6,7 @@ const int npar = 10;
 const float dist = 300;
 
 const double livetime = 489.509, n_c12cap = 356., n_c13cap=3.54;
-const double n_o16cap = 8.3; // after all acrylic efficiencies
+const double n_o16cap = 8.4; // after all acrylic efficiencies
 const double nstop = 4.63e3;
 const double nstoptarg = 139.0;
 
