@@ -5,24 +5,24 @@ const int npar = 10;
 
 const float dist = 300;
 
-const double livetime = 489.509, nstop = 367.;
-const double nreallystop = 4825.528031;
+const double livetime = 489.509, n_c12cap = 356., n_c13cap=3.54;
+const double nstop = 4.63e3;
 const double nstoptarg = 139.0;
 
 // bn decay probability multiplied by the number of captures relative
 // to C-12
 const double li9ebn = 0.5080,
              he8ebn = 0.1600,
-             c16ebn = 0.99  * 88.0/102.5*0.00243*7.0/nstop,
-             n17ebn = 0.951 * 88.0/102.5*0.00243*7.0/nstop,
-             b13ebn = 0.0029 * 3.7/nstop,
-             li11ebn = 0.789 * 3.7/nstop;
+             c16ebn = 0.99  * 88.0/102.5*0.00243*7.0/n_c12cap,
+             n17ebn = 0.951 * 88.0/102.5*0.00243*7.0/n_c12cap,
+             b13ebn = 0.0029 * 3.7/n_c12cap,
+             li11ebn = 0.789 * 3.7/n_c12cap;
              
 const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
                            dist == 200?0.565:dist==159?0.376:100000);
 
 // 100s begin-of-run requirement taken into account here
-const double denominator = 0.9709*livetime*nstop*distcuteff;
+const double denominator = 0.9709*livetime*n_c12cap*distcuteff;
 
 const double gdcapfrac = 0.871;
 
@@ -50,7 +50,7 @@ const double Heff_sans_prompt_or_mun =
 
 
 // But not the actual gd fraction because of geometrical effects
-const double expectedgdfrac = gdcapfrac*nstoptarg/nstop;
+const double expectedgdfrac = gdcapfrac*nstoptarg/n_c12cap;
 
 
 int whichh = 0;
@@ -147,14 +147,13 @@ void contour(TMinuit * mn, const int par1, const int par2,
 
   const int oldprintlevel = mn->fISW[4];
   mn->Command("Set print 0");
-  //mn->Command("Set strategy 2");
 
-  mn->fUp = 1.0; // 68% in 1D
+  mn->fUp = 2.3; // 68% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
-  TGraph * sigma_1d =
+  TGraph * sigma_2d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
-  mn->fUp = 2.3; // 90% in 1D
+  mn->fUp = 2.61; // 90% in 1D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * ninty_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
@@ -176,7 +175,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
   if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
-  if(sigma_1d) sigma_1d->SetLineColor(kBlack), sigma_1d->Draw("l");
+  if(sigma_2d) sigma_2d->SetLineColor(kBlack), sigma_2d->Draw("l");
 /*  mn->fUp = 11.83; // 99.73% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * threesigma_2d =
@@ -312,9 +311,9 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   // 
   // Neutron efficiencies are assuming any within the Michel window
   // are rejected.
-  Geff=(neutrons > 0?pow(0.97*(0.64-0.0726), neutrons):1)*0.996
+  Geff=(neutrons > 0?pow(0.97*0.63, neutrons):1)*0.996
         *Geff_sans_prompt_or_mun,
-  Heff=(neutrons > 0?pow(0.97*(0.93-0.0303), neutrons):1)*0.993
+  Heff=(neutrons > 0?pow(0.97*0.90, neutrons):1)*0.993
         *Heff_sans_prompt_or_mun;
 
   ///////////////////////////////////////////////////////////////////
@@ -322,14 +321,14 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   char cut[1000];
   snprintf(cut, 999, "%sdist < %f && miche < 12 && !earlymich && "
                      "prompttime > 100e9 && dt < 100e3",
-           dist, neutrons >= 0?Form("nlate==%d&&", neutrons):" ");
+           neutrons >= 0?Form("nlate==%d&&", neutrons):"", dist);
 
   ////////////////////////////////////////////////////////////////////
 
   TTree tg("t", "t");
   TTree th("t", "t");
-  tg.ReadFile("li9nuples/li9-20141204.Gd.ntuple");
-  th.ReadFile("li9nuples/li9-20141204.H.ntuple");
+  tg.ReadFile("li9ntuples/li9-20141204.Gd.ntuple");
+  th.ReadFile("li9ntuples/li9-20141204.H.ntuple");
 
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
@@ -479,11 +478,23 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob/C-12 capture with everything except He-8 (%.2f): %f %f +%f%s\n",
+    printf("%sLi-9 prob/C-12 capture with everything except "
+           "He-8 (%.2f): %f %f +%f%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
+    printf("%sLi-9 prob/C-13 capture with everything except "
+           "He-8 (%.2f): %f %f +%f%s\n",
+           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/n_c13cap,
+           mn->fErn[2]*n_c12cap/n_c13cap, mn->fErp[2]*n_c12cap/n_c13cap,
+           CLR);
+    printf("%sLi-9 prob/C-nat capture with everything except "
+           "He-8 (%.2f): %f %f +%f%s\n",
+           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/(n_c12cap+n_c13cap),
+           mn->fErn[2]*n_c12cap/(n_c12cap+n_c13cap),
+           mn->fErp[2]*n_c12cap/(n_c12cap+n_c13cap),
+           CLR);
     printf("%sLi-9 prob/stop with everything except He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*nstop/nreallystop,
-           mn->fErn[2]*nstop/nreallystop, mn->fErp[2]*nstop/nreallystop,
+           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/nstop,
+           mn->fErn[2]*n_c12cap/nstop, mn->fErp[2]*n_c12cap/nstop,
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
