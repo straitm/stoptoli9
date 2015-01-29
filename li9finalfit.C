@@ -6,7 +6,7 @@ const int npar = 10;
 const float dist = 300;
 
 const double livetime = 489.509, n_c12cap = 356., n_c13cap=3.54;
-const double n_o16cap = 8.4; // after all acrylic efficiencies
+const double n_o16cap = 9.0; // after all acrylic efficiencies
 const double nstop = 4.63e3;
 const double nstoptarg = 139.0;
 
@@ -279,7 +279,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like *= 2;
 
   // pull terms
-  like += pow((par[4]-0.5)/0.25, 2); // 50%+-25% for N-17
+  like += pow((par[4]-0.5)/0.27, 2); // 50%+-27% for N-17
   like += pow((par[6]-0.05)/0.05, 2); // 5%+-5%  for C-16
 }
 
@@ -304,6 +304,24 @@ void fixatzero(TMinuit * mn, int i)
   mn->Command(Form("FIX %d", i));
 }
 
+TGraph * lastgraphstyle(TCanvas * can, const int which)
+{
+  TIter next(can->GetListOfPrimitives());
+  TObject * obj = NULL;
+  TGraph * tomakered = NULL;
+  while(obj=next()) if(dynamic_cast<TGraph*>obj) tomakered=(TGraph*)obj;
+  if(!tomakered) return;
+  if(which == 0){
+    tomakered->SetMarkerColor(kRed);
+    tomakered->SetMarkerStyle(kFullDotLarge);
+  }
+  if(which == 1){
+    tomakered->SetMarkerColor(kViolet);
+    tomakered->SetMarkerStyle(kFullDotLarge);
+  }
+  return tomakered;
+}
+
 void li9finalfit(int neutrons = -1, int contourmask = 0)
 {
   // First factor takes into account the efficiency of selecting a
@@ -319,10 +337,12 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   ///////////////////////////////////////////////////////////////////
  
+  char nodistcut[1000];
+  snprintf(nodistcut, 999,
+    "%smiche < 12 && !earlymich && prompttime > 100e9 && dt < 100e3",
+           neutrons >= 0?Form("nlate==%d&&", neutrons):"");
   char cut[1000];
-  snprintf(cut, 999, "%sdist < %f && miche < 12 && !earlymich && "
-                     "prompttime > 100e9 && dt < 100e3",
-           neutrons >= 0?Form("nlate==%d&&", neutrons):"", dist);
+  snprintf(cut, 999, "%s && dist < %f", nodistcut, dist);
 
   ////////////////////////////////////////////////////////////////////
 
@@ -554,7 +574,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
          chi2nothing - chi2_all<0?0:sqrt(chi2nothing - chi2_all));
   printf("%s", CLR);
 
-
   const int npoint = 100;
 
   // Li-9 vs. N-17 with nothing else
@@ -607,10 +626,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   
   //////////////////////////////////////////////////////////////////////
- 
   drawhist(tgsel, thsel, parsaves, 48, 1, 97);
-  drawhist(tgsel, thsel, parsaves, 25, 0, 5);
+  drawhist(tgsel, thsel, parsaves, 100, 0, 20);
   drawhist(tgsel, thsel, parsaves, 10, 0.001, 0.501);
+
 
   setupmn(mn, expectedgdfrac);
   for(int i = 0; i < 10; i++){
@@ -620,19 +639,59 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     printf("%f: %f\n", i*0.1, mn->fAmin); 
   }
 
-/*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
-  th.Draw("dy:dx", cut, ".");
-  th.Draw("dy:dx", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
-  tg.Draw("dy:dx", cut, ".same");
-  tg.Draw("dy:dx", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+  th.Draw("dy/1000:dx/1000", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".");
+  tg.Draw("dy/1000:dx/1000", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".same");
+  th.Draw("dy/1000:dx/1000", Form("%s && dt/1000 < 0.4", cut),"%same");
+  lastgraphstyle(xy, 0);
+  tg.Draw("dy/1000:dx/1000", Form("%s && dt/1000 < 0.4", cut),"%same");
+  lastgraphstyle(xy, 0);
 
   TCanvas * rz = new TCanvas("rz", "rz", 200, 200);
-  th.Draw("dz:dx**2+dy**2", cut, ".");
-  th.Draw("dz:dx**2+dy**2", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
-  tg.Draw("dz:dx**2+dy**2", cut, ".same");
-  tg.Draw("dz:dx**2+dy**2", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"%same");
+  th.Draw("dz:(dx**2+dy**2)", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".");
+  tg.Draw("dz:(dx**2+dy**2)", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".same");
+  th.Draw("dz:(dx**2+dy**2)", Form("%s && dt/1000 < 0.4", cut),"%same");
+  lastgraphstyle(rz, 0);
+  tg.Draw("dz:(dx**2+dy**2)", Form("%s && dt/1000 < 0.4", cut),"%same");
+  lastgraphstyle(rz, 0);
 
+  TCanvas * dr = new TCanvas("dr", "dr", 200, 200);
+  th.Draw("(dist**3)/1e9 >>  distbg(25,0,0.5)",Form("%s && dt/1000 > 5",  nodistcut), "hist");
+  th.Draw("(dist**3)/1e9 >> distsig(25,0,0.5)",Form("%s && dt/1000 < 0.4",nodistcut),"esame");
+  tg.Draw("(dist**3)/1e9 >>  +distbg",           Form("%s && dt/1000 > 5",  nodistcut), "histsame");
+  tg.Draw("(dist**3)/1e9 >> +distsig",           Form("%s && dt/1000 < 0.4",nodistcut),"esame");
+  distsig=distsig;
+  distbg=distbg;
+  distbg->Sumw2();
+  distbg->Scale(distsig->Integral(5, 100)/distbg->Integral(5, 100));
+  distsig->SetLineColor(kRed);
+  distsig->SetMarkerColor(kRed);
+  distbg->GetYaxis()->SetRangeUser(0, 25);
+
+  TCanvas * dxy = new TCanvas("dxy", "dxy", 200, 200);
+  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", nodistcut), ".");
+  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
+  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dxy, 0);
+  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dxy, 0);
+
+  TCanvas * dxz = new TCanvas("dxz", "dxz", 200, 200);
+  th.Draw("mx-dx:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".");
+  tg.Draw("mx-dx:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
+  th.Draw("mx-dx:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dxz, 0);
+  tg.Draw("mx-dx:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dxz, 0);
+
+  TCanvas * dyz = new TCanvas("dyz", "dyz", 200, 200);
+  th.Draw("my-dy:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".");
+  tg.Draw("my-dy:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
+  th.Draw("my-dy:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dyz, 0);
+  tg.Draw("my-dy:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
+  lastgraphstyle(dyz, 0);
+/*
   TCanvas * rzh = new TCanvas("rzh", "rzh", 200, 200);
   th.Draw("dz >> dzall(10, -1800, 1800)", cut, "hist");
   th.Draw("dz >> dzn16", Form("%s && dt/1000 > 0.75 && dt/1000 < 5", cut),"samee");
