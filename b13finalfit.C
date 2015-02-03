@@ -30,7 +30,7 @@ static const double n16eff = 1
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.994 // b12like
 ;
 
 static const double be11eff = 1
@@ -41,7 +41,7 @@ static const double be11eff = 1
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.994 // b12like
 ;
 
 static const double c15eff = 1
@@ -52,7 +52,7 @@ static const double c15eff = 1
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
   * 0.96 // from ttlastmuon cut, vary naive
-  * (1-0.00504 * 20.20/178.3) // from b12like cut, using li-9 as a guide
+  * 0.994 // b12like
 ;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)

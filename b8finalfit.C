@@ -101,9 +101,9 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double tp = 0.64,
-               gp = 0.93-0.0303, // since not accepting early nH
-               gf = 0.688, tf = 1-0.688;
+  const double tp = 0.70, // accepting early Gd-n
+               gp = 0.90, // since not accepting early H-n
+               gf = 0.688, tf = 1-0.688; // sketchy, I think
 
   double neffs[5] = {
        gf*          pow(1-gp,4)+tf*          pow(1-tp,4),
@@ -120,7 +120,7 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.948 // delta r
+    * 0.944 // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff

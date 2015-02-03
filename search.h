@@ -13,7 +13,7 @@ struct dataparts{
   float ctmqtqall, ctrmsts;
   float fido_qiv, fido_qid;
   double ctq, ctqIV;
-  int fido_nidtubes, fido_nivtubes;
+  int nidtubes, nivtubes;
 
   int ids_didfit;
   float ids_chi2, id_chi2;

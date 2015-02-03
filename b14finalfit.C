@@ -2,15 +2,14 @@
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
-  TFile fiel("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root");
+  TFile fiel("/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root");
   TTree * t = (TTree *) fiel->Get("t");
 
   const char * const cut =
-    "!earlymich && miche < 12 && b12like < 0.01 && dist < 400 && nnear == 0 && e > 15"
+    "!earlymich && miche < 12 && b12like < 0.02 && dist < 400 && latennear == 0 && e > 15"
     "&& e < 22 && timeleft > 10e3";
 
   TCanvas c1;
-  c1.SetLogy();
 
   t.Draw("dt/1000 >> hfit(10000, 0.001, 10)", cut);
 
@@ -25,18 +24,10 @@
   ee.SetParLimits(1, 0, 100);
   ee.SetParLimits(3, 0, 100);
   ee.SetParLimits(4, 0, 100);
-//  hfit->Fit("ee", "l");
-//  ee.ReleaseParameter(2);
-//  hfit->Fit("ee", "le");
-
-//  printf("%sli8 lifetime: %f +%f %f%s\n", RED,
-//         ee->GetParameter(2), gMinuit.fErp[2], gMinuit.fErn[2], CLR);
-
-//  ee.FixParameter(2, 0.0125);
 
   hfit->Fit("ee", "le");
 
-  t.Draw("dt/1000 >> hdisp(100, 0.001, 0.501)", cut, "e");
+  t.Draw("dt/1000 >> hdisp(100, 0.001, 10.001)", cut, "e");
 
   TF1 * eedisp = ee.Clone("eedisp");
   eedisp->SetNpx(400);
@@ -77,17 +68,18 @@
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.948 // delta r
-    * 0.999709 // 1s from end of run
+    * 0.944 // delta r
+    * 0.99709 // 10s from end of run
     * 0.146 // energy
+    * 0.906 // b12like
   ;
 
-  const double captures = (0.2+5.6+0.3+1.2) * 489.509;
+  const double captures = (1.1+6.2+0.1+2.1) * 489.509;
 
   const double toprob = 1./captures/eff;
 
-  printf("%sProb: %g +%g %g%s\n", 
-      RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+  printf("%sEff: %f\nProb: %g +%g %g%s\n", 
+      RED, eff, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
   return;
   new TCanvas;

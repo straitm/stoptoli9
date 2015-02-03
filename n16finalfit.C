@@ -238,7 +238,7 @@ void n16finalfit()
   scalemarker(best);
 
   gMinuit->fUp = 2.296; // 68% contour in 2D
-  gMinuit->Command("mncont 4 6 100");
+  gMinuit->Command("mncont 4 6 30");
   TGraph * onesigma_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
   scalegraph(onesigma_2d);
 
@@ -262,7 +262,7 @@ void n16finalfit()
          RED, c15min/Ocaptures, c15max/Ocaptures, CLR);
 
   gMinuit->fUp = 2.71; // 90% in 1D
-  gMinuit->Command("mncont 4 6 100");
+  gMinuit->Command("mncont 4 6 30");
   TGraph * ninty_1d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
   scalegraph(ninty_1d);
 
@@ -283,7 +283,7 @@ void n16finalfit()
   TCanvas * c2 = new TCanvas("c2", "c2", 1000, 1000);
 
   gMinuit->fUp = 4.6051; // 90% CL contour in 2D
-  gMinuit->Command("mncont 4 6 100");
+  gMinuit->Command("mncont 4 6 30");
   TGraph * ninty_2d = (TGraph*)((TGraph*)gMinuit->GetPlot())->Clone();
   scalegraph(ninty_2d);
 

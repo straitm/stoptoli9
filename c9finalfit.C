@@ -102,24 +102,24 @@ void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double tp = 0.64,
-               gp = 0.93-0.0303, // since not accepting early nH
+  const double tp = 0.70, // accepting early nGd
+               gp = 0.90, // since not accepting early nH
                tedgep = 0.5449*tp+(1-0.5449)*gp,
                gedgep = 0.499*gp;
-
+/*
   // oxygen
   const double targrate = 0.2,
                targvesrate =  5*   85./(85.+58.),
                targbitsrate = 5*(1-85./(85.+58.)),
                gcrate = 0.3,
                gcvesrate = 1.4; 
-/*
+*/
   // nitrogen
   const double targrate = 0.09,
                targvesrate =  0,
                targbitsrate = 0,
                gcrate = 0.24-0.09,
-               gcvesrate = 0;*/
+               gcvesrate = 0;
 
   const double totalrate = gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
 
@@ -180,13 +180,14 @@ void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
     * exp(-1.*log(2)/127.00) // half-life and 1ms veto
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.948 // delta r
+    * 0.944 // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff
   ;
 
-  const double captures = (0.2+5.6+0.3+1.2) * 489.509;
+  //const double captures = (1.1+6.2+0.1+2.1) * 489.509;
+  const double captures = (0.24) * 489.509;
 
   const double toprob = 1./captures/eff;
 

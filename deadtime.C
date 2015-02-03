@@ -3,7 +3,7 @@ double deadtime(const float fidoqid)
   return fidoqid/8300 * 0.063; // us
 }
 
-double targeff(const float fidoqid)
+double targeff(const float fidoqid, bool incearly)
 {
   const double ghtime = 5.5;
   if(deadtime(fidoqid) < ghtime) return 1;
@@ -12,20 +12,21 @@ double targeff(const float fidoqid)
   // as exponential
   const double tau = 28.4;
   const double early = 0.0726;
-  return (1-early)/exp(-ghtime/tau)*exp(-deadtime(fidoqid)/tau) + early;
+  return (1-early)/exp(-ghtime/tau)*exp(-deadtime(fidoqid)/tau) +
+         incearly*early;
 }
 
-double gceff(const float fidoqid)
+double gceff(const float fidoqid, bool incearly)
 {
   const double ghtime = 5.5;
   if(deadtime(fidoqid) < ghtime) return 1;
   // There is essentially no turn-on time for H capture.
-  return exp(-deadtime(fidoqid)/179.) + (1-exp(-ghtime/179));
+  return exp(-deadtime(fidoqid)/179.) + incearly*(1-exp(-ghtime/179));
 }
 
 double eff(const float fidoqid, const double x, const double y,
-           const double z)
+           const double z, const bool early = false)
 {
   return fabs(z) < 1229 + 0.03*1150 && x*x+y*y < 1160*1160? 
-         targeff(fidoqid): gceff(fidoqid);
+         targeff(fidoqid, early): gceff(fidoqid, early);
 }

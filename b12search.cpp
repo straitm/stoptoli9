@@ -15,6 +15,9 @@ using std::vector;
 
 #include "search.h"
 
+// True if we are processing ND data.
+static const bool near = true;
+
 static double maxtime = 1000;
 static double minenergy = 4;
 static double maxenergy = 14;
@@ -870,6 +873,7 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
 }
 
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
+                           TTree * const fitree,
                            const unsigned int muoni,
                            const bool is_be12search,
                            const double timeleft)
@@ -886,7 +890,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const int murun = bits.run;
   const bool mucoinov = bits.coinov;
   const float murchi2 =
-    bits.ids_chi2/(bits.fido_nidtubes+bits.fido_nivtubes-6);
+    bits.ids_chi2/(bits.nidtubes+bits.nivtubes-6);
   const float muivdedx =
     bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen);
 
@@ -905,6 +909,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
 
   TBranch 
+    * const nidtubesbr      = fitree->GetBranch("nidtubes"),
+    * const fido_qivbr      = fitree->GetBranch("fido_qiv"),
+    
     * const runbr           = chtree->GetBranch("run"),
     * const coinovbr        = chtree->GetBranch("coinov"),
     * const trgIdbr         = chtree->GetBranch("trgId"),
@@ -913,8 +920,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctmqtqallbr     = chtree->GetBranch("ctmqtqall"),
     * const ctrmstsbr       = chtree->GetBranch("ctrmsts"),
     * const qdiffbr         = chtree->GetBranch("qdiff"),
-    * const fido_nidtubesbr = chtree->GetBranch("fido_nidtubes"),
-    * const fido_qivbr      = chtree->GetBranch("fido_qiv"),
     * const fido_didfitbr   = chtree->GetBranch("fido_didfit"),
     * const fido_entrxbr    = chtree->GetBranch("fido_entrx"),
     * const fido_entrybr    = chtree->GetBranch("fido_entry"),
@@ -1112,7 +1117,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     
     fido_qivbr->GetEntry(i);
     // No IV, OV energy
-    if(bits.fido_qiv > 1000) goto end;
+    if(bits.fido_qiv > (near?10000:1000)) goto end;
 
     coinovbr->GetEntry(i);
     if(bits.coinov) goto end;
@@ -1123,8 +1128,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     qdiffbr->GetEntry(i);
 
     // pass light noise
-    if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
-      goto end;
+    if(!near){ // XXX
+      if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
+        goto end;
+    }
 
     ctXbr->GetEntry(i);
 
@@ -1140,7 +1147,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And they must be near each other.
-      if(dist > 800) goto end;
+    // XXX  if(dist > 800) goto end;
 
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
@@ -1196,8 +1203,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     fido_entrzbr->GetEntry(i);
     fido_endzbr ->GetEntry(i);
-    fido_nidtubesbr->GetEntry(i);
-    if(bits.fido_didfit && bits.fido_nidtubes > 30 &&
+    nidtubesbr->GetEntry(i);
+    if(bits.fido_didfit && bits.nidtubes > 30 &&
        bits.fido_entrz > bits.fido_endz){
       lastgcmuontime = bits.trgtime;
 
@@ -1256,11 +1263,11 @@ static void search(dataparts & parts, TTree * const chtree,
   TBranch * const runbr           = chtree->GetBranch("run");
   TBranch * const trgtimebr       = chtree->GetBranch("trgtime");
   TBranch * const coinovbr        = chtree->GetBranch("coinov");
-  TBranch * const fido_qivbr      = chtree->GetBranch("fido_qiv");
-  TBranch * const fido_qidbr      = chtree->GetBranch("fido_qid");
-  TBranch * const fido_nidtubesbr = chtree->GetBranch("fido_nidtubes");
-  TBranch * const fido_nivtubesbr = chtree->GetBranch("fido_nivtubes");
+  TBranch * const nidtubesbr = fitree->GetBranch("nidtubes");
+  TBranch * const nivtubesbr = fitree->GetBranch("nivtubes");
 
+  TBranch * const fido_qivbr   = fitree->GetBranch("fido_qiv");
+  TBranch * const fido_qidbr   = fitree->GetBranch("fido_qid");
   TBranch * const ids_didfitbr = fitree->GetBranch("ids_didfit");
   TBranch * const id_buflenbr  = fitree->GetBranch("id_buflen");
   TBranch * const id_chi2br    = fitree->GetBranch("id_chi2");
@@ -1275,7 +1282,8 @@ static void search(dataparts & parts, TTree * const chtree,
   TBranch * const ids_entr_ybr = fitree->GetBranch("ids_entr_y");
   TBranch * const ids_entr_zbr = fitree->GetBranch("ids_entr_z");
 
-  for(unsigned int mi = 0; mi < chtree->GetEntries()-1; mi++){
+  for(unsigned int mi = 0; mi < chtree->GetEntries()-1 &&
+                           mi < fitree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
 
     if(parts.run != run){
@@ -1299,13 +1307,15 @@ static void search(dataparts & parts, TTree * const chtree,
     if(parts.fido_qiv < 5000) goto end;
 
     fido_qidbr->GetEntry(mi);
-    if(parts.fido_qid/8300 > 700) goto end;
+    if(parts.fido_qid/(near?13333:8300) > 700) goto end;
 
     ids_chi2br->GetEntry(mi);
-    fido_nivtubesbr->GetEntry(mi);
-    fido_nidtubesbr->GetEntry(mi);
-    if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6) > 10)
-      goto end;
+    nivtubesbr->GetEntry(mi);
+    nidtubesbr->GetEntry(mi);
+    if(!near){
+      if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6) > 10)
+        goto end;
+    }
 
     ids_end_xbr->GetEntry(mi);
     ids_end_ybr->GetEntry(mi);
@@ -1315,7 +1325,7 @@ static void search(dataparts & parts, TTree * const chtree,
 
     ids_end_zbr->GetEntry(mi);
     // This correctly uses the *uncorrected* position
-    if(parts.ids_end_z < -1786+35) goto end;
+    if(parts.ids_end_z < -1786+(near?40:35) /* silly */) goto end;
 
     ids_entr_zbr->GetEntry(mi);
     id_ivlenbr->GetEntry(mi);
@@ -1325,7 +1335,9 @@ static void search(dataparts & parts, TTree * const chtree,
 
     id_chi2br->GetEntry(mi);
     ids_chi2br->GetEntry(mi);
-    if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+    if(!near){
+      if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+    }
 
     id_entr_xbr->GetEntry(mi);
     id_entr_ybr->GetEntry(mi);
@@ -1335,12 +1347,13 @@ static void search(dataparts & parts, TTree * const chtree,
        pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
       goto end;
 
-    if(parts.fido_nidtubes+parts.fido_nivtubes < 6) goto end;
+    if(parts.nidtubes+parts.nivtubes < 6) goto end;
  
+    fprintf(stderr, ".");
     chtree->GetEntry(mi);
     fitree->GetEntry(mi);
 
-    searchfrommuon(parts, chtree, mi, is_be12search, 
+    searchfrommuon(parts, chtree, fitree, mi, is_be12search, 
     // Record how much time is left to the end of the run so that we can
     // exclude events that are too close when analyzing.
                              (eortime - parts.trgtime)/1e6);
@@ -1427,8 +1440,11 @@ int main(int argc, char ** argv)
     }
 
     fitree = (TTree *)fifile->Get("RecoMuonFIDOInfoTree");
+    if(!fitree) fitree = (TTree *)fifile->Get("fido");
+
     if(!fitree){
-      fprintf(stderr,"\n%s lacks a RecoMuonFIDOInfoTree!\n",argv[i+1]);
+      fprintf(stderr, "\n%s lacks a fido or RecoMuonFIDOInfoTree!\n",
+              argv[i+1]);
       errcode |= 8;
       goto cleanup;
     }
@@ -1439,7 +1455,7 @@ int main(int argc, char ** argv)
               argv[i], argv[i+1],
               long(chtree->GetEntries()), long(fitree->GetEntries()));
       errcode |= 0x10;
-      goto cleanup;
+      //goto cleanup;
     }
 
     if(!strcmp(basename(argv[0]), "checkb12search")) goto cleanup;
@@ -1478,11 +1494,11 @@ int main(int argc, char ** argv)
     fSBA(id_chi2);
     fSBA(id_ivlen);
     fSBA(id_buflen);
+    fSBA(fido_qiv);
+    fSBA(fido_qid);
+    fSBA(nidtubes);
+    fSBA(nivtubes);
 
-    cSBA(fido_nidtubes);
-    cSBA(fido_nivtubes);
-    cSBA(fido_qiv);
-    cSBA(fido_qid);
     cSBA(fido_didfit);
     cSBA(fido_entrx);
     cSBA(fido_entry);

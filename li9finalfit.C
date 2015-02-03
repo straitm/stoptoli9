@@ -19,7 +19,7 @@ const double li9ebn = 0.5080,
              b13ebn = 0.0029 * n_c13cap/n_c12cap,
              li11ebn = 0.789 * n_c13cap/n_c12cap;
              
-const double distcuteff = (dist == 400?0.948:dist == 300?0.852:
+const double distcuteff = (dist == 400?0.944:dist == 300?0.852:
                            dist == 200?0.565:dist==159?0.376:100000);
 
 // 100s begin-of-run requirement taken into account here
@@ -354,6 +354,39 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
 
+
+  const double plotsigtime = 0.4;
+
+  TCanvas * dxy = new TCanvas("dxy", "dxy", 200, 200);
+  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".");
+  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".same");
+  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dxy, 0);
+  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dxy, 0);
+
+  TCanvas * dxz = new TCanvas("dxz", "dxz", 200, 200);
+  th.Draw("mz-dz:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".");
+  tg.Draw("mz-dz:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".same");
+  th.Draw("mz-dz:mx-dx", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dxz, 0);
+  tg.Draw("mz-dz:mx-dx", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dxz, 0);
+
+  TCanvas * dyz = new TCanvas("dyz", "dyz", 200, 200);
+  th.Draw("mz-dz:my-dy", Form("%s && dt/1000 > 5  ", cut), ".");
+  tg.Draw("mz-dz:my-dy", Form("%s && dt/1000 > 5  ", cut), ".same");
+  th.Draw("mz-dz:my-dy", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dyz, 0);
+  tg.Draw("mz-dz:my-dy", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
+  lastgraphstyle(dyz, 0);
+return;
+  TCanvas * muenergy = new TCanvas("muenergy", "muenergy", 200, 200);
+  th.Draw("dedxslant >> muqivbg(25, 0, 12000)", Form("%s && dt/1000 > 5  ", cut), "hist");
+  tg.Draw("dedxslant >> +muqivbg", Form("%s && dt/1000 > 5  ", cut), "esame");
+  th.Draw("dedxslant >> muqivsig(25, 0, 12000)", Form("%s && dt/1000 < 0.4", cut),"same");
+  tg.Draw("dedxslant >> +muqivsig", Form("%s && dt/1000 < 0.4", cut),"same");
+
   float tim;
   tgsel->SetBranchAddress("dt", &tim);
   thsel->SetBranchAddress("dt", &tim);
@@ -668,29 +701,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   distsig->SetMarkerColor(kRed);
   distbg->GetYaxis()->SetRangeUser(0, 25);
 
-  TCanvas * dxy = new TCanvas("dxy", "dxy", 200, 200);
-  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", nodistcut), ".");
-  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
-  th.Draw("my-dy:mx-dx", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dxy, 0);
-  tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dxy, 0);
-
-  TCanvas * dxz = new TCanvas("dxz", "dxz", 200, 200);
-  th.Draw("mx-dx:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".");
-  tg.Draw("mx-dx:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
-  th.Draw("mx-dx:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dxz, 0);
-  tg.Draw("mx-dx:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dxz, 0);
-
-  TCanvas * dyz = new TCanvas("dyz", "dyz", 200, 200);
-  th.Draw("my-dy:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".");
-  tg.Draw("my-dy:mz-dz", Form("%s && dt/1000 > 5  ", nodistcut), ".same");
-  th.Draw("my-dy:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dyz, 0);
-  tg.Draw("my-dy:mz-dz", Form("%s && dt/1000 < 0.4", nodistcut),"%same");
-  lastgraphstyle(dyz, 0);
 /*
   TCanvas * rzh = new TCanvas("rzh", "rzh", 200, 200);
   th.Draw("dz >> dzall(10, -1800, 1800)", cut, "hist");

@@ -52,7 +52,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
     if(parts.fido_qiv < 5000) continue;
     if(parts.fido_qid/8300 > 700) continue;
-    if(parts.ids_chi2/(parts.fido_nidtubes+parts.fido_nivtubes-6)>10)
+    if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6)>10)
       continue;
 
     // This correctly uses the *uncorrected* position
@@ -70,7 +70,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
     const double chi2qual = parts.ids_chi2-parts.id_chi2;
     if(chi2qual > 800) continue;
 
-    if(parts.fido_nidtubes+parts.fido_nivtubes < 6) continue;
+    if(parts.nidtubes+parts.nivtubes < 6) continue;
 
     if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
        pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
@@ -253,13 +253,13 @@ int main()
     fSBA(id_chi2);
     fSBA(id_ivlen);
     fSBA(id_buflen);
+    fSBA(nidtubes);
+    fSBA(nivtubes);
 
     SBA(qdiff);
     SBA(ctEvisID);
     SBA(fido_qiv);
     SBA(fido_qid);
-    SBA(fido_nidtubes);
-    SBA(fido_nivtubes);
     SBA(deltaT);
     SBA(trgtime);
     SBA(ctmqtqall);

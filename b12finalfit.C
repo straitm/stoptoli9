@@ -84,9 +84,17 @@ double conversion(const bool nominal = false)
     p1312_now = p1312;
   }
 
-  const double dem = (1-caprat_now*f13_now)*p1212_now*e0
+
+  // The first three lines take care of the very slight underestimation 
+  // of the amount of B-12 caused by the shorter livetime of B-13 
+  const double dem = 1/(1 + (0.2020 - 0.1733)/0.2020 * 
+                          f13_now * p1313_now / ( (1-f13_now)*p1212_now +
+                                                    f13_now  *p1312_now))
+                  *
+  // The rest pulls the B-12 number out given the fractions and efficiencies
+                  ( (1-caprat_now*f13_now)*p1212_now*e0
                    +   caprat_now*f13_now  *p1313_now*e0
-                   +   caprat_now*f13_now  *p1312_now*(1-e1);
+                   +   caprat_now*f13_now  *p1312_now*(1-e1));
   return 1/dem;
 }
 
@@ -124,10 +132,10 @@ static double fsysterr()
 
 const int nbin = 1000;
  
-void all(TTree * t, TF1 * ee)
+double all(TTree * t, TF1 * ee)
 {
   t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
-          "latennear == 0 && timeleft > 100e3 && miche < 12 && "
+          "!(abs(dz) < 1229 && dx**2+dy**2 < 1150**2) && latennear == 0 && timeleft > 100e3 && miche < 12 && "
           "e > 4 && e < 15 && !earlymich", "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "li");
@@ -209,9 +217,11 @@ void all(TTree * t, TF1 * ee)
          caprate/capprob * fsystmu,
          caprate/capprob * totferrmu,
          totferrmu*100);
+
+  return rawintegral;
 }
 
-void targ(const int nn, TTree * t, TF1 * ee)
+void targ(const int nn, TTree * t, TF1 * ee, const double norm)
 {
   printf("\nIn the target only:\n");
   t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
@@ -220,18 +230,19 @@ void targ(const int nn, TTree * t, TF1 * ee)
           "timeleft > 100e3 && miche < 12 && "
           "e > 4 && e < 15 && !earlymich", nn), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
-  h->Fit("ee", "l");
+  h->Fit("ee", "li");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
   e.SetParameter(0, ee->GetParameter(0));
 
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
 
-  printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
+  printfr("b12 relative to whole %f +- %f\n", rawintegral/norm,
+         ferrorfit/norm * rawintegral);
 }
 
 void innertarg(const int nn, TTree * t, TF1 * ee, const double limr,
-               const double limz)
+               const double limz, const double norm)
 {
   printf("\nIn the inner %.1fx%.1f target only:\n", limr, limz);
   t->Draw(Form("dt/1000 - 2.028e-6 >> h%.0f(%d, 0.001, 100)", limr, nbin),
@@ -239,14 +250,15 @@ void innertarg(const int nn, TTree * t, TF1 * ee, const double limr,
           "abs(dz) < %f &&  timeleft > 100e3 && miche < 12 && "
           "e > 4 && e < 15 && !earlymich", nn, limr, limz), "e");
   TH1D * h = (TH1D*)gROOT->FindObject(Form("h%.0f", limr));
-  h->Fit("ee", "l");
+  h->Fit("ee", "li");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
   e.SetParameter(0, ee->GetParameter(0));
 
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
 
-  printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
+  printfr("b12 relative to whole %f +- %f\n", rawintegral/norm,
+          ferrorfit * rawintegral/norm);
 }
 
 void b12finalfit()
@@ -276,17 +288,15 @@ void b12finalfit()
   ee->FixParameter(6, 0);
   ee->FixParameter(7, 0);
 
-  all(t, ee);
-  return;
+  const double norm = all(t, ee);
+return; // <------
   ee->FixParameter(4, 0);
   ee->FixParameter(5, 15);
-  targ(0, t, ee);
+  targ(0, t, ee, norm);
 
-/*
-  innertarg(0, t, ee, 1045, 1127);
+  innertarg(0, t, ee, 1045, 1127, norm);
   ee->FixParameter(2, 0);
   ee->FixParameter(3, 7.13);
-  innertarg(0, t, ee, 913, 985);
-  innertarg(0, t, ee, 724, 781);
-*/
+  innertarg(0, t, ee, 913, 985, norm);
+  innertarg(0, t, ee, 724, 781, norm);
 }

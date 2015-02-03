@@ -128,7 +128,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   char cut[1000];
   snprintf(cut, 999, "latennear >= %d && latennear <= %d && %s", ncutmin, ncutmax, distcut, cutnoncut);
 
-  const double distcuteff = (distcut == 400?0.948:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
+  const double distcuteff = (distcut == 400?0.944:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
 
   const double bglow = 7.13*3, bghigh = 100, siglow = 0.3, sighigh = 0.801*2;
   const double eff = 1
@@ -138,7 +138,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     * 0.9709 // 100s from end of run
     * 0.986 // ttlastvalid
     * 0.96 // ttlastmuon
-    * 0.9994 // b12like
+    * 0.994 // b12like
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
