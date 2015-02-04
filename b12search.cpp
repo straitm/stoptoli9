@@ -16,7 +16,7 @@ using std::vector;
 #include "search.h"
 
 // True if we are processing ND data.
-static const bool near = true;
+static const bool near = false;
 
 static double maxtime = 1000;
 static double minenergy = 4;
@@ -882,9 +882,12 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = fidocorrxy(bits.ids_end_x),
-               muy = fidocorrxy(bits.ids_end_y),
-               muz = fidocorrz(bits.ids_end_z);
+  const double mux = fidocorrx(bits.ids_end_x, bits.ids_gclen,
+                               bits.ids_theta, bits.ids_phi),
+               muy = fidocorry(bits.ids_end_y, bits.ids_gclen,
+                               bits.ids_theta, bits.ids_phi),
+               muz = fidocorrz(bits.ids_end_z, bits.ids_gclen,
+                               bits.ids_theta);
   const float gclen = bits.ids_gclen;
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
@@ -1021,7 +1024,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(!isnenergy(bits.ctEvisID)) continue;
 
     ctXbr->GetEntry(i);
-    const bool near =
+    const bool nnear =
       sqrt(pow(mux - bamacorrxy(bits.ctX[0], bits.ctEvisID), 2)+
            pow(muy - bamacorrxy(bits.ctX[1], bits.ctEvisID), 2)+
            pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 800;
@@ -1032,13 +1035,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const bool alsoamichel = dt < 5500;
     nneutronanydist[0]++;
     if(gd) ngdneutronanydist[0]++;
-    if(near) nneutronnear[0]++;
-    if(gd && near) ngdneutronnear[0]++;
+    if(nnear) nneutronnear[0]++;
+    if(gd && nnear) ngdneutronnear[0]++;
     if(!alsoamichel){
       nneutronanydist[1]++;
       if(gd) ngdneutronanydist[1]++;
-      if(near) nneutronnear[1]++;
-      if(gd && near) ngdneutronnear[1]++;
+      if(nnear) nneutronnear[1]++;
+      if(gd && nnear) ngdneutronnear[1]++;
     }
   }
 
@@ -1147,7 +1150,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And they must be near each other.
-    // XXX  if(dist > 800) goto end;
+      if(dist > 800) goto end;
 
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
@@ -1349,7 +1352,6 @@ static void search(dataparts & parts, TTree * const chtree,
 
     if(parts.nidtubes+parts.nivtubes < 6) goto end;
  
-    fprintf(stderr, ".");
     chtree->GetEntry(mi);
     fitree->GetEntry(mi);
 
@@ -1494,6 +1496,9 @@ int main(int argc, char ** argv)
     fSBA(id_chi2);
     fSBA(id_ivlen);
     fSBA(id_buflen);
+    fSBA(ids_gclen);
+    fSBA(ids_theta);
+    fSBA(ids_phi);
     fSBA(fido_qiv);
     fSBA(fido_qid);
     fSBA(nidtubes);

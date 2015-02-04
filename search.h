@@ -1,8 +1,11 @@
 bool lightnoise(const float qrms, const float mqtq,
                 const float rmsts, const float qdiff);
 
-double fidocorrz(const double z);
-double fidocorrxy(const double xy);
+double fidocorrz(const double z, const double gclen, const double th);
+double fidocorrx(const double x, const double gclen, const double th,
+                 const double phi);
+double fidocorry(const double y, const double gclen, const double th,
+                 const double phi);
 
 double bamacorrxy(const double xy, const double e);
 double bamacorrz (const double  z, const double e);
@@ -22,6 +25,7 @@ struct dataparts{
   float ids_entr_x, ids_entr_y, ids_entr_z;
   float ids_gclen;
   float ids_ivlen, ids_buflen;
+  float ids_theta, ids_phi;
   float id_ivlen, id_buflen;
 
   bool fido_didfit;

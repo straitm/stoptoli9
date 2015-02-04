@@ -77,9 +77,9 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       continue;
 
 
-    const double mux = fidocorrxy(parts.ids_end_x),
-                 muy = fidocorrxy(parts.ids_end_y),
-                 muz = fidocorrz( parts.ids_end_z);
+    const double mux = fidocorrx(parts.ids_end_x, parts.ids_gclen, parts.ids_theta, parts.ids_phi),
+                 muy = fidocorry(parts.ids_end_y, parts.ids_gclen, parts.ids_theta, parts.ids_phi),
+                 muz = fidocorrz(parts.ids_end_z, parts.ids_gclen, parts.ids_theta);
     const double imux = parts.ids_entr_x,
                  imuy = parts.ids_entr_y,
                  imuz = parts.ids_entr_z;
@@ -253,6 +253,9 @@ int main()
     fSBA(id_chi2);
     fSBA(id_ivlen);
     fSBA(id_buflen);
+    fSBA(ids_gclen);
+    fSBA(ids_theta);
+    fSBA(ids_phi);
     fSBA(nidtubes);
     fSBA(nivtubes);
 
