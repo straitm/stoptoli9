@@ -157,7 +157,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       if(parts.trgtime - mutime > 5500) nneutronnotmichel++;
     }
 
-    printf("%f %d %d %d %lf %f %u %u %f %f %f %f %f %f %f %f %f "
+    printf("%.0f %d %d %d %lf %f %u %u %f %f %f %f %f %f %f %f %f "
            "%f %f %f %f %f %d %f\n",
            prompttime, parts.run, prompt, prompt-back,
            (prompttime - mutime)/1e6, li9tomu, nneutron, nneutronnotmichel,
