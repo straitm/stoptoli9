@@ -10,13 +10,25 @@ bool lightnoise(const float qrms, const float mqtq, const float rmsts,
   return false;
 }
 
-static double pol4(const double gc)
+static double fidopol3(const double gc)
 {
-  return  94.9593
-       + 0.163906    * gc
-       - 0.000228265 * gc*gc
-       + 7.44587e-08 * gc*gc*gc
-       - 1.06138e-11 * gc*gc*gc*gc;
+  return -196.8
+       + 0.119601    * gc
+       - 2.00327e-05 * gc*gc
+       + 1.02096e-08 * gc*gc*gc;
+}
+
+static double pol6(const double x, const double p0, const double p1,
+                   const double p2, const double p3, const double p4,
+                   const double p5, const double p6)
+{
+  return p0
+       + p1 * x
+       + p2 * x*x
+       + p3 * x*x*x
+       + p4 * x*x*x*x
+       + p5 * x*x*x*x*x
+       + p6 * x*x*x*x*x*x;
 }
 
 static double pol3(const double x, const double p0, const double p1,
@@ -30,25 +42,29 @@ static double pol3(const double x, const double p0, const double p1,
 
 double fidocorrz(const double z, const double gclen, const double th)
 {
-  const double shift = gclen <150? -200: pol4(gclen);  
-  return z + shift*cos(th)
-           - pol3(z, 62.1529, 0.00321, 9.02779e-06, -4.16564e-08);
+  if(gclen < 150) return z;
+  const double shift = fidopol3(gclen);  
+  return z - shift*cos(th)
+           + pol6(z, -63.0931, -0.111571, 1.00597e-05,
+                  1.04145e-07, -3.09931e-11, -2.0244e-14, 9.87013e-18);
 }
 
 double fidocorry(const double y, const double gclen, const double th,
                  const double phi)
 {
-  const double shift = gclen <150? -200:pol4(gclen);  
+  if(gclen < 150) return y;
+  const double shift = fidopol3(gclen);  
   return y - shift*sin(th)*sin(phi)
-           - pol3(y, -9.75229-7.47685, -0.068273+0.0504024, 0, 0);
+           + pol3(y, 9.83751, -0.112057, -4.86037e-06, 3.6581e-08);
 }
 
 double fidocorrx(const double x, const double gclen, const double th,
                  const double phi)
 {
-  const double shift = gclen <150? -200:pol4(gclen);  
+  if(gclen < 150) return x;
+  const double shift = fidopol3(gclen);  
   return x - shift*sin(th)*cos(phi)
-           - pol3(x, -9.75229+9.6452, -0.068273+0.0478563, 0, 0);
+           + pol3(x, -6.3569, -0.0897073, -1.72453e-06, 3.09912e-08);
 }
 
 static double phi(const double fex, const double fey,
