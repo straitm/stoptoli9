@@ -74,12 +74,5 @@ double bamacorrz(const double z, const double e)
 
 double bamacorrxy(const double xy, const double e)
 {
-  // Using Romain's z correction also for x and y...
-  const double efactor = 1; // 0.013/0.005;
-  const double ifactor = 1; // 2;
-
-  return xy + 7.466*ifactor 
-       + (0.008475*ifactor + 0.01029*efactor*e)*xy
-       - 1.053e-5*ifactor*xy*xy
-       + 2.694e-8*ifactor*xy*xy*xy;
+  return (1.013 - 7.0e-3*e)*xy + 0.0795e-3*xy*fabs(xy);
 }
