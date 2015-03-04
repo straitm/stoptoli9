@@ -1,3 +1,5 @@
+#include "consts.h"
+
 void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
 {
 
@@ -160,13 +162,13 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
     * exp(-1.*log(2)/11.00) // n12 half-life and 1ms veto
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.944 // delta r
+    * 0.897 // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff
   ;
 
-  const double captures = (1.1+6.2+0.1+2.1) * 489.509;
+  const double captures = n_o16cap_beta * livetime;
 
   const double toprob = 1./captures/eff;
 
@@ -176,7 +178,10 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
-  printf("%sIf you see none with no background: < %f\n%s", RED, 2.3/eff/captures, CLR);
+  printf("%sIf you see none before 22ms with no background: < %f\n%s", RED, 2.3/eff/captures/0.75*1.048, CLR);
+  printf("This uses the central value for O captures.\n");
+  printf("I did a numerical integration that provides a very small correction\n");
+  printf("given the factor of 2 uncertainty in the denominator.  Is it right?\n");
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

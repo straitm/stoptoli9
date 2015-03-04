@@ -1,11 +1,9 @@
 bool lightnoise(const float qrms, const float mqtq,
                 const float rmsts, const float qdiff);
 
-double fidocorrz(const double z, const double gclen, const double th);
-double fidocorrx(const double x, const double gclen, const double th,
-                 const double phi);
-double fidocorry(const double y, const double gclen, const double th,
-                 const double phi);
+double fidocorrz(const double z);
+double fidocorrx(const double x);
+double fidocorry(const double y);
 
 double bamacorrxy(const double xy, const double e);
 double bamacorrz (const double  z, const double e);

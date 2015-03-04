@@ -1,7 +1,9 @@
-void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
+#include "consts.h"
+
+void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh = 6)
 {
 
-  TFile * fiel = new TFile("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root", "read");
+  TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
@@ -106,20 +108,21 @@ void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
                gp = 0.90, // since not accepting early nH
                tedgep = 0.5449*tp+(1-0.5449)*gp,
                gedgep = 0.499*gp;
-/*
   // oxygen
-  const double targrate = 0.2,
-               targvesrate =  5*   85./(85.+58.),
-               targbitsrate = 5*(1-85./(85.+58.)),
-               gcrate = 0.3,
-               gcvesrate = 1.4; 
-*/
+  double targrate = (1.39+0.70)/2,
+         targvesrate =  (10.01+4.48)/2 *   85./(85.+58.),
+         targbitsrate = (10.01+4.48)/2 *(1-85./(85.+58.)),
+         gcrate = (0.17+0.09)/2,
+         gcvesrate = (0.86+0.42)/2; 
+
   // nitrogen
-  const double targrate = 0.09,
-               targvesrate =  0,
-               targbitsrate = 0,
-               gcrate = 0.24-0.09,
-               gcvesrate = 0;
+  if(elem != 'o'){
+    targrate = (0.30+0.18)/2 * 4.57/(4.57 + 2.88),
+    targvesrate =  0,
+    targbitsrate = 0,
+    gcrate = (0.30+0.18)/2 * 2.88/(4.57 + 2.88),
+    gcvesrate = 0;
+  }
 
   const double totalrate = gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
 
@@ -180,14 +183,13 @@ void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
     * exp(-1.*log(2)/127.00) // half-life and 1ms veto
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.944 // delta r
+    * (elem=='o'?0.897:0.9405) // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff
   ;
 
-  //const double captures = (1.1+6.2+0.1+2.1) * 489.509;
-  const double captures = (0.24) * 489.509;
+  const double captures = (elem == 'o'?n_o16cap_beta:n_n14cap) * livetime;
 
   const double toprob = 1./captures/eff;
 
@@ -198,7 +200,20 @@ void c9finalfit(const int nncut = 3, const int nncuthigh = 5)
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
   printf("%sIf no events and no background: <%f%s\n", 
-      RED, 2.3*toprob, CLR);
+      RED, 2.3*toprob*1.048, CLR);
+
+/*
+TF1 chi("chi", "ROOT::Math::chisquared_pdf(x/5., 2) +ROOT::Math::chisquared_pdf(x/5.25, 2) +ROOT::Math::chisquared_pdf(x/5.5, 2) +ROOT::Math::chisquared_pdf(x/5.75, 2) +ROOT::Math::chisquared_pdf(x/6., 2) +ROOT::Math::chisquared_pdf(x/6.25, 2) +ROOT::Math::chisquared_pdf(x/6.5, 2) +ROOT::Math::chisquared_pdf(x/6.75, 2) +ROOT::Math::chisquared_pdf(x/7., 2) +ROOT::Math::chisquared_pdf(x/7.25, 2) +ROOT::Math::chisquared_pdf(x/7.5, 2) +ROOT::Math::chisquared_pdf(x/7.75, 2) +ROOT::Math::chisquared_pdf(x/8., 2) +ROOT::Math::chisquared_pdf(x/8.25, 2) +ROOT::Math::chisquared_pdf(x/8.5, 2) +ROOT::Math::chisquared_pdf(x/8.75, 2) +ROOT::Math::chisquared_pdf(x/9., 2) +ROOT::Math::chisquared_pdf(x/9.25, 2) +ROOT::Math::chisquared_pdf(x/9.5, 2) +ROOT::Math::chisquared_pdf(x/9.75, 2) +ROOT::Math::chisquared_pdf(x/10., 2)", 0, 100)
+TF1 schi("schi", "ROOT::Math::chisquared_pdf(x/7.5, 2)", 0, 20*7.5)
+schi.Integral(1e-9, 4.6*7.5)/schi.Integral(1e-9, 20*7.5)
+chi.Integral(1e-9, 4.82*7.5)/chi.Integral(1e-9, 20*7.5)
+ */
+
+  printf("This uses the central value for %c captures.\n", elem=='o'?'O':'N');
+  printf("I did a numerical integration that provides a very small correction\n");
+  printf("given the factor of 2 uncertainty in the denominator.  Is it right?\n");
+
+
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

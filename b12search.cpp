@@ -882,12 +882,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = fidocorrx(bits.ids_end_x, bits.ids_gclen,
-                               bits.ids_theta, bits.ids_phi),
-               muy = fidocorry(bits.ids_end_y, bits.ids_gclen,
-                               bits.ids_theta, bits.ids_phi),
-               muz = fidocorrz(bits.ids_end_z, bits.ids_gclen,
-                               bits.ids_theta);
+  const double mux = fidocorrx(bits.ids_end_x),
+               muy = fidocorry(bits.ids_end_y),
+               muz = fidocorrz(bits.ids_end_z);
   const float gclen = bits.ids_gclen;
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
@@ -974,9 +971,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       if(bits.ctEvisID == 0){
         ctqbr->GetEntry(i);
         bits.ctEvisID = bits.ctq/34e3;
-        static int count = 0;
-        if(count++ < 10)
-          fprintf(stderr, "Used ctq instead of zero ctEvisID\n");
       }
       ctXbr->GetEntry(i);
       if(bits.ctEvisID > michele){
@@ -1024,10 +1018,12 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(!isnenergy(bits.ctEvisID)) continue;
 
     ctXbr->GetEntry(i);
+
+    // Changed from 800 to 1000, 2015-03-04
     const bool nnear =
       sqrt(pow(mux - bamacorrxy(bits.ctX[0], bits.ctEvisID), 2)+
            pow(muy - bamacorrxy(bits.ctX[1], bits.ctEvisID), 2)+
-           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 800;
+           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 1000;
 
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
@@ -1145,12 +1141,12 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     {
       // If the be12 search, record distance to previous selected event,
       // not always to muon, otherwise always to the muon.
-      const double dist = got == 0 || !is_be12search?
+      const double dist = (got == 0 || !is_be12search)?
         sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And they must be near each other.
-      if(dist > 800) goto end;
+      if(dist > 800) goto end; 
 
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
@@ -1401,8 +1397,6 @@ int main(int argc, char ** argv)
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
 
-  fprintf(stderr, "Processing %d runs\n", (argc-4)/2);
-
   // NOTE-luckplan
   printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
          "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
@@ -1412,11 +1406,21 @@ int main(int argc, char ** argv)
          "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
          "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
          "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
-         "ndecay/I"
-         "\n");
+         "ndecay/I");
+  if(is_be12search) // same as above with 2s appended to each name
+                    // some are dumb, since, i.e., mutrig === mutrig2
+    printf(":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
+           "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
+           "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
+           "latengd2/I:latennear2/I:laten2/I:miche2/F:micht2/F:gclen2/F:"
+           "fex2/F:fey2/F:fez2/F:deadt2/F:"
+           "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
+           "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
+           "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
+           "ndecay2/I");
+  printf("\n");
 
   for(int i = 4; i < argc; i+=2){
-    fputs(".", stderr);
     TFile * const chfile = new TFile(argv[i], "read");
     TFile * const fifile = new TFile(argv[i+1], "read");
     dataparts parts;

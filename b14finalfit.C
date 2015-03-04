@@ -1,8 +1,11 @@
+#include "consts.h"
+
+void b14finalfit()
 {
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
-  TFile fiel("/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root");
+  TFile fiel(rootfile3up);
   TTree * t = (TTree *) fiel->Get("t");
 
   const char * const cut =
@@ -68,13 +71,13 @@
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.944 // delta r
+    * 0.9156 // delta r
     * 0.99709 // 10s from end of run
     * 0.146 // energy
     * 0.906 // b12like
   ;
 
-  const double captures = (1.1+6.2+0.1+2.1) * 489.509;
+  const double captures = n_o16cap_beta * livetime;
 
   const double toprob = 1./captures/eff;
 

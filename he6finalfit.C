@@ -9,9 +9,24 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TF1.h"
-#include "stdio.h"
+#include <stdio.h>
+#include "consts.h"
 
-int ncutmin = 0, ncutmax = 100;
+double bamacorrz(const double z, const double e)
+{
+  // Romain's thesis's correction (eq. 7.24):
+  return z + 7.466 
+       + (0.008475 + 0.01029*e)*z
+       - 1.053e-5*z*z
+       + 2.694e-8*z*z*z;
+}
+
+double bamacorrxy(const double xy, const double e)
+{
+  return (1.013 - 7.0e-3*e)*xy + 0.0795e-3*xy*fabs(xy);
+}
+
+int nreq = 0;
 
 const int nrbins = 5;
 
@@ -27,18 +42,22 @@ TH1D * li8spec[5] = {NULL}, * he6spec[5] = {NULL}, * n16spec[5] = {NULL};
 
 TH2D * mdispbg = NULL;
 
-const double mus[nrbins] =
-  {0.36335419, 0.374389, 0.357561, 0.292535, 2.2830};
+const double effbyregion[nrbins] = {
+0.7444, // +-0.86e-2
+0.6645, // +-0.96e-2
+0.6280, // +-1.02e-2
+0.5932, // +-1.11e-2
+0.4606  // +-0.40e-2
+};
 
-double bamacorrxy(const double xy, const double e)
-{
-  return xy * (0.970 + 0.013*e);
-}
+const double mus[nrbins] = {
+0.36808601,
+0.34753130,
+0.31973898,
+0.27913184,
+2.25442232
+};
 
-double bamacorrz(const double z, const double e)
-{
-  return z  * (0.985 + 0.005*e);
-}
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
@@ -79,19 +98,19 @@ int classi(const double x, const double y, const double z)
   const double r2 = x*x+y*y;
   const double r = sqrt(r2);
   const double az = abs(z);
-  if(r2 > 1150*1150 || az > 1229 + 0.03*(1150-r)) return 4;
-  if(r2 > 1045.*1045. || az > 1127.) return 3;
-  if(r2 > 913.*913. || az > 985.) return 2;
-  if(r2 > 724.*724. || az > 781) return 1;
+  if(r2 > 1154*1154 || az > 1233 + 0.03*(1154-r)) return 4;
+  if(r2 > 1068.*1068. || az > 1068.) return 3;
+  if(r2 > 933.*933. || az > 933.) return 2;
+  if(r2 > 740.*740. || az > 740) return 1;
   return 0;
 }
 
-void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
+void he6finalfit(const int nreq_ = 0,
                  const bool r0 = true, const bool r1 = true,
                  const bool r2 = true, const bool r3 = true,
                  const bool r4 = true)
 {
-  if(ncutmax_ < 0 || ncutmin_ < 0){
+  if(nreq_ < 0){
     printf("negative input means that I will just get compiled\n");
     return;
   }
@@ -102,8 +121,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   rbinson[3] = r3;
   rbinson[4] = r4;
 
-  ncutmin = ncutmin_;
-  ncutmax = ncutmax_;
+  nreq = nreq_;
   
   TH1::SetDefaultSumw2();
 
@@ -115,50 +133,54 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   c2->cd(1);
   c2->ToggleEventStatus();
 
-  TFile fiel("/cp/s4/strait/fullfido-100s-0-25MeV-20141022.root");
+  TFile fiel(rootfile0up);
   TTree * t = (TTree *) fiel.Get("t");
 
   const double distcut = 200;
 
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
-    "miche < 12 && dist < %f && timeleft > 100e3 && " // XXX miche > 0.8MeV?
+    "miche < 12 && dist < %f && timeleft > 100e3 && "
     "b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
     , distcut);
   char cut[1000];
-  snprintf(cut, 999, "latennear >= %d && latennear <= %d && %s", ncutmin, ncutmax, distcut, cutnoncut);
+  snprintf(cut, 999, "latennear == %d && %s", nreq, distcut, cutnoncut);
 
-  const double distcuteff = (distcut == 400?0.944:distcut == 300?0.852:distcut == 200?0.565:distcut==159?0.376:100000);
 
   const double bglow = 7.13*3, bghigh = 100, siglow = 0.3, sighigh = 0.801*2;
+
+  // delta r cut is by region below
   const double eff = 1
-    * 0.981 // subsequent muons
+    * 0.962 // subsequent muons with 1ms veto
     * 0.977 // previous muons
-    * distcuteff // delta r
     * 0.9709 // 100s from end of run
     * 0.986 // ttlastvalid
-    * 0.96 // ttlastmuon
     * 0.994 // b12like
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
   // must cut on late neutrons for these to be valid
-  teff[0] = eff * pow(0.5685, ncutmin);
-  teff[1] = eff * pow(0.6437, ncutmin);
-  teff[2] = eff * pow(0.6634, ncutmin);
-  teff[3] = eff * pow(0.6906, ncutmin);
-  teff[4] = eff * pow(0.90,   ncutmin);
+  // neutron efficiency various by region within the target
+  // due to different muon track lengths
+  teff[0] = eff * effbyregion[0] * pow(0.5685, nreq);
+  teff[1] = eff * effbyregion[1] * pow(0.6437, nreq);
+  teff[2] = eff * effbyregion[2] * pow(0.6634, nreq);
+  teff[3] = eff * effbyregion[3] * pow(0.6906, nreq);
+  teff[4] = eff * effbyregion[4] * pow(0.90,   nreq);
 
+  for(int i = 0; i < nrbins; i++)
+    printf("%sEfficiency in region %d: %.1f%s\n",
+           RED, i, 100*teff[i], CLR);
+
+/*
   const double li8eff = 1
-    * 0.981 // subsequent muons
+    * 0.962 // subsequent muons with 1ms veto
     * 0.977 // previous muons
-    * distcuteff // delta r
     * 0.9709 // 100s from end of run
     * 0.986 // ttlastvalid
-    * 0.96 // ttlastmuon
     * 0.9994 // b12like
     * (exp(-siglow*log(2)/0.8399) - exp(-sighigh*log(2)/0.8399))
-  ;
+  ; */
 
 //#include "ehistbg.C"
 //#include "ehistsig.C"
@@ -167,7 +189,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   double nfracerr[nrbins];
 
   TH2D tmp("tmp", "", 2, 0, 2, nrbins, 0, nrbins);
-  t->Draw(Form("classi(dx, dy, dz):latennear>=%d && latennear <= %d >> tmp", ncutmin, ncutmax),
+  t->Draw(Form("classi(dx, dy, dz):latennear==%d >> tmp", nreq),
           "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
   for(int i = 0; i < nrbins; i++){
     double muonswithn = tmp.GetBinContent(2, i+1);
@@ -175,7 +197,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
     nfrac[i] = muonswithn/allmuons;
     nfracerr[i] = sqrt(nfrac[i]*(1-nfrac[i]))/sqrt(allmuons);
-    printf("frac with %d-%d neutrons in %d is %f\n", ncutmin, ncutmax, i, nfrac[i]);
+    printf("frac with %d neutrons in %d is %f\n", nreq, i, nfrac[i]);
   }
 
   if(!ehistbg){ 
@@ -266,7 +288,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
   mn->mnparm(2, "bgtargmid2",  1,     0.03,  0, 0, err);
   mn->mnparm(3, "bgtargout",   1,     0.03,  0, 0, err);
   mn->mnparm(4, "bggc",        1,     0.03,  0, 0, err);
-  mn->mnparm(5, "he6",         1,     0.01,  0, 1*(ncutmin>2?100:ncutmin>1?10:10), err);
+  mn->mnparm(5, "he6",         1,     0.01,  0, 1*(nreq>2?100:nreq>1?10:10), err);
   mn->mnparm(6, "li8targin",   0.003, 0.001, 0, 0.1, err);
   mn->mnparm(7, "li8targmid1", 0.003, 0.001, 0, 0.1, err);
   mn->mnparm(8, "li8targmid2", 0.003, 0.001, 0, 0.1, err);
@@ -288,7 +310,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     }
   }
 
-  if(ncutmin > 2){ // no n16, no li8
+  if(nreq > 2){ // no n16, no li8
     for(int i = nrbins+2+1; i < nrbins+2+1+4; i++){
       mn->Command(Form("SET PAR %d 0", li8fpn+i));
       mn->Command(Form("FIX %d", li8fpn+i));
@@ -314,7 +336,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     printf("%sSignificance of He-6: %f%s\n",
            RED, sqrt(chi2nohe6 - chi2he6), CLR);
 
-  const double upforlim = 2.71 + chi2nohe6 - chi2he6;
+  const double upforlim = 1.64237441514981608 + chi2nohe6 - chi2he6;
 
   double dum, bgnorm[nrbins], li8norm[nrbins], he6norm, n16norm[nrbins];
 
@@ -329,14 +351,14 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   int iforhe = 0;
   for(int i = 0; i < 11; i++){
-    printf("mn->fNexofi[%d] = %d\n", i, mn->fNexofi[i]);
+    //printf("mn->fNexofi[%d] = %d\n", i, mn->fNexofi[i]);
     if(mn->fNexofi[i] == he6fpn) iforhe = i;
   }
 
   he6normerrup = mn->fErp[iforhe];
   he6normerrlo = mn->fErn[iforhe];
 
-  const double captures = 489.509 * 367.;
+  const double captures = livetime * n_c12cap;
 
   double raw_nhe6 = 0, raw_signhe6up = 0, raw_signhe6lo = 0;
   double cooked_nhe6 = 0, cooked_signhe6up = 0, cooked_signhe6lo = 0;
@@ -356,40 +378,17 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   const double defaultfup = mn->fUp;
   mn->fUp = upforlim;
-  //mn->Command(Form("MINOS 10000 %d", he6fpn));
+  printf("Using fUp of %.2f\n", mn->fUp);
+  mn->Command(Form("MINOS 10000 %d", he6fpn));
   mn->fUp = defaultfup;
  
   double he6up90 = mn->fErp[he6fpn-1];
 
-  printf("%s 90%% upper limit: %f+%f = %f%s\n", RED, he6norm, he6up90, he6norm+he6up90, CLR);
+  const double he6norm90 = he6norm+he6up90; // XXX?
+  printf("%s 90%% upper limit: %f+%f = %f (fit parameter)%s\n",
+         "", he6norm, he6up90, he6norm90, "");
 
-  mn->Command(Form("Fix %d", he6fpn));
 
-  const double scan = he6up90 > 0.0001? he6up90: 0.001;
-/*
-  double sump = 0;
-  for(int i =0;i<1000; i++){
-    mn->Command(Form("set  par %d %f", he6fpn, i*0.01*scan));
-    mn->Command("Migrad");
-    const double p = exp(-mn->fAmin+chi2he6);
-    printf("%f\t%g\t%g\n", i*0.01*scan, -mn->fAmin+chi2he6, p);
-    sump += p;
-  }
-
-  double sump2 = 0;
-  int i;
-  for(i =0;i<1000; i++){
-    mn->Command(Form("set par %d %f", he6fpn, i*0.01*scan));
-    mn->Command("Migrad");
-    const double p = exp(-mn->fAmin+chi2he6);
-    sump2 += p;
-    printf("%f\t%g\n", i*0.01*scan, sump2/sump);
-    if(sump2>sump*0.9){ printf("%s 90% bays lim: %f (best = %f)%s\n", RED, i*0.01*scan, scan, CLR); break;}
-  }
-  const double he6norm90 = i*0.01*scan;
-*/
-
-  const double he6norm90 = he6up90; // XXX?
   double n90he6 = 0;
   for(int j = 1; j <= nrbins; j++){
     c2->cd(j);
@@ -416,7 +415,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
     ehistbg_p->Draw("samehist");
 
-    if(ncutmin < 3){
+    if(nreq < 3){
       n16spec_p->SetLineColor(kOrange);
       n16spec_p->Draw("samehist");
     }
@@ -429,7 +428,7 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
     TH1D * bg_plus_li8_n16 = (TH1D*)bg_plus_li8->Clone(Form("bg_plus_li8_n16_%d", j));
     bg_plus_li8_n16->Add(n16spec_p);
     bg_plus_li8_n16->SetLineColor(kViolet);
-    if(ncutmin < 3) bg_plus_li8_n16->Draw("samehist");
+    if(nreq < 3) bg_plus_li8_n16->Draw("samehist");
 
     TH1D * bg_plus_li8_n16_he6 = (TH1D*)bg_plus_li8_n16->Clone(Form("bg_plus_li8_n16_he6_%d", j));
     bg_plus_li8_n16_he6->Add(he6spec_p);
@@ -459,9 +458,43 @@ void he6finalfit(const int ncutmin_ = 0, const int ncutmax_ = 100,
 
   const char * const name = "";
 
-  c2->SaveAs(Form("he6-%s-ncut%d-%d-%d%d%d%d%d.pdf", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  c2->SaveAs(Form("he6-%s-ncut%d-%d-%d%d%d%d%d.C", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.pdf", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 
-  ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d-%d%d%d%d%d.C", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d-%d%d%d%d%d.C", name, ncutmin, ncutmax, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+
+
+  // conversion between the parameter value and production prob 
+  const double rat = (n90he6/captures)/he6norm90;
+
+  mn->SetPrintLevel(-1);
+  const double scan = 0;
+  double sump = 0;
+  const int N = 2000;
+  double ps[N];
+  for(int i = 0; i < N; i++){
+    const double prob = i*0.01/1000;
+    mn->Command(Form("rel %d\n", he6fpn));
+    mn->Command(Form("set par %d %f", he6fpn, prob / rat));
+    mn->Command(Form("fix %d\n", he6fpn));
+    mn->Command("Migrad");
+    const double p = exp(chi2he6-mn->fAmin);
+    printf("%f\t%g\t%g\n", prob, mn->fAmin-chi2he6, p);
+    sump += p;
+    ps[i] = p;
+  }
+
+  double sump2 = 0;
+  for(int i =0;i<N; i++){
+    const double prob = i*0.01/100;
+    sump2 += ps[i]/sump;
+    if(sump2 > 0.9){
+       printf("Bays limit = %f\n", prob);
+       break;
+    }
+  }
+
+  if(ps[N-1] > 1e-9)
+    printf("Not sure you integrated out far enough\n");
 }

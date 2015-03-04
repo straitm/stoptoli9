@@ -22,7 +22,7 @@ static void printfr(const char * const msg, ...)
 
 static const double energyeff = 0.83;  // B-12 energy cut
 static const double othereff = 0.977 // previous muons
-                             * 0.962 // subsequent muons
+                             * 0.981 // subsequent muons
                              * 0.9709; // time until end of run
 static const double errorecut = 0.02;
 static const double eff = othereff * energyeff;
@@ -132,12 +132,14 @@ static double fsysterr()
 
 const int nbin = 1000;
  
-double all(TTree * t, TF1 * ee)
+double all(TTree * t, TF1 * ee, const char * const addcut)
 {
   t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
-          "!(abs(dz) < 1229 && dx**2+dy**2 < 1150**2) && latennear == 0 && timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 15 && !earlymich", "e");
+          Form("(%s) && "
+          "latennear == 0 && timeleft > 100e3 && miche < 12 && "
+          "e > 4 && e < 15 && !earlymich", addcut), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
+  h->Fit("ee", "lq");
   h->Fit("ee", "li");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
   e.SetParameter(0, ee->GetParameter(0));
@@ -221,14 +223,15 @@ double all(TTree * t, TF1 * ee)
   return rawintegral;
 }
 
-void targ(const int nn, TTree * t, TF1 * ee, const double norm)
+void targ(const int nn, TTree * t, TF1 * ee, const char * const addcut,
+          const double norm)
 {
   printf("\nIn the target only:\n");
   t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
-          Form("latennear == %d && dx**2 + dy**2 < 1150**2 && "
-          "abs(dz) < 1229+0.03*(1150-sqrt(dx**2+dy**2)) &&"
+          Form("(%s) && latennear == %d && !(dx**2 + dy**2 < 1150**2 && "
+          "abs(dz) < 1229+0.03*(1150-sqrt(dx**2+dy**2))) &&"
           "timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 15 && !earlymich", nn), "e");
+          "e > 4 && e < 15 && !earlymich", addcut, nn), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "li");
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
@@ -261,10 +264,12 @@ void innertarg(const int nn, TTree * t, TF1 * ee, const double limr,
           ferrorfit * rawintegral/norm);
 }
 
-void b12finalfit()
+void b12finalfit(const char * const addcut = "1")
 {
+  printf("%sB-12 selection efficiency is %.1f%%%s\n", RED, eff*100, CLR);
+
   TFile *_file0 = TFile::Open(
-    "/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root");
+    "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root");
   TTree * t = (TTree *)_file0->Get("t");
   TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
      "[1]*exp(-x*log(2)/0.8399) + "
@@ -288,11 +293,11 @@ void b12finalfit()
   ee->FixParameter(6, 0);
   ee->FixParameter(7, 0);
 
-  const double norm = all(t, ee);
+  const double norm = all(t, ee, addcut);
 return; // <------
   ee->FixParameter(4, 0);
   ee->FixParameter(5, 15);
-  targ(0, t, ee, norm);
+  targ(0, t, ee, addcut, norm);
 
   innertarg(0, t, ee, 1045, 1127, norm);
   ee->FixParameter(2, 0);

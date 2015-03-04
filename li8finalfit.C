@@ -1,13 +1,18 @@
+#include "consts.h"
+
 void li8finalfit(const int nn)
 {
   const char * const RED     = "\033[31;1m"; // bold red
   const char * const CLR      = "\033[m"    ; // clear
 
-  TFile * fiel = new TFile("/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root", "read");
+  TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
-  const char * const cut = nn == 1? // terrible
+  const char * const cut =
+   nn == 1? // terrible
   "!earlymich && miche<12 && dist<400 && latennear==1 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02":
+   nn == -1?
+  "!earlymich && miche<12 && dist<400 &&                 e>5 && e<14 && timeleft>1e5 && b12like < 0.02":
   "!earlymich && miche<12 && dist<400 && latennear==0 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02";
 
   TCanvas * c1 = new TCanvas;
@@ -79,19 +84,20 @@ void li8finalfit(const int nn)
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.944 // delta r
+    * 0.9156 // delta r
     * 0.9709 // 100s from end of run
     * 0.71 // energy
-    * (nn?0.8148:1) // neutron, terrible code
+    * (nn == 1?overalllateneff:1) // neutron, terrible code
     * 0.906 // b12likelihood
   ;
 
-  const double captures = (nn == 0?356.138463:3.542613)*489.509 ;
+  const double captures = (nn == 0?n_c12cap:nn==-1?n_c12cap+n_c13cap:n_c13cap)*livetime;
 
   const double toprob = 1./captures/eff;
 
-  printf("%sProb per C-%d: %g +%g %g%s\n", 
-      RED, nn?13:12, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+  printf("Efficiency: %.2f%%\n", eff*100);
+  printf("%sProb per C-%s: %g +%g %g%s\n", 
+      RED, nn==1?"13":n==-1?"nat":"12", toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 /*
   TCanvas * c3 = new TCanvas;
 

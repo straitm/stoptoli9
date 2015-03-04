@@ -9,7 +9,7 @@ void doit(const int run, const int mutrig, TTree * ts)
 
 void getearlymich()
 {
-  TFile fs("/cp/s4/strait/fullfido-100s-3-25MeV-20140925-earlymich.root", "read");
+  TFile fs("/cp/s4/strait/fullfido-100s-3-25MeV-20150204-earlymich.root", "read");
   TTree * ts = (TTree *)fs.Get("t"); 
 
   ts->SetBranchStatus("*", 0);

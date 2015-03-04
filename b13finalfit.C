@@ -22,39 +22,6 @@ static double nb12life = 0.02020/log(2.), // +- 0.00002 (0.02ms) (0.1%)
               n16life = 7.13  /log(2.), // +- 0.02 (0.3%) 
               be11life=13.81  /log(2.); // +- 0.08 (0.6%)
 
-static const double n16eff = 1
-  * 0.981 // subsequent muons
-  * 0.977 // previous muons
-  * 0.565 * 0.8 // delta r for 200mm, fudged down for 6.1MeV gammas
-  * 0.9709 // 100s from end of run
-  * 0.798 // energy, from MC, a bit rough
-  * 0.986 // from ttlastvalid cut, very naive
-  * 0.96 // from ttlastmuon cut, vary naive
-  * 0.994 // b12like
-;
-
-static const double be11eff = 1
-  * 0.981 // subsequent muons
-  * 0.977 // previous muons
-  * 0.565 // delta r for 200mm
-  * 0.9709 // 100s from end of run
-  * 0.705 // energy, estimated from scaled b12 mc
-  * 0.986 // from ttlastvalid cut, very naive
-  * 0.96 // from ttlastmuon cut, vary naive
-  * 0.994 // b12like
-;
-
-static const double c15eff = 1
-  * 0.981 // subsequent muons
-  * 0.977 // previous muons
-  * 0.565 * 0.82 // delta r for 200mm, fudged down for 5.X MeV gammas
-  * 0.9709 // 100s from end of run
-  * 0.789 // energy, estimated from scaled n16 MC
-  * 0.986 // from ttlastvalid cut, very naive
-  * 0.96 // from ttlastmuon cut, vary naive
-  * 0.994 // b12like
-;
-
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   const double acc = par[0], b12 = par[1], li8 = par[2],
@@ -83,24 +50,6 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   like += pow((b12life - 20.20e-3/log(2))/0.02e-3*log(2),2);
   like += pow((b13life - 17.33e-3/log(2))/0.17e-3*log(2),2);
-
-}
-
-static void scalemarker(TMarker * m)
-{
-  const double newx = m->GetX() * c15life/c15eff;
-  const double newy = m->GetY() * be11life/be11eff;
-  m->SetX(newx);
-  m->SetY(newy);
-}
-
-static void scalegraph(TGraph * g)
-{
-  for(int i = 0; i < g->GetN(); i++){
-    const double newx = g->GetX()[i] * c15life/c15eff;
-    const double newy = g->GetY()[i] * be11life/be11eff;
-    g->SetPoint(i, newx, newy);
-  }
 }
 
 void b13finalfit()
@@ -108,7 +57,7 @@ void b13finalfit()
   const bool fit = true;
 
   TFile * fiel= 
-    new TFile("/cp/s4/strait/fullfido-300s-3-25MeV-20141117.root","read");
+    new TFile("/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root","read");
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas("c1", "c1", 1000, 1000);
@@ -118,8 +67,7 @@ void b13finalfit()
   const char * const CLR = "\033[m"    ; // clear
 
   const char * const scutwoe = "!earlymich && latennear == 0 && miche < 12 "
-    "&& dist < 400 && ttlastvalid > 0.1 && ttlastmuon > 1 && "
-    "timeleft > 10.001e3 ";
+    "&& dist < 400 && timeleft > 10.001e3 ";
 
   const char * const cute = "e > 4 && e < 15";
 
@@ -128,12 +76,12 @@ void b13finalfit()
   const string scut = Form("%s && %s && %s", scutwoe, cutb12, cute);
 
   printf("Drawing...\n");
-  t->Draw(Form("dt/1000 >> hfit(%d, %f, %f)", nbins, lowtime, hightime),
+  t->Draw(Form("dt/1000 - 2.028e-6 >> hfit(%d, %f, %f)", nbins, lowtime, hightime),
           scut.c_str());
   TH1D * hfit = (TH1D*)gROOT->FindObject("hfit");
 
   printf("Drawing...\n");
-  t->Draw(Form("dt >> hdisp(%d, %f, %f)", 100, 1., 501.),
+  t->Draw(Form("dt - 2.028e-3 >> hdisp(%d, %f, %f)", 100, 1., 501.),
           scut.c_str(), "e");
   TH1D * hdisp = (TH1D*)gROOT->FindObject("hdisp");
 
@@ -203,30 +151,18 @@ void b13finalfit()
   b13->SetNpx(400);
 
   li8->Draw("same");
-//c15->Draw("same");
-//n16->Draw("same");
-//be11->Draw("same");
   b13->Draw("same");
   b12->Draw("same");
 
   new TCanvas;
 
   mn->fUp = 2.3; // 90% in 1D
-  mn->Command("set print 0");
-  mn->Command("mncont 7 9");
+  mn->Command("MINOS 10000 7");
 
-  TGraph * ninty_1d =
-    mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
-
-  if(ninty_1d) ninty_1d->Draw("alf");
-
-  mn->Command("set print -3");
-  for(int i = 0; i < 10; i++){
-    mn->Command(Form("SET PAR 7 %f", i*0.1*3.68e4));
-    mn->Command("FIX 7");
-    mn->Command("MIGRAD");
-    printf("%f: %f\n", i*0.1, mn->fAmin);
-  }
-
-  
+  b13->SetParameter(0, mn->fErp[6]*hdisp->GetBinWidth(1)/1000);
+  b13->SetParameter(1, 17.33/log(2));
+  const double limrat = b13->Integral(0, 200)/b12->Integral(0, 200);
+  printf("%sAt 90%% CL, fraction of B-13 < %.3f%s\n", RED, limrat, CLR);
+  printf("%sAt 90%% CL, production prob of B-13 < %.3f%s\n",
+         RED, limrat/0.0108/0.93*0.186, CLR);
 }

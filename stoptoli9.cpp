@@ -77,9 +77,9 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
       continue;
 
 
-    const double mux = fidocorrx(parts.ids_end_x, parts.ids_gclen, parts.ids_theta, parts.ids_phi),
-                 muy = fidocorry(parts.ids_end_y, parts.ids_gclen, parts.ids_theta, parts.ids_phi),
-                 muz = fidocorrz(parts.ids_end_z, parts.ids_gclen, parts.ids_theta);
+    const double mux = fidocorrx(parts.ids_end_x),
+                 muy = fidocorry(parts.ids_end_y),
+                 muz = fidocorrz(parts.ids_end_z);
     const double imux = parts.ids_entr_x,
                  imuy = parts.ids_entr_y,
                  imuz = parts.ids_entr_z;
@@ -147,7 +147,8 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
            (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
         continue;
 
-      // near the point the muon stopped (~97% efficient - doc4450)
+      // near the point the muon stopped (~97.296% efficient, at least
+      // for nH - doc4450)
       if(sqrt(pow(mux - bamacorrxy(parts.ctX[0], parts.ctEvisID), 2)
              +pow(muy - bamacorrxy(parts.ctX[1], parts.ctEvisID), 2)
              +pow(muz - bamacorrz( parts.ctX[2], parts.ctEvisID), 2))
@@ -170,7 +171,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
 
 int main()
 {
-  gErrorIgnoreLevel = kError;
+  //gErrorIgnoreLevel = kError;
   unsigned int errcode = 0;
   std::string line;
 

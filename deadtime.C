@@ -27,6 +27,6 @@ double gceff(const float fidoqid, bool incearly)
 double eff(const float fidoqid, const double x, const double y,
            const double z, const bool early = false)
 {
-  return fabs(z) < 1229 + 0.03*1150 && x*x+y*y < 1160*1160? 
+  return fabs(z) < 1233 + 0.03*(1154-sqrt(x*x+y*y)) && x*x+y*y < 1154*1154? 
          targeff(fidoqid, early): gceff(fidoqid, early);
 }

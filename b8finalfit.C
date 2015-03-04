@@ -1,6 +1,8 @@
+#include "consts.h"
+
 void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
 {
-  TFile * fiel = new TFile("/cp/s4/strait/fullfido-100s-3-25MeV-20141022.root", "read");
+  TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
@@ -43,14 +45,18 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
     ee->FixParameter(4, 0);
   }
 
+  ee->FixParameter(1, 0);
+  hfit->Fit(Form("ee%d", nncut), "l");
+  ee->ReleaseParameter(1);
   hfit->Fit(Form("ee%d", nncut), "le");
 
   if(ee->GetParameter(0) < 1e-6){
     ee->FixParameter(0, 0);
+    p0isfixed = 1;
     hfit->Fit(Form("ee%d", nncut), "le");
   }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
+  t->Draw(Form("dt/1000 >> hdisp%d(400, 0.001, 20.001)", nncut), cut, "hist");
   TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
@@ -120,15 +126,16 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.944 // delta r
+    * 0.9156 // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff
   ;
 
   printf("neutron efficiency: %.3f\n", neff);
+  printf("overall efficiency: %.3f\n",  eff);
 
-  const double captures = 358. * 489.509;
+  const double captures = n_c12cap * livetime;
 
   const double toprob = 1./captures/eff;
 

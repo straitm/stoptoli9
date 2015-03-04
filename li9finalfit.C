@@ -1,3 +1,5 @@
+#include "consts.h"
+
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR      = "\033[m"    ; // clear
 
@@ -5,31 +7,28 @@ const int npar = 10;
 
 const float dist = 300;
 
-const double livetime = 489.509, n_c12cap = 356., n_c13cap=3.54;
-const double n_o16cap = 9.0; // after all acrylic efficiencies
-const double nstop = 4.63e3;
-const double nstoptarg = 139.0;
-
 // bn decay probability multiplied by the number of captures relative
 // to C-12
 const double li9ebn = 0.5080,
              he8ebn = 0.1600,
-             c16ebn = 0.99  * 88.0/102.5*0.00243*n_o16cap/n_c12cap,
-             n17ebn = 0.951 * 88.0/102.5*0.00243*n_o16cap/n_c12cap,
+             c16ebn = 0.99  * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
+             n17ebn = 0.951 * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
              b13ebn = 0.0029 * n_c13cap/n_c12cap,
              li11ebn = 0.789 * n_c13cap/n_c12cap;
              
-const double distcuteff = (dist == 400?0.944:dist == 300?0.852:
-                           dist == 200?0.565:dist==159?0.376:100000);
+const double distcuteffgc = 0.7493,
+             distcutefftarg = 0.9222;
 
 // 100s begin-of-run requirement taken into account here
-const double denominator = 0.9709*livetime*n_c12cap*distcuteff;
+const double denominator = 0.9709*livetime*n_c12cap;
 
 const double gdcapfrac = 0.871;
 
 /* DC3rdPub product of muon, light noise, OV, multiplicity,
    neutron (E, t, R), FV and IV efficiencies */
-const double Geff_sans_prompt_or_mun = (1-4.49/100.)*
+const double Geff_sans_prompt_or_mun =
+       distcutefftarg*
+       (1-4.49/100.)*
        (1-0.01/100.)*
        (1-0.06/100.)*
        (1-1.06/100.)*
@@ -38,6 +37,7 @@ const double Geff_sans_prompt_or_mun = (1-4.49/100.)*
        (1-0.04/100.);
 
 const double Heff_sans_prompt_or_mun =
+       distcuteffgc* // XXX not quite right: there can be Hn in the target
        (1-1.25*4.49/100.)* // muon - ok, straightforwards scaling
        (1-0.01/100.)* // ? LN - same cut, but not obviously same eff
                       // however, *very* small for Gd, so...
@@ -51,8 +51,7 @@ const double Heff_sans_prompt_or_mun =
 
 
 // But not the actual gd fraction because of geometrical effects
-const double expectedgdfrac = gdcapfrac*nstoptarg/n_c12cap;
-
+const double expectedgdfrac = gdcapfrac*n_c12captarget/n_c12cap;
 
 int whichh = 0;
 void drawhist(TTree * tgsel, TTree * thsel,
@@ -330,9 +329,9 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   // 
   // Neutron efficiencies are assuming any within the Michel window
   // are rejected.
-  Geff=(neutrons > 0?pow(0.97*0.63, neutrons):1)*0.996
+  Geff=(neutrons > 0?pow(0.97296*0.63, neutrons):1)*0.996
         *Geff_sans_prompt_or_mun,
-  Heff=(neutrons > 0?pow(0.97*0.90, neutrons):1)*0.993
+  Heff=(neutrons > 0?pow(0.97296*0.90, neutrons):1)*0.993
         *Heff_sans_prompt_or_mun;
 
   ///////////////////////////////////////////////////////////////////
@@ -348,8 +347,8 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   TTree tg("t", "t");
   TTree th("t", "t");
-  tg.ReadFile("li9ntuples/li9-20141204.Gd.ntuple");
-  th.ReadFile("li9ntuples/li9-20141204.H.ntuple");
+  tg.ReadFile("/cp/s4/strait/li9ntuples/li9-20150219.Gd.ntuple");
+  th.ReadFile("/cp/s4/strait/li9ntuples/li9-20150219.H.ntuple");
 
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
@@ -380,7 +379,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   lastgraphstyle(dyz, 0);
   tg.Draw("mz-dz:my-dy", Form("%s && dt/1000 < %f", cut, plotsigtime),"%same");
   lastgraphstyle(dyz, 0);
-return;
+
   TCanvas * muenergy = new TCanvas("muenergy", "muenergy", 200, 200);
   th.Draw("dedxslant >> muqivbg(25, 0, 12000)", Form("%s && dt/1000 > 5  ", cut), "hist");
   tg.Draw("dedxslant >> +muqivbg", Form("%s && dt/1000 > 5  ", cut), "esame");
@@ -545,10 +544,6 @@ return;
            RED, mn->fAmin, getpar(mn, 2)*n_c12cap/(n_c12cap+n_c13cap),
            mn->fErn[2]*n_c12cap/(n_c12cap+n_c13cap),
            mn->fErp[2]*n_c12cap/(n_c12cap+n_c13cap),
-           CLR);
-    printf("%sLi-9 prob/stop with everything except He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/nstop,
-           mn->fErn[2]*n_c12cap/nstop, mn->fErp[2]*n_c12cap/nstop,
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
