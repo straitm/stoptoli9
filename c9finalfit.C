@@ -200,7 +200,7 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
   printf("%sIf no events and no background: <%f%s\n", 
-      RED, 2.3*toprob*1.048, CLR);
+      RED, 2.3*toprob*lim_inflation_for_obeta, CLR);
 
 /*
 TF1 chi("chi", "ROOT::Math::chisquared_pdf(x/5., 2) +ROOT::Math::chisquared_pdf(x/5.25, 2) +ROOT::Math::chisquared_pdf(x/5.5, 2) +ROOT::Math::chisquared_pdf(x/5.75, 2) +ROOT::Math::chisquared_pdf(x/6., 2) +ROOT::Math::chisquared_pdf(x/6.25, 2) +ROOT::Math::chisquared_pdf(x/6.5, 2) +ROOT::Math::chisquared_pdf(x/6.75, 2) +ROOT::Math::chisquared_pdf(x/7., 2) +ROOT::Math::chisquared_pdf(x/7.25, 2) +ROOT::Math::chisquared_pdf(x/7.5, 2) +ROOT::Math::chisquared_pdf(x/7.75, 2) +ROOT::Math::chisquared_pdf(x/8., 2) +ROOT::Math::chisquared_pdf(x/8.25, 2) +ROOT::Math::chisquared_pdf(x/8.5, 2) +ROOT::Math::chisquared_pdf(x/8.75, 2) +ROOT::Math::chisquared_pdf(x/9., 2) +ROOT::Math::chisquared_pdf(x/9.25, 2) +ROOT::Math::chisquared_pdf(x/9.5, 2) +ROOT::Math::chisquared_pdf(x/9.75, 2) +ROOT::Math::chisquared_pdf(x/10., 2)", 0, 100)

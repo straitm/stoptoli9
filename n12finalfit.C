@@ -178,10 +178,7 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
-  printf("%sIf you see none before 22ms with no background: < %f\n%s", RED, 2.3/eff/captures/0.75*1.048, CLR);
-  printf("This uses the central value for O captures.\n");
-  printf("I did a numerical integration that provides a very small correction\n");
-  printf("given the factor of 2 uncertainty in the denominator.  Is it right?\n");
+  printf("%sIf you see none before 23ms with no background: < %f\n%s", RED, 2.3/eff/captures/0.75*lim_inflation_for_obeta, CLR);
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

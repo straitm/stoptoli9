@@ -822,9 +822,6 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
                       TTree * const chtree)
 {
   TBranch 
-    #ifdef MULTIRUNFILES
-    * const runbr      = chtree->GetBranch("run"),
-    #endif
     * const qrmsbr     = chtree->GetBranch("qrms"),
     * const ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
     * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
@@ -840,11 +837,6 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
 
   int found = 0;
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
-    #ifdef MULTIRUNFILES
-    runbr->GetEntry(i);
-    if(bits.run != murun) break; // Stop at run boundaries
-    #endif
-
     trgtimebr->GetEntry(i);
     const double dt = bits.trgtime - mutime;
     if(dt > mindtmu) break;
@@ -948,11 +940,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
-#ifdef MULTIRUNFILES
-    runbr->GetEntry(i);
-    if(bits.run != murun) break; // Stop at run boundaries
-#endif
-
     trgtimebr->GetEntry(i);
     coinovbr->GetEntry(i);
     const double dt = bits.trgtime - mutime;
@@ -1019,11 +1006,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     ctXbr->GetEntry(i);
 
-    // Changed from 800 to 1000, 2015-03-04
+    // Note, not 1000mm, but 800mm.
     const bool nnear =
       sqrt(pow(mux - bamacorrxy(bits.ctX[0], bits.ctEvisID), 2)+
            pow(muy - bamacorrxy(bits.ctX[1], bits.ctEvisID), 2)+
-           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 1000;
+           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 800;
 
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
@@ -1053,11 +1040,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
-#ifdef MULTIRUNFILES
-    runbr->GetEntry(i);
-    if(bits.run != murun) break; // Stop at run boundaries
-#endif
-
     trgtimebr->GetEntry(i);
 
     const double itime = bits.trgtime;
@@ -1066,41 +1048,38 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const double ttlastmuon  =(itime-lastmuontime   )/1e6;
     const double ttlastgcmuon=(itime-lastgcmuontime )/1e6;
 
+     // NOTE-luckplan
+     #define LATEFORM \
+     "%d %d %d " \
+     "%f %f %f %f %f " \
+     "%d %d %d %d %d %d %d %d " \
+     "%lf %.0lf %f %f %f %f %.0f %f %f " \
+     "%f %f %f %f %f %f %f %f %d %f %f %f %d"
+
+     #define LATEVARS \
+     murun, mutrgid, mucoinov, \
+     mux, muy, muz, murchi2, muivdedx, \
+     ngdneutronnear[0], ngdneutronanydist[0], \
+     nneutronnear[0],  nneutronanydist[0], \
+     ngdneutronnear[1], ngdneutronanydist[1], \
+     nneutronnear[1],  nneutronanydist[1], \
+     michele, michelt, gclen, entr_mux, entr_muy, entr_muz, \
+     deadtime, nondeadenergy, michdist, \
+     mufqid, mufqiv, muctqid, muctqiv, \
+     timeleft, ttlastvalid, ttlastmuon, \
+     ttlastgcmuon, followingov, followingovtime, \
+     followingqiv, followingqivtime, printed
+
+    if(dt_ms > maxtime){ // stop looking and print muon info
+      if(printed == 0) printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
+      break;
+    }
+
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
     if(ttlastmuon < 0.5) goto end;
 
     if(dt_ms < 1) goto end; // Go past all H neutron captures
-
-    if(dt_ms > maxtime){ // stop looking
-      if(printed == 0)
-        // NOTE-luckplan
-        printf("0 0 0 0 0 0 0 0 0 "
-               #define LATEFORM \
-               "%d %d %d " \
-               "%f %f %f %f %f " \
-               "%d %d %d %d %d %d %d %d " \
-               "%lf %.0lf %f %f %f %f %.0f %f %f " \
-               "%f %f %f %f %f %f %f %f %d %f %f %f %d"
-               LATEFORM
-               "\n",
-               /* 0, 0, 0, 0, 0, 0, 0, */
-               #define LATEVARS \
-               murun, mutrgid, mucoinov, \
-               mux, muy, muz, murchi2, muivdedx, \
-               ngdneutronnear[0], ngdneutronanydist[0], \
-               nneutronnear[0],  nneutronanydist[0], \
-               ngdneutronnear[1], ngdneutronanydist[1], \
-               nneutronnear[1],  nneutronanydist[1], \
-               michele, michelt, gclen, entr_mux, entr_muy, entr_muz, \
-               deadtime, nondeadenergy, michdist, \
-               mufqid, mufqiv, muctqid, muctqiv, \
-               timeleft, ttlastvalid, ttlastmuon, \
-               ttlastgcmuon, followingov, followingovtime, \
-               followingqiv, followingqivtime, printed
-              LATEVARS);
-      break;
-    }
 
     ctEvisIDbr->GetEntry(i);
     if(bits.ctEvisID == 0){
@@ -1220,6 +1199,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
     }
 
+    // at EOR, be sure to print muon info
+    if(i == chtree->GetEntries()-1 && printed == 0)
+      printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
   }
   if(got){
     printf("\n");
@@ -1398,26 +1380,28 @@ int main(int argc, char ** argv)
   int errcode = 0;
 
   // NOTE-luckplan
-  printf("trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
-         "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
-         "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
-         "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
-         "fex/F:fey/F:fez/F:deadt/F:"
-         "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
-         "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
-         "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
-         "ndecay/I");
+  printf(
+    "trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
+    "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
+    "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
+    "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
+    "fex/F:fey/F:fez/F:deadt/F:"
+    "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
+    "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
+    "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
+    "ndecay/I");
   if(is_be12search) // same as above with 2s appended to each name
                     // some are dumb, since, i.e., mutrig === mutrig2
-    printf(":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
-           "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
-           "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
-           "latengd2/I:latennear2/I:laten2/I:miche2/F:micht2/F:gclen2/F:"
-           "fex2/F:fey2/F:fez2/F:deadt2/F:"
-           "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
-           "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
-           "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
-           "ndecay2/I");
+    printf(
+      ":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
+      "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
+      "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
+      "latengd2/I:latennear2/I:laten2/I:miche2/F:micht2/F:gclen2/F:"
+      "fex2/F:fey2/F:fez2/F:deadt2/F:"
+      "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
+      "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
+      "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
+      "ndecay2/I");
   printf("\n");
 
   for(int i = 4; i < argc; i+=2){

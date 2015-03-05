@@ -1,3 +1,4 @@
+#include "consts.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TF1.h"
@@ -7,9 +8,6 @@
 #include <stdio.h>
 #include <vector>
 using std::vector;
-
-const char * const RED     = "\033[31;1m"; // bold red
-const char * const CLR      = "\033[m"    ; // clear
 
 static void printfr(const char * const msg, ...)
 {
@@ -27,17 +25,12 @@ static const double othereff = 0.977 // previous muons
 static const double errorecut = 0.02;
 static const double eff = othereff * energyeff;
 static const double ferr_energy = errorecut/energyeff;
-static const double livedays = 489.509;
 
 static const double capprob12 = (37.9/(37.9 + 1/2197e-6));
 static const double ferrcapprob12 = 5./379.;
 
 static const double capprob13 = (35.0/(35.0 + 1/2197e-6));
 static const double ferrcapprob13 = 2./35.0;
-
-static const double nefftarg = 0.63*0.97;
-// innermost first
-static const double neffsmaller[3] = {0.5685*0.97, 0.6437*0.97, 0.6634*0.97 };
 
 TRandom3 ran;
 
@@ -54,16 +47,21 @@ static const double ferrorp13op12 =
 double conversion(const bool nominal = false)
 {
   const double e0 = 0.99983;
-  const double e1 = 0.8162*0.97;
+
+  // only valid for full detector analysis
+  const double e1 = neff_dr_800_avg*neff_dt_avg;
+  
+  // For the (whole) target
+  //const double e1 = neff_dr_800_targ*neff_dt_targ;
 
   const double p1212 = 0.18602; // NOM
   const double p1212_hi = 0.1981, p1212_lo = 0.1739;
 
 
   // my guesses for the 13->13 and 13-12 reactions
-  const double p1313 = 0.2, p1312 = 0.5;
+  const double p1313 = 0.2, p1312 = 0.43;
   const double p1313_lo = 0.1, p1313_hi = 0.3;
-  const double p1312_lo = 0.3, p1312_hi = 0.7;
+  const double p1312_lo = 0.43-0.08, p1312_hi = 0.43+0.08;
 
   double caprat_now = caprat + ran.Gaus(0, ferrorp13op12*caprat);
   if(caprat_now < 0) caprat_now = 0;
@@ -149,7 +147,7 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
 
   printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
 
-  const double integral_pd_oec = rawintegral/livedays/eff;
+  const double integral_pd_oec = rawintegral/livetime/eff;
   printf("b12 raw per day with overall eff corrected\n\t%f +- %f\n",
          integral_pd_oec, ferrorfit * integral_pd_oec);
 
@@ -268,8 +266,7 @@ void b12finalfit(const char * const addcut = "1")
 {
   printf("%sB-12 selection efficiency is %.1f%%%s\n", RED, eff*100, CLR);
 
-  TFile *_file0 = TFile::Open(
-    "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root");
+  TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
   TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
      "[1]*exp(-x*log(2)/0.8399) + "

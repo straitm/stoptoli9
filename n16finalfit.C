@@ -328,7 +328,7 @@ void n16finalfit()
   if(ninty_1d){
     for(int i = 0; i < ninty_1d->GetN(); i++){
       // Correction for uncertainty on O-16 denominator
-      if(ninty_1d->GetX()[i] >  c15lim)  c15lim = 1.048*ninty_1d->GetX()[i];
+      if(ninty_1d->GetX()[i] >  c15lim)  c15lim = lim_inflation_for_obeta*ninty_1d->GetX()[i];
       if(ninty_1d->GetY()[i] > be11lim) be11lim = ninty_1d->GetY()[i];
     }
   }

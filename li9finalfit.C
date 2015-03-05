@@ -22,8 +22,6 @@ const double distcuteffgc = 0.7493,
 // 100s begin-of-run requirement taken into account here
 const double denominator = 0.9709*livetime*n_c12cap;
 
-const double gdcapfrac = 0.871;
-
 /* DC3rdPub product of muon, light noise, OV, multiplicity,
    neutron (E, t, R), FV and IV efficiencies */
 const double Geff_sans_prompt_or_mun =
@@ -37,7 +35,11 @@ const double Geff_sans_prompt_or_mun =
        (1-0.04/100.);
 
 const double Heff_sans_prompt_or_mun =
-       distcuteffgc* // XXX not quite right: there can be Hn in the target
+  (
+  (n_c12cap - n_c12captarget)      * distcuteffgc
++ n_c12captarget * (1-gd_fraction) * distcutefftarg
+  )/  
+  (n_c12cap - gd_fraction*n_c12captarget)* 
        (1-1.25*4.49/100.)* // muon - ok, straightforwards scaling
        (1-0.01/100.)* // ? LN - same cut, but not obviously same eff
                       // however, *very* small for Gd, so...
@@ -51,7 +53,7 @@ const double Heff_sans_prompt_or_mun =
 
 
 // But not the actual gd fraction because of geometrical effects
-const double expectedgdfrac = gdcapfrac*n_c12captarget/n_c12cap;
+const double expectedgdfrac = gd_fraction*n_c12captarget/n_c12cap;
 
 int whichh = 0;
 void drawhist(TTree * tgsel, TTree * thsel,
@@ -329,10 +331,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   // 
   // Neutron efficiencies are assuming any within the Michel window
   // are rejected.
-  Geff=(neutrons > 0?pow(0.97296*0.63, neutrons):1)*0.996
-        *Geff_sans_prompt_or_mun,
-  Heff=(neutrons > 0?pow(0.97296*0.90, neutrons):1)*0.993
-        *Heff_sans_prompt_or_mun;
+  Geff=(neutrons > 0?pow(neff_dr_1000_gd*neff_dt_targ, neutrons):1)
+    *0.996*Geff_sans_prompt_or_mun,
+  Heff=(neutrons > 0?pow(neff_dr_1000_h*neff_dt_h, neutrons):1)
+    *0.993*Heff_sans_prompt_or_mun;
 
   ///////////////////////////////////////////////////////////////////
  
