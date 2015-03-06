@@ -1,3 +1,5 @@
+#include "consts.h"
+
 #include "TMarker.h"
 #include "TH1.h"
 #include "TROOT.h"
@@ -56,8 +58,7 @@ void b13finalfit()
 {
   const bool fit = true;
 
-  TFile * fiel= 
-    new TFile("/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root","read");
+  TFile * fiel= new TFile(rootfile3up,"read");
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas("c1", "c1", 1000, 1000);

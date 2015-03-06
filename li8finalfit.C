@@ -2,9 +2,6 @@
 
 void li8finalfit(const int nn)
 {
-  const char * const RED     = "\033[31;1m"; // bold red
-  const char * const CLR      = "\033[m"    ; // clear
-
   TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
@@ -79,15 +76,16 @@ void li8finalfit(const int nn)
   const double Nerrup = Nfound * gMinuit->fErp[1]/ee->GetParameter(1);
   const double Nerrlo = Nfound * gMinuit->fErn[1]/ee->GetParameter(1);
 
-  printf("%sN found: %f +%f %f%s\n", RED, Nfound, Nerrup, Nerrlo, CLR);
+  printf("%sN found, before efficiency: %f +%f %f%s\n",
+         RED, Nfound, Nerrup, Nerrlo, CLR);
 
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.9156 // delta r
+    * wholedet_dist400eff // delta r
     * 0.9709 // 100s from end of run
     * 0.71 // energy
-    * (nn == 1?overalllateneff:1) // neutron, terrible code
+    * (nn == 1?neff_dr_800_avg*neff_dt_avg:1) // neutron, terrible code
     * 0.906 // b12likelihood
   ;
 
@@ -95,9 +93,10 @@ void li8finalfit(const int nn)
 
   const double toprob = 1./captures/eff;
 
-  printf("Efficiency: %.2f%%\n", eff*100);
+  printf("neutron Efficiency: %.2f%%\n",  (nn == 1?neff_dr_800_avg*neff_dt_avg:1)*100);
+  printf("Total Efficiency: %.2f%%\n", eff*100);
   printf("%sProb per C-%s: %g +%g %g%s\n", 
-      RED, nn==1?"13":n==-1?"nat":"12", toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+      RED, nn==1?"13":nn==-1?"nat":"12", toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 /*
   TCanvas * c3 = new TCanvas;
 

@@ -147,8 +147,7 @@ static void stopper_search(dataparts & parts, TTree * const ctree,
            (parts.ctEvisID > 4.0 && parts.ctEvisID < 10 )))
         continue;
 
-      // near the point the muon stopped (~97.296% efficient, at least
-      // for nH - doc4450)
+      // near the point the muon stopped
       if(sqrt(pow(mux - bamacorrxy(parts.ctX[0], parts.ctEvisID), 2)
              +pow(muy - bamacorrxy(parts.ctX[1], parts.ctEvisID), 2)
              +pow(muz - bamacorrz( parts.ctX[2], parts.ctEvisID), 2))

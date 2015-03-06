@@ -66,3 +66,7 @@ const double neff_dr_1000_avg =
 // Divide by the case of perfectly known target mass, 2.3026 to get this
 // number.
 const double lim_inflation_for_obeta = 1.055239;
+
+const double wholedet_dist400eff = 0.9148;
+const double wholedet_dist300eff = 0.8121;
+const double wholedet_dist200eff = 0.5343;

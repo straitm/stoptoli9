@@ -6,11 +6,6 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
-//  c->Divide(2, 1);
-//  c->cd(1);
-
-  const char * const RED = "\033[31;1m"; // bold red
-  const char * const CLR = "\033[m"    ; // clear
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
@@ -45,18 +40,20 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
     ee->FixParameter(4, 0);
   }
 
-  ee->FixParameter(1, 0);
-  hfit->Fit(Form("ee%d", nncut), "l");
-  ee->ReleaseParameter(1);
-  hfit->Fit(Form("ee%d", nncut), "le");
+  if(hfit->GetEntries()){
+    ee->FixParameter(1, 0);
+    hfit->Fit(Form("ee%d", nncut), "l");
+    ee->ReleaseParameter(1);
+    hfit->Fit(Form("ee%d", nncut), "le");
+  }
 
   if(ee->GetParameter(0) < 1e-6){
     ee->FixParameter(0, 0);
     p0isfixed = 1;
-    hfit->Fit(Form("ee%d", nncut), "le");
+    if(hfit->GetEntries()) hfit->Fit(Form("ee%d", nncut), "le");
   }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(400, 0.001, 20.001)", nncut), cut, "hist");
+  if(hfit->GetEntries()) t->Draw(Form("dt/1000 >> hdisp%d(400, 0.001, 20.001)", nncut), cut, "hist");
   TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
@@ -107,9 +104,11 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double tp = 0.70, // accepting early Gd-n
-               gp = 0.90, // since not accepting early H-n
-               gf = 0.688, tf = 1-0.688; // sketchy, I think
+  const double
+    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
+    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
+    gf = 1-n_c12captarget/n_c12cap,
+    tf =   n_c12captarget/n_c12cap;
 
   double neffs[5] = {
        gf*          pow(1-gp,4)+tf*          pow(1-tp,4),
@@ -126,7 +125,7 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
   const double eff = 1
     * 0.981 // subsequent muons
     * 0.977 // previous muons
-    * 0.9156 // delta r
+    * wholedet_dist400eff // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy
     * neff
@@ -141,6 +140,13 @@ void b8finalfit(const int nncut = 3, const int nncuthigh = 4)
 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+
+  if(Nfound == 0){
+    const double N = 2.3026;
+    printf("%sProbability 90%% limit: %.2g%s\n",RED, toprob*N, CLR);
+  }
+
+  
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

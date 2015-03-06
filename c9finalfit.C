@@ -104,23 +104,25 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double tp = 0.70, // accepting early nGd
-               gp = 0.90, // since not accepting early nH
-               tedgep = 0.5449*tp+(1-0.5449)*gp,
-               gedgep = 0.499*gp;
+  const double 
+    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
+    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
+    tedgep = 0.55*tp+(1-0.55)*gp,
+    gedgep = 0.45*gp;
+
   // oxygen
-  double targrate = (1.39+0.70)/2,
-         targvesrate =  (10.01+4.48)/2 *   85./(85.+58.),
-         targbitsrate = (10.01+4.48)/2 *(1-85./(85.+58.)),
-         gcrate = (0.17+0.09)/2,
-         gcvesrate = (0.86+0.42)/2; 
+  double targrate = (1.362+0.681)/2,
+         targvesrate =  (4.393+9.820)/2 *   85./(85.+58.),
+         targbitsrate = (4.393+9.820)/2 *(1-85./(85.+58.)),
+         gcrate = (0.170+0.085)/2,
+         gcvesrate = (0.968+1.799)/2; 
 
   // nitrogen
   if(elem != 'o'){
-    targrate = (0.30+0.18)/2 * 4.57/(4.57 + 2.88),
+    targrate = (0.298+0.180)/2 * 4.57/(4.57 + 2.88),
     targvesrate =  0,
     targbitsrate = 0,
-    gcrate = (0.30+0.18)/2 * 2.88/(4.57 + 2.88),
+    gcrate = (0.298+0.180)/2 * 2.88/(4.57 + 2.88),
     gcvesrate = 0;
   }
 
@@ -199,21 +201,10 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
-  printf("%sIf no events and no background: <%f%s\n", 
-      RED, 2.3*toprob*lim_inflation_for_obeta, CLR);
+  printf("%sIf no events and no background: <%.2f%%%s\n", 
+      RED, 2.3026*toprob*lim_inflation_for_obeta*100, CLR);
 
-/*
-TF1 chi("chi", "ROOT::Math::chisquared_pdf(x/5., 2) +ROOT::Math::chisquared_pdf(x/5.25, 2) +ROOT::Math::chisquared_pdf(x/5.5, 2) +ROOT::Math::chisquared_pdf(x/5.75, 2) +ROOT::Math::chisquared_pdf(x/6., 2) +ROOT::Math::chisquared_pdf(x/6.25, 2) +ROOT::Math::chisquared_pdf(x/6.5, 2) +ROOT::Math::chisquared_pdf(x/6.75, 2) +ROOT::Math::chisquared_pdf(x/7., 2) +ROOT::Math::chisquared_pdf(x/7.25, 2) +ROOT::Math::chisquared_pdf(x/7.5, 2) +ROOT::Math::chisquared_pdf(x/7.75, 2) +ROOT::Math::chisquared_pdf(x/8., 2) +ROOT::Math::chisquared_pdf(x/8.25, 2) +ROOT::Math::chisquared_pdf(x/8.5, 2) +ROOT::Math::chisquared_pdf(x/8.75, 2) +ROOT::Math::chisquared_pdf(x/9., 2) +ROOT::Math::chisquared_pdf(x/9.25, 2) +ROOT::Math::chisquared_pdf(x/9.5, 2) +ROOT::Math::chisquared_pdf(x/9.75, 2) +ROOT::Math::chisquared_pdf(x/10., 2)", 0, 100)
-TF1 schi("schi", "ROOT::Math::chisquared_pdf(x/7.5, 2)", 0, 20*7.5)
-schi.Integral(1e-9, 4.6*7.5)/schi.Integral(1e-9, 20*7.5)
-chi.Integral(1e-9, 4.82*7.5)/chi.Integral(1e-9, 20*7.5)
- */
-
-  printf("This uses the central value for %c captures.\n", elem=='o'?'O':'N');
-  printf("I did a numerical integration that provides a very small correction\n");
-  printf("given the factor of 2 uncertainty in the denominator.  Is it right?\n");
-
-
+  printf("This is for %c captures.\n", elem=='o'?'O':'N');
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);

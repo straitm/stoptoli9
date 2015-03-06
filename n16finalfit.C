@@ -39,7 +39,7 @@ static const double n16eff = 1
 static const double be11eff = 1
   * 0.962 // subsequent muons, 1ms
   * 0.977 // previous muons
-  * 0.535 // delta r for 200mm
+  * wholedet_dist200eff // delta r for 200mm
   * 0.9709 // 100s from end of run
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
@@ -107,7 +107,8 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // value from Measday table 5.13, Kane column, but take Measday's 1%
   // error rather than the ~0.5% that Kane's errors sume to since he
   // probably knows better than me how much to trust Kane's errors.
-  like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life)/(n16eff*Ocaptures*0.025/n16life),2);
+  like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life)/
+                             (n16eff*Ocaptures*0.025/n16life), 2);
 }
 
 static void scalemarker(TMarker * m)
@@ -200,7 +201,8 @@ void n16finalfit()
     const double n16founderrup = n16found / val * mn->fErp[3];
     const double n16founderrlo = n16found / val * mn->fErn[3];
     
-    printf("%sN-16 found, no pull term, assuming no Be-11 or C-15 = %.0f +%.0f %.0f%s\n",
+    printf("%sN-16 found, no pull term, assuming no Be-11 or "
+           "C-15 = %.0f +%.0f %.0f%s\n",
            n16found, n16founderrup, n16founderrlo, RED, CLR);
   }
 
@@ -231,10 +233,27 @@ void n16finalfit()
 
   const double allchi2 = mn->fAmin;
 
+  {
+    TF1* n16= new TF1("n16i", Form("[0]*exp(-x/%f)", n16life), 0, hightime);
+    double val, derr;
+    mn->GetParameter(4, val, derr);
+    n16->SetParameter(0, val);
+    
+    const double n16found = n16->Integral(0, 200)/ n16eff;
+    const double n16founderrup = n16found / val * mn->fErp[4];
+    const double n16founderrlo = n16found / val * mn->fErn[4];
+    
+    printf("%sN-16 found, no pull term, Be-11 and C-15 free = "
+           "%.0f +%.0f %.0f%s\n",
+           n16found, n16founderrup, n16founderrlo, RED, CLR);
+  }
+
   printf("%sAll preferred to none, no pull, by %.1f%s\n", RED,
          sqrt(nothingchi2 - allchi2), CLR);
 
   dopull = 1;
+  mn->SetPrintLevel(0);
+  mn->Command("MIGRAD");
   command(mn, "MIGRAD");
   command(mn, "MINOS 10000 5");
 
@@ -345,16 +364,16 @@ void n16finalfit()
   scalegraph(ninty_2d);
 
   if(ninty_2d){
-  ninty_2d->GetXaxis()->SetTitle("Probability of ^{15}C (%)");
-  ninty_2d->GetYaxis()->SetTitle("Probability of ^{11}Be (%)");
-  ninty_2d->GetXaxis()->CenterTitle();
-  ninty_2d->GetYaxis()->CenterTitle();
-  ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
-  ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
-  ninty_2d->Draw("al");
-  
-  //ninty_1d->Draw("l");
-  onesigma_2d->Draw("l");
+    ninty_2d->GetXaxis()->SetTitle("Probability of ^{15}C (%)");
+    ninty_2d->GetYaxis()->SetTitle("Probability of ^{11}Be (%)");
+    ninty_2d->GetXaxis()->CenterTitle();
+    ninty_2d->GetYaxis()->CenterTitle();
+    ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
+    ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
+    ninty_2d->Draw("al");
+    
+    //ninty_1d->Draw("l");
+    onesigma_2d->Draw("l");
   }
   best->Draw();
   printf("best fit marker at %f %f\n", best->GetX(), best->GetY());

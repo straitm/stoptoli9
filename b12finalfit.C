@@ -1,5 +1,6 @@
 #include "consts.h"
 #include "TFile.h"
+#include "TMinuit.h"
 #include "TTree.h"
 #include "TF1.h"
 #include "TH1.h"
@@ -138,9 +139,14 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
           "e > 4 && e < 15 && !earlymich", addcut), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "lq");
+  h->Fit("ee", "lq");
   h->Fit("ee", "li");
+  gMinuit->Command("MINOS 10000 1");
+  ee->SetParError(0, (-gMinuit->fErn[0]+gMinuit->fErp[0])/2);
+
   TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
   e.SetParameter(0, ee->GetParameter(0));
+
 
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
@@ -274,6 +280,8 @@ void b12finalfit(const char * const addcut = "1")
      "[4]*exp(-x*log(2)/[5]) + "
      "[6]*exp(-x*log(2)/[7]) + "
      "[8]", 0, 100);
+  ee->SetParameter(0, 1e5);
+
   ee->SetParLimits(1, 0, 1e5/nbin);
 
   ee->SetParLimits(2, 0, 3e5/nbin);

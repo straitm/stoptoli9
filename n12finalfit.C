@@ -104,15 +104,28 @@ void n12finalfit(const int nncut = 3, const int nncuthigh = 4)
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-  const double tp = 0.70, // accepting early nGd
-               gp = 0.90, // since not accepting early nH
-               tedgep = 0.5449*tp+(1-0.5449)*gp,
-               gedgep = 0.499*gp;
+  const double
+    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
+    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
+    tedgep = 0.54*tp+(1-0.55)*gp,
+    gedgep = 0.45*gp;
 
-  const double targf    =                         0.2/(1.4+0.3+5.+0.2),
-               targedgef=         (5*(85./(85.+58.)))/(1.4+0.3+5.+0.2),
-               gcf      = (5*(1-(85./(85.+58.)))+0.3)/(1.4+0.3+5.+0.2),
-               gcedgef  =                         1.4/(1.4+0.3+5.+0.2);
+  // Relative amounts of effective oxygen in these regions
+  const double o_targ = 0.68,
+               o_targacrlyic = 4.39,
+               o_gc = 0.09,
+
+               // use the beta number here, since I'm going to apply
+               // different n efficiencies
+               o_gcacrlyic = 0.97;
+
+  const double o_sum = o_targ+o_targacrlyic+o_gc+o_gcacrlyic;
+
+  const double
+    targf    =                                   o_targ/o_sum,
+    targedgef= (o_targacrlyic*(   85./(85.+58.))      )/o_sum,
+    gcf      = (o_targacrlyic*(1-(85./(85.+58.)))+o_gc)/o_sum,
+    gcedgef  =                              o_gcacrlyic/o_sum;
 
 
   double tpneffs[5] = {

@@ -16,8 +16,8 @@ const double li9ebn = 0.5080,
              b13ebn = 0.0029 * n_c13cap/n_c12cap,
              li11ebn = 0.789 * n_c13cap/n_c12cap;
              
-const double distcuteffgc = 0.7493,
-             distcutefftarg = 0.9222;
+const double distcuteffgc = 0.7487,
+             distcutefftarg = 0.9202;
 
 // 100s begin-of-run requirement taken into account here
 const double denominator = 0.9709*livetime*n_c12cap;
@@ -155,10 +155,12 @@ void contour(TMinuit * mn, const int par1, const int par2,
   TGraph * sigma_2d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
+/*
   mn->fUp = 2.61; // 90% in 1D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * ninty_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+*/
 
   mn->fUp = 4.61; // 90%
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
@@ -176,7 +178,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
     ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
-  if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
+  //if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
   if(sigma_2d) sigma_2d->SetLineColor(kBlack), sigma_2d->Draw("l");
 /*  mn->fUp = 11.83; // 99.73% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
@@ -215,11 +217,11 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
 
   mn->Command("SET LIM 3 0 1e-3");
   mn->Command("SET LIM 4 0 3e-3");
-  mn->Command("SET LIM 5 0 2"); // allow 100% production plus
-                                // a factor of two for the O capture
-                                // normalization
+  mn->Command("SET LIM 5 0 10"); // allow 100% production plus
+                                 // a large factor for slop.  There's
+                                 // a pull term, too.
   mn->Command("SET LIM 6 0 0.5");
-  mn->Command("SET LIM 7 0 2");  // as with N-17
+  mn->Command("SET LIM 7 0 1");  // as with N-17
   mn->Command("SET LIM 8 0 3");
   mn->Command("SET LIM 9 0 1");
 
@@ -280,8 +282,8 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like *= 2;
 
   // pull terms
-  like += pow((par[4]-0.5)/0.27, 2); // 50%+-27% for N-17
-  like += pow((par[6]-0.05)/0.05, 2); // 5%+-5%  for C-16
+  like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
+  like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
 }
 
 double getpar(TMinuit * mn, int i)
@@ -358,6 +360,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   const double plotsigtime = 0.4;
 
+/*
   TCanvas * dxy = new TCanvas("dxy", "dxy", 200, 200);
   th.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".");
   tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".same");
@@ -387,7 +390,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   tg.Draw("dedxslant >> +muqivbg", Form("%s && dt/1000 > 5  ", cut), "esame");
   th.Draw("dedxslant >> muqivsig(25, 0, 12000)", Form("%s && dt/1000 < 0.4", cut),"same");
   tg.Draw("dedxslant >> +muqivsig", Form("%s && dt/1000 < 0.4", cut),"same");
-
+*/
   float tim;
   tgsel->SetBranchAddress("dt", &tim);
   thsel->SetBranchAddress("dt", &tim);
@@ -669,6 +672,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     printf("%f: %f\n", i*0.1, mn->fAmin); 
   }
 
+/*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
   th.Draw("dy/1000:dx/1000", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".");
   tg.Draw("dy/1000:dx/1000", Form("%s && dt/1000 > 10 && dt/1000 < 30", cut), ".same");
@@ -697,6 +701,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   distsig->SetLineColor(kRed);
   distsig->SetMarkerColor(kRed);
   distbg->GetYaxis()->SetRangeUser(0, 25);
+*/
 
 /*
   TCanvas * rzh = new TCanvas("rzh", "rzh", 200, 200);
