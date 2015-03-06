@@ -42,7 +42,7 @@ TH1D * li8spec[5] = {NULL}, * he6spec[5] = {NULL}, * n16spec[5] = {NULL};
 
 TH2D * mdispbg = NULL;
 
-const double effbyregion[nrbins] = {
+const double disteff[nrbins] = {
 0.7444, // +-0.86e-2
 0.6645, // +-0.96e-2
 0.6280, // +-1.02e-2
@@ -160,13 +160,13 @@ void he6finalfit(const int nreq_ = 0,
   ;
     
   // must cut on late neutrons for these to be valid
-  // neutron efficiency various by region within the target
+  // neutron efficiency varies by region within the target
   // due to different muon track lengths
-  teff[0] = eff * effbyregion[0] * pow(0.5685, nreq);
-  teff[1] = eff * effbyregion[1] * pow(0.6437, nreq);
-  teff[2] = eff * effbyregion[2] * pow(0.6634, nreq);
-  teff[3] = eff * effbyregion[3] * pow(0.6906, nreq);
-  teff[4] = eff * effbyregion[4] * pow(0.90,   nreq);
+  teff[0] = eff * disteff[0] * pow(0.5494    *neff_dr_800_targ, nreq);
+  teff[1] = eff * disteff[1] * pow(0.5791    *neff_dr_800_targ, nreq);
+  teff[2] = eff * disteff[2] * pow(0.6050    *neff_dr_800_targ, nreq);
+  teff[3] = eff * disteff[3] * pow(0.6110    *neff_dr_800_targ, nreq);
+  teff[4] = eff * disteff[4] * pow(neff_dt_gc*neff_dr_800_h,    nreq);
 
   for(int i = 0; i < nrbins; i++)
     printf("%sEfficiency in region %d: %.1f%s\n",
