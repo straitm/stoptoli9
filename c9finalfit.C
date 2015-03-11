@@ -2,6 +2,101 @@
 
 void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh = 6)
 {
+  const double ves2t_frac = 0.5449 - 0*sqrt(pow(0.0046,2)+pow(0.0018,2)); // doc3031
+  const double 
+    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
+    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
+    tedgep = ves2t_frac*tp+(1-ves2t_frac)*gp,
+    gedgep = 0.45*gp;
+
+  // oxygen
+  double targrate = mass_o16targ,
+         targvesrate =  mass_o16targves,
+         targbitsrate = mass_o16targbits,
+         gcrate = mass_o16gc,
+         gcvesrate = mass_o16gcves_effective; 
+
+  // nitrogen
+  if(elem != 'o'){
+    targrate = mass_n14targ,
+    targvesrate =  0,
+    targbitsrate = 0,
+    gcrate = mass_n14gc,
+    gcvesrate = 0;
+  }
+
+  const double totalrate = gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
+
+  const double targf    =              targrate/totalrate,
+               targedgef=           targvesrate/totalrate,
+               gcf      = (targbitsrate+gcrate)/totalrate,
+               gcedgef  =             gcvesrate/totalrate;
+
+
+  double tpneffs[6] = {
+      pow(tp,0)*pow(1-tp,5),
+    5*pow(tp,1)*pow(1-tp,4),
+   10*pow(tp,2)*pow(1-tp,3),
+   10*pow(tp,3)*pow(1-tp,2),
+    5*pow(tp,4)*pow(1-tp,1),
+      pow(tp,5)*pow(1-tp,0)
+  };
+
+  double tpedgeneffs[6] = {
+      pow(tedgep,0)*pow(1-tedgep,5),
+    5*pow(tedgep,1)*pow(1-tedgep,4),
+   10*pow(tedgep,2)*pow(1-tedgep,3),
+   10*pow(tedgep,3)*pow(1-tedgep,2),
+    5*pow(tedgep,4)*pow(1-tedgep,1),
+      pow(tedgep,5)*pow(1-tedgep,0)
+  };
+
+  double gpneffs[6] = {
+      pow(gp,0)*pow(1-gp,5),
+    5*pow(gp,1)*pow(1-gp,4),
+   10*pow(gp,2)*pow(1-gp,3),
+   10*pow(gp,3)*pow(1-gp,2),
+    5*pow(gp,4)*pow(1-gp,1),
+      pow(gp,5)*pow(1-gp,0)
+  };
+
+  double gpedgeneffs[6] = {
+      pow(gedgep,0)*pow(1-gedgep,5),
+    5*pow(gedgep,1)*pow(1-gedgep,4),
+   10*pow(gedgep,2)*pow(1-gedgep,3),
+   10*pow(gedgep,3)*pow(1-gedgep,2),
+    5*pow(gedgep,4)*pow(1-gedgep,1),
+      pow(gedgep,5)*pow(1-gedgep,0)
+  };
+
+  double neff = 0, tpneff = 0, tpedgeneff = 0, gpneff = 0, gpedgeneff = 0;
+  for(int i = nncut; i <= nncuthigh && i < 6; i++){
+    neff += tpneffs[i]*targf + tpedgeneffs[i]*targedgef 
+          + gpneffs[i]*gcf   + gpedgeneffs[i]*gcedgef;
+    tpneff += tpneffs[i];
+    tpedgeneff += tpedgeneffs[i];
+    gpneff += gpneffs[i];
+    gpedgeneff += gpedgeneffs[i];
+  }
+    
+
+  const double eff = 1
+    * exp(-1.*log(2)/127.00) // half-life and 1ms veto
+    * 0.981 // subsequent muons
+    * 0.977 // previous muons
+    * (elem=='o'?0.897:0.9405) // delta r
+    * 0.9709 // 100s from end of run
+    * 0.969 // energy
+    * neff
+  ;
+
+  const double captures = (elem == 'o'?n_o16cap_beta:n_n14cap) * livetime;
+
+  const double toprob = 1./captures/eff;
+
+  printf("Efficiencies: neutron, total: %.3f (%.3f, %.3f, %.3f, %.3f), %.3f\n",
+         neff, tpneff, tpedgeneff, gpneff, gpedgeneff, eff);
+
 
   TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
@@ -103,100 +198,6 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
 
   printf("%sN found: %f +%f %f %s%s\n",
          RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
-
-  const double 
-    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
-    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
-    tedgep = 0.55*tp+(1-0.55)*gp,
-    gedgep = 0.45*gp;
-
-  // oxygen
-  double targrate = (1.362+0.681)/2,
-         targvesrate =  (4.393+9.820)/2 *   85./(85.+58.),
-         targbitsrate = (4.393+9.820)/2 *(1-85./(85.+58.)),
-         gcrate = (0.170+0.085)/2,
-         gcvesrate = (0.968+1.799)/2; 
-
-  // nitrogen
-  if(elem != 'o'){
-    targrate = (0.298+0.180)/2 * 4.57/(4.57 + 2.88),
-    targvesrate =  0,
-    targbitsrate = 0,
-    gcrate = (0.298+0.180)/2 * 2.88/(4.57 + 2.88),
-    gcvesrate = 0;
-  }
-
-  const double totalrate = gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
-
-  const double targf    =              targrate/totalrate,
-               targedgef=           targvesrate/totalrate,
-               gcf      = (targbitsrate+gcrate)/totalrate,
-               gcedgef  =             gcvesrate/totalrate;
-
-
-  double tpneffs[6] = {
-      pow(tp,0)*pow(1-tp,5),
-    5*pow(tp,1)*pow(1-tp,4),
-   10*pow(tp,2)*pow(1-tp,3),
-   10*pow(tp,3)*pow(1-tp,2),
-    5*pow(tp,4)*pow(1-tp,1),
-      pow(tp,5)*pow(1-tp,0)
-  };
-
-  double tpedgeneffs[6] = {
-      pow(tedgep,0)*pow(1-tedgep,5),
-    5*pow(tedgep,1)*pow(1-tedgep,4),
-   10*pow(tedgep,2)*pow(1-tedgep,3),
-   10*pow(tedgep,3)*pow(1-tedgep,2),
-    5*pow(tedgep,4)*pow(1-tedgep,1),
-      pow(tedgep,5)*pow(1-tedgep,0)
-  };
-
-  double gpneffs[6] = {
-      pow(gp,0)*pow(1-gp,5),
-    5*pow(gp,1)*pow(1-gp,4),
-   10*pow(gp,2)*pow(1-gp,3),
-   10*pow(gp,3)*pow(1-gp,2),
-    5*pow(gp,4)*pow(1-gp,1),
-      pow(gp,5)*pow(1-gp,0)
-  };
-
-  double gpedgeneffs[6] = {
-      pow(gedgep,0)*pow(1-gedgep,5),
-    5*pow(gedgep,1)*pow(1-gedgep,4),
-   10*pow(gedgep,2)*pow(1-gedgep,3),
-   10*pow(gedgep,3)*pow(1-gedgep,2),
-    5*pow(gedgep,4)*pow(1-gedgep,1),
-      pow(gedgep,5)*pow(1-gedgep,0)
-  };
-
-  double neff = 0, tpneff = 0, tpedgeneff = 0, gpneff = 0, gpedgeneff = 0;
-  for(int i = nncut; i <= nncuthigh && i < 6; i++){
-    neff += tpneffs[i]*targf + tpedgeneffs[i]*targedgef 
-          + gpneffs[i]*gcf   + gpedgeneffs[i]*gcedgef;
-    tpneff += tpneffs[i];
-    tpedgeneff += tpedgeneffs[i];
-    gpneff += gpneffs[i];
-    gpedgeneff += gpedgeneffs[i];
-  }
-    
-
-  const double eff = 1
-    * exp(-1.*log(2)/127.00) // half-life and 1ms veto
-    * 0.981 // subsequent muons
-    * 0.977 // previous muons
-    * (elem=='o'?0.897:0.9405) // delta r
-    * 0.9709 // 100s from end of run
-    * 0.969 // energy
-    * neff
-  ;
-
-  const double captures = (elem == 'o'?n_o16cap_beta:n_n14cap) * livetime;
-
-  const double toprob = 1./captures/eff;
-
-  printf("Efficiencies: neutron, total: %.3f (%.3f, %.3f, %.3f, %.3f), %.3f\n",
-         neff, tpneff, tpedgeneff, gpneff, gpedgeneff, eff);
 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);

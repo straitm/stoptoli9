@@ -407,6 +407,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   //////////////////
 
   TMinuit * mn = new TMinuit(npar);
+  mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
   mn->mnparm(1 -1, "bg",     1e-4,  5e-6, 0, 0, err);
@@ -664,13 +665,28 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   drawhist(tgsel, thsel, parsaves, 10, 0.001, 0.501);
 
 
-  setupmn(mn, expectedgdfrac);
-  for(int i = 0; i < 10; i++){
-    mn->Command(Form("SET PAR 8 %f", i*0.1));
-    mn->Command("FIX 8");
-    mn->Command("MIGRAD");
-    printf("%f: %f\n", i*0.1, mn->fAmin); 
+  /* setupmn(mn, expectedgdfrac);
+  fixatzero(mn, 4);
+  const bool withall = true;
+  if(!withall){
+    fixatzero(mn, 5);
+    fixatzero(mn, 7);
+    fixatzero(mn, 8);
+    fixatzero(mn, 9);
   }
+  mn->SetPrintLevel(-1);
+  for(int i = 0; i <= 150; i++){
+    const double val = double(i)*4e-6;
+    mn->Command("REL 3");
+    mn->Command(Form("SET PAR 3 %E", val));
+    mn->Command("FIX 3");
+    mn->Command("MIGRAD");
+    printf("%s%s->SetPoint(%d, %f, %f);\n",
+           neutrons == -1?"ignoring":neutrons == 0?"withoutn":"withn",
+           withall?"all":"",
+           i, val*1e3, mn->fAmin-chi2_all ); 
+  }
+*/
 
 /*
   TCanvas * xy = new TCanvas("xy", "xy", 200, 200);
