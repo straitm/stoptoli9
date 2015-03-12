@@ -2,8 +2,8 @@ const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR     = "\033[m"    ; // clear
 
 const double livetime = 489.509, n_c12cap = 350.079246, n_c13cap=3.517328;
-const double n_o16cap_betan = 8.886; // after acrylic efficiencies - central value
-const double n_o16cap_beta  = 9.639; // after acrylic efficiencies - central value
+const double n_o16cap_beta  = 9.636; // after acrylic efficiencies - central value
+const double n_o16cap_betan = 8.885; // after acrylic efficiencies - central value
 const double mass_o16targ = 20.865041, mass_o16targves = 138.24*85./(85.+58.),
              mass_o16targbits = 138.24*58./(85.+58.), mass_o16gc = 3.235824,
              mass_o16gcves_effective = 200.727 * 0.4 * 0.8 * 0.45;
