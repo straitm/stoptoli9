@@ -67,10 +67,13 @@ double conversion(const bool nominal = false)
   double caprat_now = caprat + ran.Gaus(0, ferrorp13op12*caprat);
   if(caprat_now < 0) caprat_now = 0;
   double f13_now   = ran.Rndm()*(ran.Rndm() > 0.5?
-                                (f13_hi - f13   ) + f13:
-                                (f13    - f13_lo) + f13_lo);
+                           (f13_hi - f13   ) + f13:
+                           (f13    - f13_lo) + f13_lo);
+
+  // NOTE: nearly all the spread in the result comes from this one
   double p1212_now = ran.Rndm()*(p1212_hi-p1212_lo) + p1212_lo;
-  double p1313_now = ran.Rndm()*(p1313_hi-p1212_lo) + p1313_lo;
+
+  double p1313_now = ran.Rndm()*(p1313_hi-p1313_lo) + p1313_lo;
   double p1312_now = ran.Rndm()*(p1312_hi-p1312_lo) + p1312_lo;
 
   // If nominal, throw all that out and set to nominal values.
@@ -114,7 +117,6 @@ static double rms(const vector<double> & vals)
   for(unsigned int i = 0; i < vals.size(); i++)
     sum += pow(vals[i] - m,2);
   return sqrt(sum / vals.size());
-  
 }
 
 // Find the fractional systematic error associated with the uncertainties
@@ -124,8 +126,6 @@ static double fsysterr()
 {
   vector<double> vals;
   for(int i = 0; i < 10000; i++) vals.push_back(conversion(false));
-  rms(vals);
-
   return rms(vals)/conversion(true);
 }
 
@@ -144,22 +144,20 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
   gMinuit->Command("MINOS 10000 1");
   ee->SetParError(0, (-gMinuit->fErn[0]+gMinuit->fErp[0])/2);
 
-  TF1 e("e", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
-  e.SetParameter(0, ee->GetParameter(0));
-
-
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
-  const double rawintegral = e.Integral(0, 10)/h->GetBinWidth(1);
+  const double rawintegral = ee->GetParameter(0)*0.0202/log(2)/h->GetBinWidth(1);
 
-  printf("b12 raw %f +- %f\n", rawintegral, ferrorfit * rawintegral);
+  printf("stuff with b12 lifetime raw %f +- %f\n",
+         rawintegral, ferrorfit * rawintegral);
 
   const double integral_pd_oec = rawintegral/livetime/eff;
-  printf("b12 raw per day with overall eff corrected\n\t%f +- %f\n",
+  printf("stuff with b12 lifetime raw per day with overall eff corrected\n\t%f +- %f\n",
          integral_pd_oec, ferrorfit * integral_pd_oec);
 
   const double fsyst = sqrt(pow(fsysterr(),2) + pow(ferr_energy,2));
   printf("fractional stat err from fit: %f\n", ferrorfit);
-  printf("fractional systematic error:  %f\n", fsyst);
+  printf("fractional systematic error from B-13 alone:   %.2f%%\n", fsysterr()*100);
+  printf("fractional systematic err with energy err too: %.2f%%\n", fsyst*100);
 
   const double totferr = sqrt(pow(ferrorfit,2)+pow(fsyst,2));
 

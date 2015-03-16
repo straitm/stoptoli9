@@ -1,5 +1,7 @@
 #include "consts.h"
 
+bool dopull = true;  // bad global variable modified as we go
+
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR      = "\033[m"    ; // clear
 
@@ -209,6 +211,8 @@ void contour(TMinuit * mn, const int par1, const int par2,
 
 void setupmn(TMinuit * mn, const double expectedgdfrac)
 {
+  mn->SetPrintLevel(-1);
+  dopull = true;
   for(int i = 0; i < npar; i++) mn->Command(Form("REL %d", i+1));
   mn->Command("SET LIM 1 0 1e-3");
 
@@ -282,8 +286,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like *= 2;
 
   // pull terms
-  like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
-  like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+  if(dopull){
+    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
+    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+  }
 }
 
 double getpar(TMinuit * mn, int i)
@@ -407,6 +413,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   //////////////////
 
   TMinuit * mn = new TMinuit(npar);
+  mn->SetPrintLevel(-1);
   mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
@@ -421,21 +428,13 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err); // n: no
   mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
 
-  mn->Command("set print -10");
-
   vector< vector<double> > parsaves;
   {
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 7;
     const int fix[nfix] = { 3, 4, 5, 6, 7, 8, 9 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
-    mn->Command("MINOS 10000 3");
-    mn->Command("SHOW min");
     printf("%sNo Li-9 or other bn isotopes (%.2f)%s\n",
            RED, mn->fAmin, CLR);
     vector<double> parsave;
@@ -446,13 +445,56 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   {
     setupmn(mn, expectedgdfrac);
+    dopull = false;
+    const unsigned int nfix = 2;
+    const int fix[nfix] = { 3, 4 };
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
+    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("MIGRAD");
+  }
+  const double chi2all_exceptli9he8_nopull = mn->fAmin;
+
+  {
+    setupmn(mn, expectedgdfrac);
+    dopull = false;
+    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("MIGRAD");
+  }
+  const double chi2all_nopull = mn->fAmin;
+
+  printf("%sSignificance of any betan, no cheaty pulls: %.2f%s\n",
+         RED, sqrt(chi2nothing - chi2all_nopull), CLR);
+
+  printf("%sSignificance of li9/he8 over other bn&accidental without pull: %.2f%s\n",
+         RED, sqrt(chi2all_exceptli9he8_nopull - chi2all_nopull), CLR);
+
+  {
+    setupmn(mn, expectedgdfrac);
+    const unsigned int nfix = 2;
+    const int fix[nfix] = { 3, 4 };
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
+    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("MIGRAD");
+  }
+  const double chi2all_exceptli9he8_withpull = mn->fAmin;
+
+  {
+    setupmn(mn, expectedgdfrac);
+    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("MIGRAD");
+  }
+  const double chi2all_withpull = mn->fAmin;
+
+  printf("%sSignificance of li9/he8 over other bn&accidental with pull: %.2f%s\n",
+         RED, sqrt(chi2all_exceptli9he8_withpull - chi2all_withpull), CLR);
+
+  return;
+
+  {
+    setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 6;
     const int fix[nfix] = { 4, 5, 6, 7, 8, 9 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
@@ -468,11 +510,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 5;
     const int fix[nfix] = { 4, 6, 5, 8, 9 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
@@ -485,11 +523,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 5;
     const int fix[nfix] = { 4, 6, 7, 8, 9 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
@@ -502,11 +536,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 5;
     const int fix[nfix] = { 5, 6, 7, 8, 9 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
@@ -519,19 +549,11 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 1;
     const int fix[nfix] = { 4 };
-    for(int i = 0; i < nfix; i++){
-      mn->Command(Form("SET LIM %d", fix[i]));
-      mn->Command(Form("SET PAR %d 0", fix[i]));
-      mn->Command(Form("FIX %d", fix[i]));
-    }
+    for(int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     if(neutrons > 0){
       const unsigned int nfixn = 2;
       const int fixn[nfixn] = { 8, 9 };
-      for(int i = 0; i < nfixn; i++){
-        mn->Command(Form("SET LIM %d", fixn[i]));
-        mn->Command(Form("SET PAR %d 0", fixn[i]));
-        mn->Command(Form("FIX %d", fixn[i]));
-      }
+      for(int i = 0; i < nfixn; i++) fixatzero(mn, fixn[i]);
     }
     mn->Command("MIGRAD");
     mn->Command("MIGRAD");
@@ -559,11 +581,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     if(neutrons > 0){
       const unsigned int nfixn = 2;
       const int fixn[nfixn] = { 8, 9 };
-      for(int i = 0; i < nfixn; i++){
-        mn->Command(Form("SET LIM %d", fixn[i]));
-        mn->Command(Form("SET PAR %d 0", fixn[i]));
-        mn->Command(Form("FIX %d", fixn[i]));
-      }
+      for(int i = 0; i < nfixn; i++) fixatzero(mn, fixn[i]);
     }
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3 5 8");
