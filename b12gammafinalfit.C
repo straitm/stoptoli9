@@ -2,7 +2,8 @@
 
 void b12gammafinalfit(const int region = 1)
 {
-  const double lowt = region == 1? 3008: 2008;
+  const double lowt   = region == 0? 4500 :region == 1?  3008: 2750;
+  const double highfq = region == 0? 1.8e6:region == 1? 1.8e6: 10e6;
  
   TFile * f = new TFile(rootfile0up, "read");
   TTree * t = (TTree *)f->Get("t");
@@ -27,7 +28,7 @@ void b12gammafinalfit(const int region = 1)
   printf("%sEfficiency: %.1f%%%s\n", RED, 100*eff, CLR);
 /*
   t->Draw("micht >> thist(50, 0, 6400)",
-         "miche > 2.1 && miche < 3.1 && "
+         Form("miche > 2.1 && miche < 3.1 && "
          "!earlymich && "
          "latennear==0 && "
          "ndecay == 0 && "
@@ -35,7 +36,7 @@ void b12gammafinalfit(const int region = 1)
          "dt >2 && dt < 200 && "
          "timeleft>200 && "
          "dist < 400 && "
-         "gclen < 1500  "
+         "fq < %f  ", highfq)
       , "e"); */
 
   TCanvas * c2 = new TCanvas;
@@ -49,9 +50,9 @@ void b12gammafinalfit(const int region = 1)
          "dt >2 && dt < 200 && "
          "timeleft>200 && "
          "dist < 400 && "
-         "gclen < 1500 && "
-         "micht >= %f && micht < 5008"
-         , lowt)
+         "fq < %f && "
+         "micht >= %f && micht < 5500"
+         , highfq, lowt)
       , "e");
 
   t->Draw("-0.026 + miche*1.011 - 0.0006*miche*miche >> bg(600, 0.7, 60.7)",
@@ -63,9 +64,9 @@ void b12gammafinalfit(const int region = 1)
          "dt > 10000 && dt < 10000+19800*4 && "
          "timeleft>100e3 && "
          "dist < 400 && "
-         "gclen < 1500 && "
-         "micht >= %f && micht < 5008 "
-         , lowt)
+         "fq < %f && "
+         "micht >= %f && micht < 5500 "
+         , highfq, lowt)
       , "e");
 
   TH1 * ehist = gROOT->FindObject("ehist");
@@ -77,8 +78,41 @@ void b12gammafinalfit(const int region = 1)
   bg->Draw("histsame");
   ehist->GetYaxis()->SetRangeUser(1e-3, 1e2);
 
+  TF1 *bggg = new TF1("bggg",
+    "[0]+gaus(1)+gaus(4)+[7]*(3*(x/52.8)^2-2*(x/52.8)^3)",0,40);
+  bggg->SetNpx(400);
+  bggg->SetLineColor(kRed);
+
+  bggg->SetParameter(0,0.006);
+
+  bggg->SetParameter(1,0.15);
+  bggg->SetParameter(2,2.0);
+  bggg->SetParameter(3,1.0);
+
+  bggg->SetParameter(4,0.15);
+  bggg->SetParameter(5,2.5);
+  bggg->SetParameter(6,1.0);
+
+  bggg->SetParameter(7,0.02);
+
+
+  bggg->SetParLimits(0,0,1);
+
+  bggg->SetParLimits(1,0,10);
+  bggg->SetParLimits(2,0.7,2.3);
+  bggg->SetParLimits(3,0.5,5);
+
+  bggg->SetParLimits(4,0,10);
+  bggg->SetParLimits(5,2.3,4);
+  bggg->SetParLimits(6,0.5,5);
+
+  bggg->SetParLimits(7,0,1);
+
+  bg->Fit("bggg", "li", "", 0.7, 40);
+
+
   TF1 *gg = new TF1("gg",
-      Form("[0] +"
+      "[0] +"
       " [3]/[2]* exp(-(((x- [4]*[1])/[2])**2)/2) +"
       " [5]/[2]* exp(-(((x- [6]*[1])/[2])**2)/2) +"
       " [7]/[2]* exp(-(((x- [8]*[1])/[2])**2)/2) +"
@@ -86,32 +120,36 @@ void b12gammafinalfit(const int region = 1)
       "[11]/[2]* exp(-(((x-[12]*[1])/[2])**2)/2) +"
       "[13]/[2]* exp(-(((x-[14]*[1])/[2])**2)/2) +"
  // bg
-      "(5008 - %f)/(5008 - 3008)*"
-      "(2.76733e-3 +"
-      "5.27890e-3/0.619127* exp(-(((x-3.759*0.282118)/0.619127)**2)/2) +"
-      "1.09819e-2/0.619127* exp(-(((x-9.040*0.282118)/0.619127)**2)/2)) ",
-      lowt)
+    "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3)"
       , 0,15);
 
-  gg->SetParName(0, "accidentals");
-  gg->SetParName(1, "energyscale");
-  gg->SetParName(2, "resolution");
-  gg->SetParName(3, "n1");
-  gg->SetParName(4, "e1");
-  gg->SetParName(5, "n2");
-  gg->SetParName(6, "e2");
-  gg->SetParName(7, "n3");
-  gg->SetParName(8, "e3");
-  gg->SetParName(9, "n4");
-  gg->SetParName(10, "e4");
-  gg->SetParName(11, "n5");
-  gg->SetParName(12, "e5");
-  gg->SetParName(13, "n6");
-  gg->SetParName(14, "e6");
+  char * ggpars[23] = { "accidentals", "energyscale", "resolution",
+  "n1", "e1",
+  "n2", "e2",
+  "n3", "e3",
+  "n4", "e4",
+  "n5", "e5",
+  "n6", "e6",
+  "bgconst",
+  "bggaus1norm",
+  "bggaus1mean",
+  "bggaus1sig",
+  "bggaus2norm",
+  "bggaus2mean",
+  "bggaus2sig",
+  "bgmich" };
+
+  for(int i = 0; i < gg->GetNpar(); i++) gg->SetParName(i, ggpars[i]);
+
   gg->SetNpx(400);
 
+  for(int i = 3; i <= 13; i+=2) gg->SetParLimits(i, 0, 100);
+  for(int i = 15; i <= 22; i++) 
+    gg->FixParameter(i, bggg->GetParameter(i-15));
+
+  gg->FixParameter(0, 0);
   gg->FixParameter(1, 1);
-  gg->FixParameter(2, 0.4);
+  gg->FixParameter(2, 0.22);
 
   gg->FixParameter(4, 0.95314);
   gg->FixParameter(6, 1.67365);
@@ -120,16 +158,15 @@ void b12gammafinalfit(const int region = 1)
   gg->FixParameter(12,3.759);
   gg->FixParameter(14,9.040);
 
-  gg->SetParLimits(0, 0, 100);
-  for(int i = 3; i <= 13; i+=2) gg->SetParLimits(i, 0, 100);
 
   gg->FixParameter(9, 0);
 
   ehist->Fit("gg", "lq", "", 0, 15);
   gg->ReleaseParameter(2);
-  ehist->Fit("gg", "lq", "", 0, 15);
-  //if(region == 1) gg->ReleaseParameter(1);
+  gg->SetParLimits(2, 0.16, 0.27);
   ehist->Fit("gg", "limq", "", 0, 15);
+
+  bggg->Draw("same");
 
 
   gMinuit->Command("Set strategy 2");
@@ -224,4 +261,8 @@ void b12gammafinalfit(const int region = 1)
                 ncorrelo/n_c12b12_withcuts*37.9,
                 ncorreup/n_c12b12_withcuts*37.9, CLR);
   }
+
+  ehist->GetXaxis()->SetRangeUser(0, 12);
+
+  printf("Efficiency not redone!!!!!!!!!!!!!!!!\n");
 }
