@@ -31,5 +31,9 @@ void deadtime_finalfit()
 
   printf("%sHe-6 T1 (innermost) efficiency: %.2f%s\n", RED, h->GetMean()*100, CLR);
 
+  t->Draw("eff(fq, mx, my, mz, 0) >> h", "ndecay == 0 && fq < 1.8e6 && dt < 30 && e < 15 && miche < 12 && !earlymich && e > 4");
+
+  printf("%sEfficiency when fq < 1.8e6: %.2f%s\n", RED, h->GetMean()*100, CLR);
+
   printf("These are ONLY the dt efficiencies.  Don't forget the dr efficiencies!\n");
 }

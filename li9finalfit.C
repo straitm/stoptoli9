@@ -488,8 +488,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   printf("%sSignificance of li9/he8 over other bn&accidental with pull: %.2f%s\n",
          RED, sqrt(chi2all_exceptli9he8_withpull - chi2all_withpull), CLR);
 
-  return;
-
   {
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 6;

@@ -71,6 +71,7 @@ double conversion(const bool nominal = false)
                            (f13    - f13_lo) + f13_lo);
 
   // NOTE: nearly all the spread in the result comes from this one
+  // This one is not relevant for the B-12 gamma analysis
   double p1212_now = ran.Rndm()*(p1212_hi-p1212_lo) + p1212_lo;
 
   double p1313_now = ran.Rndm()*(p1313_hi-p1313_lo) + p1313_lo;
