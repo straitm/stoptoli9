@@ -897,6 +897,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double michelt = 0, michele = 0, michdist = 0;
   bool followingov = false;
   double followingovtime = 0, followingqivtime = 0;
+  double firstlatenearneutrontime = 0, firstlatenearneutronenergy = 0;
   float followingqiv = 0;
 
 
@@ -1023,7 +1024,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(!alsoamichel){
       nneutronanydist[1]++;
       if(gd) ngdneutronanydist[1]++;
-      if(nnear) nneutronnear[1]++;
+      if(nnear){
+        // special case since these have turned out to be the most useful
+        // count of neutrons.  Record the time and energy of the first one
+        nneutronnear[1]++;
+        if(firstlatenearneutrontime == 0){
+          firstlatenearneutrontime = dt;
+          firstlatenearneutronenergy = bits.ctEvisID;
+        }
+      } 
       if(gd && nnear) ngdneutronnear[1]++;
     }
   }
@@ -1054,7 +1063,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%f %f %f %f %f " \
      "%d %d %d %d %d %d %d %d " \
      "%lf %.0lf %f %f %f %f %.0f %f %f " \
-     "%f %f %f %f %f %f %f %f %d %f %f %f %d"
+     "%f %f %f %f %f %f %f %f %d %f %f %f %d %f %f"
 
      #define LATEVARS \
      murun, mutrgid, mucoinov, \
@@ -1068,7 +1077,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      mufqid, mufqiv, muctqid, muctqiv, \
      timeleft, ttlastvalid, ttlastmuon, \
      ttlastgcmuon, followingov, followingovtime, \
-     followingqiv, followingqivtime, printed
+     followingqiv, followingqivtime, printed, \
+     firstlatenearneutrontime, firstlatenearneutronenergy
 
     if(dt_ms > maxtime){ // stop looking and print muon info
       if(printed == 0) printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
@@ -1389,7 +1399,7 @@ int main(int argc, char ** argv)
     "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
     "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
     "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
-    "ndecay/I");
+    "ndecay/I:firstlatenneart/F:firstlatenneare/F");
   if(is_be12search) // same as above with 2s appended to each name
                     // some are dumb, since, i.e., mutrig === mutrig2
     printf(
@@ -1401,7 +1411,7 @@ int main(int argc, char ** argv)
       "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
       "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
       "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
-      "ndecay2/I");
+      "ndecay2/I:firstlatenneart2/F:firstlatenneare2/F");
   printf("\n");
 
   for(int i = 4; i < argc; i+=2){

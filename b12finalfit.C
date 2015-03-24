@@ -140,9 +140,9 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
           "e > 4 && e < 15 && !earlymich", addcut), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "lq");
-  h->Fit("ee", "lq");
   h->Fit("ee", "li");
   gMinuit->Command("MINOS 10000 1");
+  gMinuit->Command("SHOW MIN");
   ee->SetParError(0, (-gMinuit->fErn[0]+gMinuit->fErp[0])/2);
 
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
