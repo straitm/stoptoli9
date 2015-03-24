@@ -15,8 +15,8 @@ const char * const rootfile0up = "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.r
 
 const double gd_fraction = 0.851;
 
-const double neff_dt_targ = 0.5862; // same as Gd eff
-const double neff_dt_gc   = 0.9060;
+const double neff_dt_targ = 0.5724; // same as Gd eff
+const double neff_dt_gc   = 0.8968;
 
 // H efficiency is lower than GC efficiency by a little 
 // because some H is in the Target.

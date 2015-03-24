@@ -162,10 +162,10 @@ void he6finalfit(const int nreq_ = 0,
   // must cut on late neutrons for these to be valid
   // neutron efficiency varies by region within the target
   // due to different muon track lengths
-  teff[0] = eff * disteff[0] * pow(0.5494    *neff_dr_800_targ, nreq);
-  teff[1] = eff * disteff[1] * pow(0.5791    *neff_dr_800_targ, nreq);
-  teff[2] = eff * disteff[2] * pow(0.6050    *neff_dr_800_targ, nreq);
-  teff[3] = eff * disteff[3] * pow(0.6110    *neff_dr_800_targ, nreq);
+  teff[0] = eff * disteff[0] * pow(0.5160    *neff_dr_800_targ, nreq);
+  teff[1] = eff * disteff[1] * pow(0.5655    *neff_dr_800_targ, nreq);
+  teff[2] = eff * disteff[2] * pow(0.6005    *neff_dr_800_targ, nreq);
+  teff[3] = eff * disteff[3] * pow(0.6075    *neff_dr_800_targ, nreq);
   teff[4] = eff * disteff[4] * pow(neff_dt_gc*neff_dr_800_h,    nreq);
 
   for(int i = 0; i < nrbins; i++)
