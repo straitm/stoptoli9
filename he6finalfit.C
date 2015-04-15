@@ -162,11 +162,32 @@ void he6finalfit(const int nreq_ = 0,
   // must cut on late neutrons for these to be valid
   // neutron efficiency varies by region within the target
   // due to different muon track lengths
-  teff[0] = eff * disteff[0] * pow(0.5160    *neff_dr_800_targ, nreq);
-  teff[1] = eff * disteff[1] * pow(0.5655    *neff_dr_800_targ, nreq);
-  teff[2] = eff * disteff[2] * pow(0.6005    *neff_dr_800_targ, nreq);
-  teff[3] = eff * disteff[3] * pow(0.6075    *neff_dr_800_targ, nreq);
-  teff[4] = eff * disteff[4] * pow(neff_dt_gc*neff_dr_800_h,    nreq);
+  //
+  // XXX can't just take these to a power, but need to put in a big table XXX
+  //teff[0] = eff * disteff[0] * pow(0.5160    *neff_dr_800_targ, nreq);
+  //teff[1] = eff * disteff[1] * pow(0.5655    *neff_dr_800_targ, nreq);
+  //teff[2] = eff * disteff[2] * pow(0.6005    *neff_dr_800_targ, nreq);
+  //teff[3] = eff * disteff[3] * pow(0.6075    *neff_dr_800_targ, nreq);
+  //teff[4] = eff * disteff[4] * pow(neff_dt_gc*neff_dr_800_h,    nreq);
+
+  // Delta-t neutron efficiencies by region (first index, T0-4/GC)
+  // and number of neutrons (second index, 0-3). Because the neutron
+  // efficiency is a function of muon energy, the mean efficiency for,
+  // e.g., 2 neutrons is not the efficiency of 1 neutron squared, but
+  // rather somewhat better than that.
+  const double neffdtby_pos_n[5][4] = {
+  {1.0, 0.5160,     0.2784, 0.1567},
+  {1.0, 0.5655,     0.3468, 0.2273},
+  {1.0, 0.6005,     0.3953, 0.2779},
+  {1.0, 0.6063,     0.4079, 0.2948},
+  {1.0, neff_dt_gc, 0.8075, 0.7297},
+  };
+
+  teff[0]=eff*disteff[0]*neffdtby_pos_n[0][nreq]*pow(neff_dr_800_targ,nreq);
+  teff[1]=eff*disteff[1]*neffdtby_pos_n[1][nreq]*pow(neff_dr_800_targ,nreq);
+  teff[2]=eff*disteff[2]*neffdtby_pos_n[2][nreq]*pow(neff_dr_800_targ,nreq);
+  teff[3]=eff*disteff[3]*neffdtby_pos_n[3][nreq]*pow(neff_dr_800_targ,nreq);
+  teff[4]=eff*disteff[4]*neffdtby_pos_n[4][nreq]*pow(neff_dr_800_h,   nreq);
 
   for(int i = 0; i < nrbins; i++)
     printf("%sEfficiency in region %d: %.1f%s\n",
@@ -487,7 +508,7 @@ void he6finalfit(const int nreq_ = 0,
 
   double sump2 = 0;
   for(int i =0;i<N; i++){
-    const double prob = i*0.01/100;
+    const double prob = i*0.01/1000;
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
        printf("Bays limit = %f\n", prob);

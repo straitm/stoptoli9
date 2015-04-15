@@ -1,13 +1,8 @@
 #include "consts.h"
 
-void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh = 6)
+void c9finalfit(const char elem = 'o')
 {
-  const double ves2t_frac = 0.5449 - 0*sqrt(pow(0.0046,2)+pow(0.0018,2)); // doc3031
-  const double 
-    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
-    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
-    tedgep = ves2t_frac*tp+(1-ves2t_frac)*gp,
-    gedgep = 0.45*gp;
+  const int nncut = 4, nncuthigh = 6;
 
   // oxygen
   double targrate = mass_o16targ,
@@ -25,7 +20,8 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
     gcvesrate = 0;
   }
 
-  const double totalrate = gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
+  const double totalrate =
+    gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
 
   const double targf    =              targrate/totalrate,
                targedgef=           targvesrate/totalrate,
@@ -33,59 +29,21 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
                gcedgef  =             gcvesrate/totalrate;
 
 
-  double tpneffs[6] = {
-      pow(tp,0)*pow(1-tp,5),
-    5*pow(tp,1)*pow(1-tp,4),
-   10*pow(tp,2)*pow(1-tp,3),
-   10*pow(tp,3)*pow(1-tp,2),
-    5*pow(tp,4)*pow(1-tp,1),
-      pow(tp,5)*pow(1-tp,0)
-  };
+  const double tpneff = 0.4555,
+               tpedgeneff = 0.6658,
+               gpneff = 0.9350,
+               gpedgeneff = 0.0911 /*0.0911*/ /* vary this 0.0655-0.1225*/;
 
-  double tpedgeneffs[6] = {
-      pow(tedgep,0)*pow(1-tedgep,5),
-    5*pow(tedgep,1)*pow(1-tedgep,4),
-   10*pow(tedgep,2)*pow(1-tedgep,3),
-   10*pow(tedgep,3)*pow(1-tedgep,2),
-    5*pow(tedgep,4)*pow(1-tedgep,1),
-      pow(tedgep,5)*pow(1-tedgep,0)
-  };
-
-  double gpneffs[6] = {
-      pow(gp,0)*pow(1-gp,5),
-    5*pow(gp,1)*pow(1-gp,4),
-   10*pow(gp,2)*pow(1-gp,3),
-   10*pow(gp,3)*pow(1-gp,2),
-    5*pow(gp,4)*pow(1-gp,1),
-      pow(gp,5)*pow(1-gp,0)
-  };
-
-  double gpedgeneffs[6] = {
-      pow(gedgep,0)*pow(1-gedgep,5),
-    5*pow(gedgep,1)*pow(1-gedgep,4),
-   10*pow(gedgep,2)*pow(1-gedgep,3),
-   10*pow(gedgep,3)*pow(1-gedgep,2),
-    5*pow(gedgep,4)*pow(1-gedgep,1),
-      pow(gedgep,5)*pow(1-gedgep,0)
-  };
-
-  double neff = 0, tpneff = 0, tpedgeneff = 0, gpneff = 0, gpedgeneff = 0;
-  for(int i = nncut; i <= nncuthigh && i < 6; i++){
-    neff += tpneffs[i]*targf + tpedgeneffs[i]*targedgef 
-          + gpneffs[i]*gcf   + gpedgeneffs[i]*gcedgef;
-    tpneff += tpneffs[i];
-    tpedgeneff += tpedgeneffs[i];
-    gpneff += gpneffs[i];
-    gpedgeneff += gpedgeneffs[i];
-  }
-    
+  const double neff = tpneff*targf + tpedgeneff*targedgef 
+                    + gpneff*gcf   + gpedgeneff*gcedgef;
 
   const double eff = 1
     * exp(-1.*log(2)/127.00) // half-life and 1ms veto
+    * (1-exp(-1000.*log(2)/127.00)) // up to 1s
     * 0.981 // subsequent muons
     * 0.977 // previous muons
     * (elem=='o'?0.897:0.9405) // delta r
-    * 0.9709 // 100s from end of run
+    * 0.99709 // 100s from end of run
     * 0.969 // energy
     * neff
   ;
@@ -112,11 +70,16 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
 
   const string scut =
   Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d && e > 4"
-    "&& e < 18 && timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
+    "&& e < 18 && timeleft > 10e3", ndef, nncut, ndef, nncuthigh);
 
   const char * const cut = scut.c_str();
 
-  t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
+  const int nsel = t->GetEntries(Form("%s && dt < 1000", cut));
+  printf("N selected: %d\n", nsel);
+
+  if(nsel > 0){
+
+  t->Draw(Form("dt/1000 >> hfit%d(1000, 0.001, 10)", nncut), cut);
   TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
 
   TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
@@ -148,7 +111,7 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
     hfit->Fit(Form("ee%d", nncut), "le");
   }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 100.01)", nncut), cut, "hist");
+  t->Draw(Form("dt/1000 >> hdisp%d(20, 0.001, 10.01)", nncut), cut, "hist");
   TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
   if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
@@ -201,6 +164,7 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
 
   printf("%sProb: %g +%g %g%s\n", 
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+  }
 
   printf("%sIf no events and no background: <%.2f%%%s\n", 
       RED, 2.3026*toprob*lim_inflation_for_obeta*100, CLR);
@@ -227,7 +191,7 @@ void c9finalfit(const char elem = 'o', const int nncut = 4, const int nncuthigh 
 
   const string escut =
     Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d "
-    "&& timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
+    "&& timeleft > 10e3", ndef, nncut, ndef, nncuthigh);
   const char * const ecut = escut.c_str();
 
   t->Draw(Form("e >> ehist%d(250, 0, 25)", nncut), ecut, "e");

@@ -18,6 +18,22 @@ const double gd_fraction = 0.851;
 const double neff_dt_targ = 0.5724; // same as Gd eff
 const double neff_dt_gc   = 0.8968;
 
+// Efficiency for four neutrons (not the same as the efficiency for one
+// neutron**4)
+const double n4eff_dt_targ        = 0.1697;
+const double n4eff_dt_targ_wearly = 0.2514;
+const double n4eff_dt_gc          = 0.6616;
+
+// Efficiency for three out of four neutrons
+const double n3of4eff_dt_targ        = 0.2801;
+const double n3of4eff_dt_targ_wearly = 0.3021;
+const double n3of4eff_dt_gc          = 0.2719;
+
+// Efficiency for two out of four neutrons
+const double n2of4eff_dt_targ        = 0.2870;
+const double n2of4eff_dt_targ_wearly = 0.2606;
+const double n2of4eff_dt_gc          = 0.0590;
+
 // H efficiency is lower than GC efficiency by a little 
 // because some H is in the Target.
 const double neff_dt_h = 

@@ -1,9 +1,22 @@
 #include "consts.h"
 
+double logis(const double x, const double p0, const double p1, const double p2)
+{
+  return p0/(1+ exp(-(x - p1)/p2));
+}
+
+double corrmiche(const double e, const double me, const double mt)
+{
+  const double nh = 2.224573;
+  const double early = e /(logis(me, 0.402/nh, 203., 25.0) + 1);
+  const double late  = e /(logis(me, 0.559/nh, 286., 73.0) + 1);
+  return early + (late - early) * (mt - 3625.)/1250.;
+}
+
 void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 {
   const double lowt   = region == 0? 4500 :region == 1?  lowt1: 2750;
-  const double highfq = region == 0? 1.8e6:region == 1? 1.8e6: 10e6;
+  const double highfq = region == 0? 215:region == 1? 215: 1000;
  
   TFile * f = new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
@@ -37,7 +50,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          "dt >2 && dt < 200 && "
          "timeleft>200 && "
          "dist < 400 && "
-         "fq < %f  ", highfq)
+         "fq < %f  ", 8300*highfq)
       , "e"); */
 
   TCanvas * c2 = new TCanvas;
@@ -47,7 +60,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 
   const double acclowt = 10e3, acchight = 100e3;
 
-  t->Draw("-0.026 + miche*1.011 - 0.0006*miche*miche >> ehist(600, 0.7, 60.7)",
+  t->Draw("corrmiche(miche, fq/8300, micht) >> ehist(600, 0.7, 60.7)",
          Form("!earlymich && "
          "latennear==0 && "
          "ndecay == 0 && "
@@ -57,10 +70,10 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          "dist < 400 && "
          "fq < %f && "
          "micht >= %f && micht < 5500"
-         , b12lowt, b12hight, b12hight, highfq, lowt)
+         , b12lowt, b12hight, b12hight, 8300*highfq, lowt)
       , "e");
 
-  t->Draw("-0.026 + miche*1.011 - 0.0006*miche*miche >> bg(600, 0.7, 60.7)",
+  t->Draw("corrmiche(miche, fq/8300, micht) >> bg(600, 0.7, 60.7)",
          Form("!earlymich && "
          "latennear==0 && "
          //"ndecay == 0 && " how to handle this?  Really need the first event in 
@@ -71,14 +84,14 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          "dist < 400 && "
          "fq < %f && "
          "micht >= %f && micht < 5500 "
-         , acclowt, acchight, acchight, highfq, lowt)
+         , acclowt, acchight, acchight, 8300*highfq, lowt)
       , "e");
 
 
   // Possible background from li-8 gammas, particularly at 980.8keV
   const double li8lowt = 300, li8hight = 5*839.9;
 
-  t->Draw("-0.026 + miche*1.011 - 0.0006*miche*miche >> corrbg(600, 0.7, 60.7)",
+  t->Draw("corrmiche(miche, fq/8300, micht) >> corrbg(600, 0.7, 60.7)",
          Form("!earlymich && "
          "latennear==0 && "
          "e> 4 && e < 15 && "
@@ -87,7 +100,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          "dist < 400 && "
          "fq < %f && "
          "micht >= %f && micht < 5500 "
-         , li8lowt, li8hight, highfq, lowt)
+         , li8lowt, li8hight, 8300*highfq, lowt)
       , "e");
 
   TH1 * ehist = gROOT->FindObject("ehist");

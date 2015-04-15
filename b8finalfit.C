@@ -1,24 +1,18 @@
 #include "consts.h"
 
-void b8finalfit(const int nncut = 4, const int nncuthigh = 4)
+void b8finalfit(const int nn = 4)
 {
-  const double
-    tp = (neff_dt_targ+0.0726)*neff_dr_800_targ, // accepting early Gd-n
-    gp = neff_dt_gc  * neff_dr_800_h, // since not accepting early H-n
-    gf = 1-n_c12captarget/n_c12cap,
-    tf =   n_c12captarget/n_c12cap;
+  const double gf = 1-n_c12captarget/n_c12cap, // fraction in GC
+               tf =   n_c12captarget/n_c12cap; // fraction in Target
 
-  double neffs[5] = {
-       gf*          pow(1-gp,4)+tf*          pow(1-tp,4),
-    4*(gf*    gp   *pow(1-gp,3)+tf*    tp   *pow(1-tp,3)),
-    6*(gf*pow(gp,2)*pow(1-gp,2)+tf*pow(tp,2)*pow(1-tp,2)),
-    4*(gf*pow(gp,3)*   (1-gp)  +tf*pow(tp,3)*   (1-tp)),
-       gf*pow(gp,4)            +tf*pow(tp,4)
-  };
 
-  double neff = 0;
-  for(int i = nncut; i <= nncuthigh && i <= 4; i++)
-    neff += neffs[i];
+  double neff =
+    (nn==4?n4eff_dt_gc: nn==3?n3of4eff_dt_gc: nn==2?n2of4eff_dt_gc: 1e10)
+    *gf*neff_dr_800_h
+    +
+    (nn==4?n4eff_dt_targ_wearly: nn==3?n3of4eff_dt_targ_wearly:
+     nn==2?n2of4eff_dt_targ_wearly: 1e10)
+    *tf*neff_dr_800_targ;
 
   const double eff = 1
     * 0.981 // subsequent muons
@@ -38,20 +32,20 @@ void b8finalfit(const int nncut = 4, const int nncuthigh = 4)
   TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
-  TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
+  TCanvas * c = new TCanvas("c1", "c1");
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
   const string scut =
-  Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d && e > 4"
-    "&& e < 18 && timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
+  Form("!earlymich && miche < 12 && dist < 400 && %s == 4 && e > 4"
+    "&& e < 18 && timeleft > 100e3", ndef);
 
   const char * const cut = scut.c_str();
 
-  t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
-  TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
+  t->Draw("dt/1000 >> hfit(10000, 0.001, 100)", cut);
+  TH1 * hfit = gROOT->FindObject("hfit");
 
-  TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
+  TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
                "[1]*exp(-x*log(2)/[2]) + "
                "[3]*exp(-x*log(2)/7.13) + "
                "[4]", 0, 100);
@@ -59,40 +53,36 @@ void b8finalfit(const int nncut = 4, const int nncuthigh = 4)
   ee->SetParameters(1, 1, 0.7700, 1, 1);
   ee->FixParameter(3, 0);
   ee->FixParameter(2, 0.7700); // b8
-  //ee->FixParameter(2, 0.0110); // n12
 
-  if(nncut >= 3){
-    ee->SetParLimits(0, 0, 10);
-    ee->SetParLimits(1, 0, 10);
-    ee->SetParLimits(4, 0, 10);
-  }
+  ee->SetParLimits(0, 0, 10);
+  ee->SetParLimits(1, 0, 10);
+  ee->SetParLimits(4, 0, 10);
+  
   int p0isfixed = 0;
-  if(nncut >= 4){
-    p0isfixed = 1;
-    ee->FixParameter(0, 0);
-    ee->FixParameter(4, 0);
-  }
+  p0isfixed = 1;
+  ee->FixParameter(0, 0);
+  ee->FixParameter(4, 0);
 
   if(hfit->GetEntries()){
     ee->FixParameter(1, 0);
-    hfit->Fit(Form("ee%d", nncut), "l");
+    hfit->Fit("ee", "l");
     ee->ReleaseParameter(1);
-    hfit->Fit(Form("ee%d", nncut), "le");
+    hfit->Fit("ee", "le");
   }
 
   if(ee->GetParameter(0) < 1e-6){
     ee->FixParameter(0, 0);
     p0isfixed = 1;
-    if(hfit->GetEntries()) hfit->Fit(Form("ee%d", nncut), "le");
+    if(hfit->GetEntries()) hfit->Fit("ee", "le");
   }
 
   if(hfit->GetEntries()){
-    t->Draw(Form("dt/1000 >> hdisp%d(400, 0.001, 20.001)", nncut), cut, "hist");
-    TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
+    t->Draw("dt/1000 >> hdisp(400, 0.001, 20.001)", cut, "hist");
+    TH1 * hdisp = gROOT->FindObject("hdisp");
     if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
 
-    TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
+    TF1 * eedisp = ee->Clone("eedisp");
     eedisp->SetNpx(400);
     eedisp->SetLineColor(kRed);
 
@@ -102,9 +92,9 @@ void b8finalfit(const int nncut = 4, const int nncuthigh = 4)
       eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
     eedisp->Draw("same");
 
-    TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)", 0, 100);
-    TF1 * b8  = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
-    TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
+    TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)", 0, 100);
+    TF1 * b8  = new TF1("b8", "[0]*exp(-x*log(2)/[1])", 0, 100);
+    TF1 * acc = new TF1("acc", "[0]", 0, 100);
 
     b12->SetNpx(400);
     b8->SetNpx(400);
@@ -148,31 +138,4 @@ void b8finalfit(const int nncut = 4, const int nncuthigh = 4)
     const double N = 2.3026;
     printf("%sProbability 90%% limit: %.2g%s\n",RED, toprob*N, CLR);
   }
-
-
-/*  TF1 gaus("gaus", "gaus(0)", 0, 20);
-  gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);
-
-  for(int i = 1; i < 400; i++){
-    const double up = 0.01*i;
-    const double frac = gaus.Integral(0, up)/gaus.Integral(0, 20);
-    printf("%f %f\n", up, frac);
-    if(frac > 0.9){
-      printf("90%% limit = %f\n", up);
-      printf("90%% limit prob = %f\n", up*toprob);
-      printf("90%% limit prob *0.1/1.22 = %f\n", up*toprob *(1+0.1/1.22));
-      break;
-    }
-  } */
-
-/*
-  c->cd(2);
-
-  const string escut =
-    Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d "
-    "&& timeleft > 100e3", ndef, nncut, ndef, nncuthigh);
-  const char * const ecut = escut.c_str();
-
-  t->Draw(Form("e >> ehist%d(250, 0, 25)", nncut), ecut, "e");
-*/
 }

@@ -1,16 +1,26 @@
 #include "consts.h"
 
+TTree ibd;
+
+bool isibd(const int run, const int prompttrig)
+{
+  return ibd.GetEntries(Form("run==%d && trig==%d", run, prompttrig));
+}
+
 void li8finalfit(const int nn)
 {
   TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
+  ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", "run:trig");
+  ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
+
   const char * const cut =
    nn == 1? // terrible
-  "!earlymich && miche<12 && dist<400 && latennear==1 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02":
+  "!earlymich && miche<12 && dist<400 && latennear==1 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02": // && !isibd(run, trig)":
    nn == -1?
-  "!earlymich && miche<12 && dist<400 &&                 e>5 && e<14 && timeleft>1e5 && b12like < 0.02":
-  "!earlymich && miche<12 && dist<400 && latennear==0 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02";
+  "!earlymich && miche<12 && dist<400 &&                 e>5 && e<14 && timeleft>1e5 && b12like < 0.02": // && !isibd(run, trig)":
+  "!earlymich && miche<12 && dist<400 && latennear==0 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02"; // && !isibd(run, trig)";
 
   TCanvas * c1 = new TCanvas;
   c1->SetLogy();

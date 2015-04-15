@@ -2,7 +2,7 @@ TF1 *efffitg = new TF1("efffitg","min(1-0.0726, [0]*exp(-x/[1])+gaus(2))", 0, 80
 TF1 *efffith = new TF1("efffith","min(exp(-5.5/179) - exp(-800/179.), [0]*exp(-x/[1])+gaus(2))",0, 800);
 
 double eff(const float fidoqid, const double x, const double y,
-           const double z, const bool early = false)
+           const double z, const bool early = false, const bool reallyearlyh = true)
 {
 // With the logisitic function as deadtime cutoff
    efffitg->SetParameter(0,1.28922);
@@ -31,7 +31,18 @@ double eff(const float fidoqid, const double x, const double y,
 */
 
 
-  return fabs(z) < 1233 + 0.03*(1154-sqrt(x*x+y*y)) && x*x+y*y < 1154*1154? 
-         efffitg->Eval(fidoqid/8300) + early*0.0726:
-         efffith->Eval(fidoqid/8300) + early*(1-exp(-5.5/179));
+  return
+    // In the target
+    fabs(z) < 1229 + 0.03*(1150-sqrt(x*x+y*y)) && x*x+y*y < 1150*1150? 
+    efffitg->Eval(fidoqid/8300) + early*0.0726:
+
+    // In the target acrylic -- 0.5449 chance of capturing in the target
+    fabs(z) < 1237 + 0.03*(1158-sqrt(x*x+y*y)) && x*x+y*y < 1158*1158? 
+    (efffith->Eval(fidoqid/8300) + reallyearlyh*early*(1-exp(-5.5/179)))*
+      (1-0.5449)+
+    (efffitg->Eval(fidoqid/8300) + early*0.0726*(0.84+reallyearlyh*0.16))*
+      (0.5449):
+
+    // In the GC
+    efffith->Eval(fidoqid/8300) + reallyearlyh*early*(1-exp(-5.5/179));
 }

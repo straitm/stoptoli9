@@ -1,5 +1,5 @@
 {
-t.Draw("firstlatenneart/1e3:fq/8300 >> h(70, 0, 700, 800, 0, 800)", "latennear == 1 && ndecay == 0", "colz");
+t.Draw("firstlatenneart/1e3:fq/8300 >> h(70, 0, 700, 400, 0, 800)", "latennear == 1 && ndecay == 0", "colz");
 TGraph effh, effg, tim;
 TF1 perfg("perfg", "[0] + ([1]*exp(-x/189.) + [2]*exp(-x/25.2)/(1+exp(-(x-3.22873)/3.76334)))", 0, 800);
 TF1 perfh("perfh", "[0] + ([1]*exp(-x/189.) + [2]*exp(-x/25.2)/(1+exp(-(x-3.22873)/3.76334)))", 0, 800);
@@ -15,12 +15,12 @@ TF1 eh("eh", "[0] + ([1]*exp(-x/189.) + [2]*exp(-x/25.2)/(1+exp(-(x-3.22873)/3.7
 
 e.SetParLimits(0, 0, 5);
 e.SetParLimits(1, 0, 100);
-e.SetParLimits(2, 0, 100);
+e.SetParLimits(2, 0, 200);
 e.SetParLimits(3, 0.3, 5);
 e.SetParLimits(4, 6, 70);
 
-
-for(int b = 66; b >= 12; b--){ h->ProjectionY("p", b, b)->Draw("e"); p->Fit("e", "l", "e", 6, 800); for(int i = 0; i < 5; i++) { eh.SetParameter(i, e->GetParameter(i)); eg.SetParameter(i, e->GetParameter(i)); perfg.SetParameter(i, e.GetParameter(i)); perfh.SetParameter(i, e.GetParameter(i));} for(int i = 0; i < 3; i++){eg.SetParameter(i, 0); eh.SetParameter(i, 0); perfh.SetParameter(i, 0); perfg.SetParameter(i, 0);} eg.SetParameter(2, 1); eh.SetParameter(1, 1); perfg.SetParameter(2, 1); perfh.SetParameter(1, 1); const double tmpeh = eh.Integral(5.5, 800)/perfh.Integral(5.5, 10000), tmpeg = eg.Integral(5.5, 800)/perfg.Integral(5.5, 10000), energy =  h->GetXaxis()->GetBinCenter(b), tmptim = e->GetParameter(4);  printf("%f %.2f %.2f\n", energy, 100*tmpeh, 100*tmpeg); effh.SetPoint(effh.GetN(), energy, tmpeh); effg.SetPoint(effg.GetN(), energy, tmpeg); tim.SetPoint(tim.GetN(), energy, tmptim); c1->Update(); c1->Modified(); } effg->Draw("ap*"); effh->Draw("p%");
+/* 66->12 */
+for(int b = 10; b >= 10; b--){ h->ProjectionY("p", b, b)->Draw("e"); p->Fit("e", "liem", "e", 6, 800); for(int i = 0; i < 5; i++) { eh.SetParameter(i, e->GetParameter(i)); eg.SetParameter(i, e->GetParameter(i)); perfg.SetParameter(i, e.GetParameter(i)); perfh.SetParameter(i, e.GetParameter(i));} for(int i = 0; i < 3; i++){eg.SetParameter(i, 0); eh.SetParameter(i, 0); perfh.SetParameter(i, 0); perfg.SetParameter(i, 0);} eg.SetParameter(2, 1); eh.SetParameter(1, 1); perfg.SetParameter(2, 1); perfh.SetParameter(1, 1); const double tmpeh = eh.Integral(5.5, 800)/perfh.Integral(5.5, 10000), tmpeg = eg.Integral(5.5, 800)/perfg.Integral(5.5, 10000), energy =  h->GetXaxis()->GetBinCenter(b), tmptim = e->GetParameter(4);  printf("%f %.2f %.2f\n", energy, 100*tmpeh, 100*tmpeg); effh.SetPoint(effh.GetN(), energy, tmpeh); effg.SetPoint(effg.GetN(), energy, tmpeg); tim.SetPoint(tim.GetN(), energy, tmptim); c1->Update(); c1->Modified(); } effg->Draw("ap*"); effh->Draw("p%");
 
 for(int i = 0; i < effh->GetN(); i++) effh.GetY()[i] *= exp(-5.5/189);
 

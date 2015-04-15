@@ -874,17 +874,20 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = fidocorrx(bits.ids_end_x),
+  /* XXX const */ double mux = fidocorrx(bits.ids_end_x),
                muy = fidocorry(bits.ids_end_y),
                muz = fidocorrz(bits.ids_end_z);
+  mux = (mux+entr_mux)/2; // XXX
+  muy = (muy+entr_muy)/2; // XXX
+  muz = (muz+entr_muz)/2; // XXX
   const float gclen = bits.ids_gclen;
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
   const bool mucoinov = bits.coinov;
   const float murchi2 =
     bits.ids_chi2/(bits.nidtubes+bits.nivtubes-6);
-  const float muivdedx =
-    bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen);
+  const float muivdedx = bits.ids_ivlen?
+    bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen): 0;
 
   const float mufqid = bits.fido_qid,
               mufqiv = bits.fido_qiv,
@@ -1286,7 +1289,7 @@ static void search(dataparts & parts, TTree * const chtree,
     ids_didfitbr->GetEntry(mi);
 
     // Must be possible that it's a stopper
-    if(!parts.ids_didfit) goto end;
+    //XXX if(!parts.ids_didfit) goto end;
 
     trgtimebr->GetEntry(mi);
 
@@ -1298,47 +1301,43 @@ static void search(dataparts & parts, TTree * const chtree,
     if(parts.fido_qiv < 5000) goto end;
 
     fido_qidbr->GetEntry(mi);
-    if(parts.fido_qid/(near?13333:8300) > 700) goto end;
+    //XXX if(parts.fido_qid/(near?13333:8300) > 700) goto end;
+    if(parts.fido_qid/8300 < 60) goto end; // XXX
 
     ids_chi2br->GetEntry(mi);
     nivtubesbr->GetEntry(mi);
     nidtubesbr->GetEntry(mi);
     if(!near){
-      if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6) > 10)
-        goto end;
+      //XXX if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6) > 10) goto end;
     }
 
     ids_end_xbr->GetEntry(mi);
     ids_end_ybr->GetEntry(mi);
     // This correctly uses the *uncorrected* position
-    if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2))
-      goto end;
+    //XXX if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2)) goto end;
 
     ids_end_zbr->GetEntry(mi);
     // This correctly uses the *uncorrected* position
-    if(parts.ids_end_z < -1786+(near?40:35) /* silly */) goto end;
+    //XXX if(parts.ids_end_z < -1786+(near?40:35) /* silly */) goto end;
 
     ids_entr_zbr->GetEntry(mi);
     id_ivlenbr->GetEntry(mi);
     id_buflenbr->GetEntry(mi);
-    if(parts.ids_entr_z > 11500 -
-       62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
+    // XXX if(parts.ids_entr_z > 11500 - 62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
     id_chi2br->GetEntry(mi);
     ids_chi2br->GetEntry(mi);
     if(!near){
-      if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+      //XXX if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
     }
 
     id_entr_xbr->GetEntry(mi);
     id_entr_ybr->GetEntry(mi);
     ids_entr_xbr->GetEntry(mi);
     ids_entr_ybr->GetEntry(mi);
-    if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
-       pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2))
-      goto end;
+    // XXX if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) && pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2)) goto end;
 
-    if(parts.nidtubes+parts.nivtubes < 6) goto end;
+    if(parts.nidtubes+parts.nivtubes <= 6) goto end;
  
     chtree->GetEntry(mi);
     fitree->GetEntry(mi);
