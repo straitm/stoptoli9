@@ -81,7 +81,7 @@ void deadtime_finalfit(const int ntrue)
    return; */
 
   printf("\n\n\n");
-  for(int e = 0; e < 1; e++) for(int i = 1; i <= ntrue; i++) doit(t, ntrue, i, e);
+  for(int e = 0; e < 2; e++) for(int i = 1; i <= ntrue; i++) doit(t, ntrue, i, e);
 
   printf("These are ONLY the dt efficiencies.  Don't forget the dr efficiencies!\n");
 }

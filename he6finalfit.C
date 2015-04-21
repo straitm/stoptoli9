@@ -159,17 +159,10 @@ void he6finalfit(const int nreq_ = 0,
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
-  // must cut on late neutrons for these to be valid
-  // neutron efficiency varies by region within the target
-  // due to different muon track lengths
+  // Must cut on late neutrons for these to be valid. Neutron efficiency
+  // varies by region within the target due to different muon track
+  // lengths.
   //
-  // XXX can't just take these to a power, but need to put in a big table XXX
-  //teff[0] = eff * disteff[0] * pow(0.5160    *neff_dr_800_targ, nreq);
-  //teff[1] = eff * disteff[1] * pow(0.5655    *neff_dr_800_targ, nreq);
-  //teff[2] = eff * disteff[2] * pow(0.6005    *neff_dr_800_targ, nreq);
-  //teff[3] = eff * disteff[3] * pow(0.6075    *neff_dr_800_targ, nreq);
-  //teff[4] = eff * disteff[4] * pow(neff_dt_gc*neff_dr_800_h,    nreq);
-
   // Delta-t neutron efficiencies by region (first index, T0-4/GC)
   // and number of neutrons (second index, 0-3). Because the neutron
   // efficiency is a function of muon energy, the mean efficiency for,
