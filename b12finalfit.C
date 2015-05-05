@@ -1,3 +1,4 @@
+#include <fstream>
 #include "consts.h"
 #include "TFile.h"
 #include "TMinuit.h"
@@ -8,6 +9,7 @@
 #include "TRandom3.h"
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
 using std::vector;
 
 static void printfr(const char * const msg, ...)
@@ -17,6 +19,26 @@ static void printfr(const char * const msg, ...)
   printf(RED);
   vprintf(msg, ap);
   printf(CLR);
+}
+
+int reactorpowerbin(const int run)
+{
+  static bool inited = false;
+  static vector<int> on_off, off_off;
+  if(!inited){
+    inited = true;
+    // From doc-5095-v2. I see that most are included in the on-off
+    ifstream offofffile("offoff.h");
+    // From doc-5341
+    ifstream onofffile ("onoff.h");
+    int r;
+    while(offofffile >> r) off_off.push_back(r);
+    while(onofffile  >> r) on_off.push_back(r);
+  }
+
+  if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
+  if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
+  return 2;
 }
 
 static const double energyeff = 0.83;  // B-12 energy cut
@@ -130,7 +152,7 @@ static double fsysterr()
   return rms(vals)/conversion(true);
 }
 
-const int nbin = 1000;
+const int nbin = 4000;
  
 double all(TTree * t, TF1 * ee, const char * const addcut)
 {
@@ -143,7 +165,18 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
   h->Fit("ee", "li");
   gMinuit->Command("MINOS 10000 1");
   gMinuit->Command("SHOW MIN");
-  ee->SetParError(0, (-gMinuit->fErn[0]+gMinuit->fErp[0])/2);
+  double err = (-gMinuit->fErn[0]+gMinuit->fErp[0])/2;
+  if(err == 0){
+    h->Fit("ee", "li");
+    gMinuit->Command("MINOS 20000");
+    err = (-gMinuit->fErn[0]+gMinuit->fErp[0])/2;
+    if(err == 0){
+      err = ee->GetParError(0);
+      fprintf(stderr, "warning, fell back to parabolic error\n");
+    }
+  }
+
+  ee->SetParError(0, err);
 
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = ee->GetParameter(0)*0.0202/log(2)/h->GetBinWidth(1);
@@ -273,11 +306,12 @@ void b12finalfit(const char * const addcut = "1")
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
-  TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
-     "[1]*exp(-x*log(2)/0.8399) + "
-     "[2]*exp(-x*log(2)/[3]) + "
-     "[4]*exp(-x*log(2)/[5]) + "
-     "[6]*exp(-x*log(2)/[7]) + "
+  TF1 * ee = new TF1("ee",
+     "[0]*exp(-x*log(2)/0.0202) + " // B-12
+     "[1]*exp(-x*log(2)/0.8399) + " // Li-8
+     "[2]*exp(-x*log(2)/[3]) + "    // N-16
+     "[4]*exp(-x*log(2)/[5]) + "    // Li-9/He-8
+     "[6]*exp(-x*log(2)/[7]) + "    // Something long-lived
      "[8]", 0, 100);
   ee->SetParameter(0, 1e5);
 
@@ -296,6 +330,13 @@ void b12finalfit(const char * const addcut = "1")
   ee->SetParLimits(7, 0.05, 0.4);
   ee->FixParameter(6, 0);
   ee->FixParameter(7, 0);
+
+  // XXX
+    ee->FixParameter(4, 0);
+    ee->FixParameter(5, 15);
+    ee->FixParameter(6, 0);
+    ee->FixParameter(7, 15);
+  // XXX
 
   const double norm = all(t, ee, addcut);
 return; // <------
