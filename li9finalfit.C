@@ -3,16 +3,17 @@
 #include <algorithm>
 #include "consts.h"
 
-#include "TROOT.h"
-#include "TGaxis.h"
-#include "TLatex.h"
-#include "TTree.h"
-#include "TH1.h"
-#include "TF1.h"
-#include "TGraph.h"
 #include "TCanvas.h"
-#include "TMinuit.h"
+#include "TF1.h"
+#include "TGaxis.h"
+#include "TGraph.h"
+#include "TH1.h"
+#include "TLatex.h"
 #include "TMarker.h"
+#include "TMath.h"
+#include "TMinuit.h"
+#include "TROOT.h"
+#include "TTree.h"
 
 struct ev{
   bool ish; // is it H-n?
@@ -42,7 +43,8 @@ const double distcuteffgc = 0.7487,
              distcutefftarg = 0.9202;
 
 // 100s begin-of-run requirement taken into account here
-const double denominator = 0.9709*livetime*n_c12cap;
+const double rrmlivetime=rrmlivetimes[0]+rrmlivetimes[1]+rrmlivetimes[2];
+const double denominator = 0.9709*rrmlivetime*n_c12cap;
 
 /* DC3rdPub product of muon, light noise, OV, multiplicity,
    neutron (E, t, R), FV and IV efficiencies */
@@ -134,7 +136,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
     c1->cd(runperiod+2);
 
     const double livefrac =
-      runperiod < 0?1:rrmlivetimes[runperiod]/livetime;
+      runperiod < 0?1:rrmlivetimes[runperiod]/rrmlivetime;
 
     thsel->Draw(
       Form("dt/1000 >> hdisp%d_%d(%d,%f,%f)",
@@ -223,6 +225,8 @@ void contour(TMinuit * mn, const int par1, const int par2,
 
 
   if(ninty_2d){
+    ninty_2d->SetNameTitle("ninty_2d", "ninty_2d");
+    ninty_2d->SavePrimitive(cout);
     ninty_2d->SetFillColor(kViolet);
     ninty_2d->Draw("alf");
     ninty_2d->GetXaxis()->SetRangeUser(0, xrange);
@@ -233,7 +237,12 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
   //if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
-  if(sigma_2d) sigma_2d->SetLineColor(kBlack), sigma_2d->Draw("l");
+  if(sigma_2d){
+    sigma_2d->SetNameTitle("sigma_2d", "sigma_2d");
+    sigma_2d->SavePrimitive(cout);
+    sigma_2d->SetLineColor(kBlack);
+    sigma_2d->Draw("l");
+  }
 /*  mn->fUp = 11.83; // 99.73% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * threesigma_2d =
@@ -269,11 +278,14 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM  1 0 1e-3");
   mn->Command("SET LIM 11 0 1e-3");
   mn->Command("SET LIM 12 0 1e-3");
+  if(rrmlivetimes[0] == 0) fixatzero(mn, 1);
+  if(rrmlivetimes[1] == 0) fixatzero(mn, 11);
+  if(rrmlivetimes[2] == 0) fixatzero(mn, 12);
 
   mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
   mn->Command("Set LIM 2 0 0.5");
 
-  mn->Command("SET LIM 3 0 1e-3");
+  mn->Command("SET LIM 3 0 3e-3");
   mn->Command("SET LIM 4 0 3e-3");
   mn->Command("SET LIM 5 0 10"); // allow 100% production plus
                                  // a large factor for slop.  There's
@@ -317,7 +329,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     const double bg = events[i].period == 0?par[0]:
                       events[i].period == 1?par[10]:
                                             par[11];
-    const double livefrac = rrmlivetimes[events[i].period]/livetime;
+    const double livefrac = rrmlivetimes[events[i].period]/rrmlivetime;
     const double f = events[i].ish?
       Heff*(
         livefrac*(
@@ -350,6 +362,12 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   }
 }
 
+double lratsig(const double l1, const double l2)
+{
+  const double dll = (l1-l2)/2;
+  const double rat = exp(dll);
+  return TMath::NormQuantile(1-1/(2*rat));
+}
 
 void li9finalfit(int neutrons = -1, int contourmask = 0)
 {
@@ -495,11 +513,11 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2all_nopull = mn->fAmin;
 
-  printf("%sSignificance of any betan, no cheaty pulls: %.2f%s\n",
-         RED, sqrt(chi2nothing - chi2all_nopull), CLR);
+  printf("%sSignificance of any betan, no cheaty pulls: %.1f%s\n",
+         RED, lratsig(chi2nothing, chi2all_nopull), CLR);
 
   printf("%sSignificance of li9/he8 over other bn&accidental without pull: %.2f%s\n",
-         RED, sqrt(chi2all_exceptli9he8_nopull - chi2all_nopull), CLR);
+         RED, lratsig(chi2all_exceptli9he8_nopull, chi2all_nopull), CLR);
 
   {
     setupmn(mn, expectedgdfrac);
@@ -513,13 +531,14 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   {
     setupmn(mn, expectedgdfrac);
+    dopull = true;
     if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
     mn->Command("MIGRAD");
   }
   const double chi2all_withpull = mn->fAmin;
 
-  printf("%sSignificance of li9/he8 over other bn&accidental with pull: %.2f%s\n",
-         RED, sqrt(chi2all_exceptli9he8_withpull - chi2all_withpull), CLR);
+  printf("%sSignificance of li9/he8 over other bn&accidental with pull: %.1f%s\n",
+         RED, lratsig(chi2all_exceptli9he8_withpull, chi2all_withpull), CLR);
 
   {
     setupmn(mn, expectedgdfrac);
@@ -529,7 +548,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("MIGRAD");
     mn->Command("MINOS 10000 3");
     mn->Command("SHOW min");
-    printf("%sLi-9 prob without other isotopes (%.2f): %f %f +%f%s\n",
+    printf("%sLi-9 prob without other isotopes (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
@@ -591,15 +610,15 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("MINOS 10000 1 3 5 11 12");
     mn->Command("SHOW min");
     printf("%sLi-9 prob/C-12 capture with everything except "
-           "He-8 (%.2f): %f %f +%f%s\n",
+           "He-8 (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     printf("%sLi-9 prob/C-13 capture with everything except "
-           "He-8 (%.2f): %f %f +%f%s\n",
+           "He-8 (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2)*n_c12cap/n_c13cap,
            mn->fErn[2]*n_c12cap/n_c13cap, mn->fErp[2]*n_c12cap/n_c13cap,
            CLR);
     printf("%sLi-9 prob/C-nat capture with everything except "
-           "He-8 (%.2f): %f %f +%f%s\n",
+           "He-8 (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2)*n_c12cap/(n_c12cap+n_c13cap),
            mn->fErn[2]*n_c12cap/(n_c12cap+n_c13cap),
            mn->fErp[2]*n_c12cap/(n_c12cap+n_c13cap),
@@ -638,29 +657,29 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     vector<double> parsave;
     for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    parsaves.push_back(parsave);
+    if(neutrons == 0) parsaves.push_back(parsave);
   }
 
   /* // These are wrong if we are using any pulls
     printf("%s", RED);
     printf("Li-9 preferred over nothing by %f\n",
-           chi2nothing - chi2justli9 < 0?0:sqrt(chi2nothing - chi2justli9));
+           chi2nothing - chi2justli9 < 0?0:lratsig(chi2nothing, chi2justli9));
 
     printf("Li-9 + C-16 preferred over just Li-9 by %f\n",
-           chi2justli9 - chi2_li9_c16<0?0:sqrt(chi2justli9 - chi2_li9_c16));
+           chi2justli9 - chi2_li9_c16<0?0:lratsig(chi2justli9, chi2_li9_c16));
 
     printf("Li-9 + N-17 preferred over just Li-9 by %f\n",
-           chi2justli9 - chi2_li9_n17<0?0:sqrt(chi2justli9 - chi2_li9_n17));
+           chi2justli9 - chi2_li9_n17<0?0:lratsig(chi2justli9, chi2_li9_n17));
 
     printf("All preferred over Li-9 + N-17 by %f\n",
-           chi2_li9_n17 - chi2_all<0?0:sqrt(chi2_li9_n17 - chi2_all));
+           chi2_li9_n17 - chi2_all<0?0:lratsig(chi2_li9_n17, chi2_all));
     printf("All preferred over nothing by %f\n",
-           chi2nothing - chi2_all<0?0:sqrt(chi2nothing - chi2_all));
+           chi2nothing - chi2_all<0?0:lratsig(chi2nothing, chi2_all));
     printf("%s", CLR);
   }
   */
 
-  const int npoint = 100;
+  const int npoint = 120;
 
   // Li-9 vs. N-17 with nothing else
   if(contourmask & 0x01){
@@ -713,7 +732,8 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   
   //////////////////////////////////////////////////////////////////////
   drawhist(tgsel, thsel, parsaves, 48, 1, 97);
-  drawhist(tgsel, thsel, parsaves, 50, 0, 10);
+  if(neutrons == 1) drawhist(tgsel, thsel, parsaves, 10, 0, 10);
+  else              drawhist(tgsel, thsel, parsaves, 20, 0, 20);
   drawhist(tgsel, thsel, parsaves, 10, 0.001, 0.501);
 
 

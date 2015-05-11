@@ -108,7 +108,7 @@ int classi(const double x, const double y, const double z)
 void he6finalfit(const int nreq_ = 0,
                  const bool r0 = true, const bool r1 = true,
                  const bool r2 = true, const bool r3 = true,
-                 const bool r4 = true)
+                 const bool r4 = true, const bool jefferys = false)
 {
   if(nreq_ < 0){
     printf("negative input means that I will just get compiled\n");
@@ -485,30 +485,42 @@ void he6finalfit(const int nreq_ = 0,
   mn->SetPrintLevel(-1);
   const double scan = 0;
   double sump = 0;
-  const int N = 2000;
+  const int N = 20000;
   double ps[N];
-  for(int i = 0; i < N; i++){
-    const double prob = i*0.01/1000;
+
+  unsigned int smallcount = 0;
+  const double increment = 1e-6;
+
+  for(int i = 1; i < N; i++){
+    const double prob = i*increment;
     mn->Command(Form("rel %d\n", he6fpn));
     mn->Command(Form("set par %d %f", he6fpn, prob / rat));
     mn->Command(Form("fix %d\n", he6fpn));
     mn->Command("Migrad");
-    const double p = exp(chi2he6-mn->fAmin);
-    printf("%f\t%g\t%g\n", prob, mn->fAmin-chi2he6, p);
+    const double p = exp(chi2he6-mn->fAmin) * (jefferys? 1/sqrt(prob): 1);
+    printf("%8.6f %8.3g %8.3g ", prob, mn->fAmin-chi2he6, p);
+    for(int j = 0; j < p*10 - 1; j++) printf("#");
+    if     (p*10 - int(p*10) > 0.67) printf("+");
+    else if(p*10 - int(p*10) > 0.33) printf("|");
+    printf("\n");
     sump += p;
     ps[i] = p;
+    if(p < 1e-9 && ++smallcount > 3)
+      break;
   }
+  
+  printf("Norm: %f\n", sump);
 
   double sump2 = 0;
-  for(int i =0;i<N; i++){
-    const double prob = i*0.01/1000;
+  for(int i =1;i<N; i++){
+    const double prob = i*increment;
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
-       printf("Bays limit = %f\n", prob);
+       printf("Bays limit = %f\n", prob-increment/2);
        break;
     }
   }
 
-  if(ps[N-1] > 1e-9)
+  if(smallcount <= 3)
     printf("Not sure you integrated out far enough\n");
 }

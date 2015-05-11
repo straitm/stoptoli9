@@ -1323,13 +1323,12 @@ static void search(dataparts & parts, TTree * const chtree,
     ids_entr_zbr->GetEntry(mi);
     id_ivlenbr->GetEntry(mi);
     id_buflenbr->GetEntry(mi);
-    // XXX if(parts.ids_entr_z > 11500 - 62*parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
+    if(parts.ids_entr_z > 11500 -(near?37:62)*
+       parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
     id_chi2br->GetEntry(mi);
     ids_chi2br->GetEntry(mi);
-    if(!near){
-      //XXX if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
-    }
+    if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
 
     id_entr_xbr->GetEntry(mi);
     id_entr_ybr->GetEntry(mi);
