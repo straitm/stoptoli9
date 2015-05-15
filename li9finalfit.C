@@ -4,6 +4,7 @@
 #include "consts.h"
 
 #include "TCanvas.h"
+#include "TColor.h"
 #include "TF1.h"
 #include "TGaxis.h"
 #include "TGraph.h"
@@ -14,6 +15,61 @@
 #include "TMinuit.h"
 #include "TROOT.h"
 #include "TTree.h"
+#include "TRandom3.h"
+
+static TRandom3 superrand;
+
+struct parres{
+  double val, ep, en, lp, ln;
+  bool fix;
+
+  // !!! parameters are assumed to *always* have limits set !!!
+  parres(double _val, double _ep, double _en, double _lp, double _ln,
+         bool _fix)
+  {
+    if(_ep == -54321 || _ep == 0) _ep = _lp - _val;
+    if(_en == -54321 || _en == 0) _en = _val - _ln;
+    val = _val; ep = fabs(_ep), en = fabs(_en),
+    lp = _lp, ln = _ln; fix = _fix;
+  }
+
+  double rand() const
+  {
+    if(fix) return val;
+    if(val < ln || val > lp) return val;
+
+    double ans = 0;
+    if(superrand.Rndm() < 0.5){
+      do{ 
+        ans = val+superrand.Rndm()*ep*1.01;
+      }while(ans > lp);
+      return ans;
+    }
+    else{
+      do{
+        ans = val-superrand.Rndm()*en*1.01;
+      }while(ans < ln);
+      return ans;
+    }
+  }
+
+  double max() const
+  {
+    if(fix) return val;
+    if(val < ln || val > lp) return val;
+
+    return val+ep < lp? val+ep: lp;
+  }
+
+  double min() const
+  {
+    if(fix) return val;
+    if(val < ln || val > lp) return val;
+
+    return val-en > ln? val-en: ln;
+  }
+};
+
 
 struct ev{
   bool ish; // is it H-n?
@@ -80,7 +136,25 @@ const double Heff_sans_prompt_or_mun =
 const double expectedgdfrac = gd_fraction*n_c12captarget/n_c12cap;
 
 
-double getpar(TMinuit * mn, int i)
+double getlimlo(TMinuit * mn, int i)
+{
+  double answer, dum;
+  int idum;
+  TString sdum;
+  mn->mnpout(i, sdum, dum, dum, answer, dum, idum);
+  return answer;
+}
+
+double getlimup(TMinuit * mn, int i)
+{
+  double answer, dum;
+  int idum;
+  TString sdum;
+  mn->mnpout(i, sdum, dum, dum, dum, answer, idum);
+  return answer;
+}
+
+static double getpar(TMinuit * mn, int i)
 {
   double answer, dum;
   mn->GetParameter(i, answer, dum);
@@ -89,7 +163,8 @@ double getpar(TMinuit * mn, int i)
 
 void fixat(TMinuit * mn, int i, float v)
 {
-  mn->Command(Form("SET LIM %d", i));
+  mn->Command(Form("REL %d", i));
+  if(getlimup(mn, i-1)) mn->Command(Form("SET LIM %d", i));
   mn->Command(Form("SET PAR %d %f", i, v));
   mn->Command(Form("FIX %d", i));
 }
@@ -121,70 +196,390 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
+
+static bool fcnearlystop = false;
+static float fcnstopat = 0;
+
+void fcn(int & npar, double * gin, double & like, double *par, int flag)
+{
+  like = 2*(denominator*Heff*(
+           li9ebn*par[2]*(1-par[9])+// H Li-9
+           he8ebn*par[3]*(1-par[9])+// H He-8
+           n17ebn*par[4]*(1-par[5])+// H N-17
+           c16ebn*par[6]*(1-par[5])+// H C-16
+           b13ebn*par[7]*(1-par[9])+// H B-13
+          li11ebn*par[8]*(1-par[9])+// H Li-11
+           99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
+         denominator*Geff*(
+           li9ebn*par[2]*par[9]+ // Gd Li-9
+           he8ebn*par[3]*par[9]+ // Gd He-8
+           n17ebn*par[4]*par[5]+ // Gd N-17
+           c16ebn*par[6]*par[5]+ // Gd C-16
+           b13ebn*par[7]*par[9]+ // Gd B-13
+          li11ebn*par[8]*par[9]+ // Gd Li-11
+           99.999*(par[0]+par[10]+par[11])*par[1]));     // Gd bg
+
+  // pull terms
+  if(dopull){
+    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
+    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+  }
+
+  if(fcnearlystop && like > fcnstopat) return;
+
+  const double li9t = 0.257233,
+               he8t = 0.171825,
+               n17t = 6.020366,
+               c16t = 1.077693,
+               b13t = 0.025002,
+               li11t= 0.012624;
+
+  for(unsigned int i = 0; i < events.size(); i++){
+    const double bg = events[i].period == 0?par[0]:
+                      events[i].period == 1?par[10]:
+                                            par[11];
+    const double livefrac = rrmlivetimes[events[i].period]/rrmlivetime;
+    const double f = events[i].ish?
+      Heff*(
+        livefrac*(
+          li9ebn*par[2]*(1-par[9])/li9t*exp(-events[i].t/li9t)+
+          he8ebn*par[3]*(1-par[9])/he8t*exp(-events[i].t/he8t)+
+          n17ebn*par[4]*(1-par[5])/n17t*exp(-events[i].t/n17t)+
+          c16ebn*par[6]*(1-par[5])/c16t*exp(-events[i].t/c16t)+
+          b13ebn*par[7]*(1-par[9])/b13t*exp(-events[i].t/b13t)+
+          li11ebn*par[8]*(1-par[9])/li11t*exp(-events[i].t/li11t))+
+        bg*(1-par[1])) : // H bg
+       Geff*(
+         livefrac*(
+           li9ebn*par[2]*par[9]/li9t*exp(-events[i].t/li9t)+
+           he8ebn*par[3]*par[9]/he8t*exp(-events[i].t/he8t)+
+           n17ebn*par[4]*par[5]/n17t*exp(-events[i].t/n17t)+
+           c16ebn*par[6]*par[5]/c16t*exp(-events[i].t/c16t)+
+           b13ebn*par[7]*par[9]/b13t*exp(-events[i].t/b13t)+
+           li11ebn*par[8]*par[9]/li11t*exp(-events[i].t/li11t))+
+         bg*par[1]); // Gd bg
+
+    if(f > 0) like += -2*log(f);
+    if(fcnearlystop && like > fcnstopat) return;
+  }
+}
+
+static TMinuit * make_a_tminuit()
+{
+  TMinuit * mn = new TMinuit(npar);
+  mn->SetPrintLevel(-1);
+  mn->Command("SET STRATEGY 2");
+  mn->SetFCN(fcn);
+  int err;
+  mn->mnparm(1 -1, "bgrrm0", 1e-4,  1e-6, 0, 0, err);
+  mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
+  mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err); // n: yes
+  mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err); // n: yes
+  mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
+  mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err); // n: no
+  mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err); // n: no
+  mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
+  mn->mnparm(11-1, "bgrrm1", 1e-4,  1e-6, 0, 0, err);
+  mn->mnparm(12-1, "bgrrm2", 1e-4,  1e-6, 0, 0, err);
+  return mn;
+}
+
+void setupmn(TMinuit * mn, const double expectedgdfrac)
+{
+  mn->SetPrintLevel(-1);
+  dopull = true;
+  for(int i = 0; i < npar; i++) mn->Command(Form("REL %d", i+1));
+  mn->Command("SET LIM  1 0 1e-5");
+  mn->Command("SET LIM 11 0 1e-3");
+  mn->Command("SET LIM 12 0 1e-3");
+  if(rrmlivetimes[0] == 0) fixatzero(mn, 1);
+  if(rrmlivetimes[1] == 0) fixatzero(mn, 11);
+  if(rrmlivetimes[2] == 0) fixatzero(mn, 12);
+
+  mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
+  mn->Command("Set LIM 2 0 0.5");
+
+  mn->Command("SET LIM 3 0 3e-3");
+  mn->Command("SET LIM 4 0 3e-3");
+  mn->Command("SET LIM 5 0 10"); // allow 100% production plus
+                                 // a large factor for slop.  There's
+                                 // a pull term, too.
+  mn->Command("SET LIM 6 0 0.5");
+  mn->Command("SET LIM 7 0 1");  // as with N-17
+  mn->Command("SET LIM 8 0 1"); // was 0 3, why?
+  mn->Command("SET LIM 9 0 1");
+
+  mn->Command(Form("SET PAR 10 %f", expectedgdfrac));
+  mn->Command("Set LIM 10 0 0.5");
+}
+
+
+TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t, double * eedisppar,
+  char * functionstring, float low, float high2)
+{
+  TF1 * f = new TF1(
+    Form("eedisp%d_%d_%d_%d", i, whichh, runperiod+10, t),
+    functionstring, low, high2);
+
+  if(runperiod == -1) f->SetParameter(0,
+     eedisppar[0]+eedisppar[10]+eedisppar[11]);
+  else if(runperiod == 0) f->SetParameter(0, eedisppar[0]);
+  else if(runperiod == 1) f->SetParameter(0, eedisppar[10]);
+  else/*(runperiod == 2)*/f->SetParameter(0, eedisppar[11]);
+
+  for(int j = 1; j < f->GetNpar(); j++)
+    f->SetParameter(j, eedisppar[j]);
+
+  return f;
+}
+
 int whichh = 0;
 void drawhist(TTree * tgsel, TTree * thsel,
-              const vector< vector<double> > & parsave, 
-              const int nbin, const double low, const double high)
+              const vector< vector<parres> > & parsave, 
+              const int nbin, const double low, const double high,
+              const int nbin2, const double high2)
 {
   whichh++;
 
-  TCanvas * c1 = new TCanvas;
-  c1->Divide(2, 2);
-  c1->cd(1);
+  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 1224, 1002);
+  // XXX c1->Divide(2, 2);
+  // XXX c1->cd(1);
+  
+  double bins[nbin+nbin2+1];
+  for(int i = 0; i < nbin; i++)
+    bins[i] = double(i)*(high-low)/nbin; 
+  for(int i = 0; i <= nbin2; i++)
+    bins[nbin+i] = high + double(i)*(high2-high)/nbin2; 
 
-  for(int runperiod = -1; runperiod <= 2; runperiod++){
-    c1->cd(runperiod+2);
+  for(int runperiod = -1; runperiod <= -1 /* XXX 2*/; runperiod++){
+    // XXX c1->cd(runperiod+2);
 
     const double livefrac =
       runperiod < 0?1:rrmlivetimes[runperiod]/rrmlivetime;
 
-    thsel->Draw(
-      Form("dt/1000 >> hdisp%d_%d(%d,%f,%f)",
-           whichh, runperiod+10, nbin,low,high),
-      runperiod >= 0?Form("reactorpowerbin(run) == %d", runperiod):"");
+    TH1D * htmp = new TH1D("htmp", "", nbin+nbin2, bins);
 
-    tgsel->Draw(Form("dt/1000 >> +hdisp%d_%d", whichh, runperiod+10),
-      runperiod >= 0?Form("reactorpowerbin(run) == %d", runperiod):"", "e");
+    thsel->Draw("dt/1000 >> htmp",
+      runperiod>=0?Form("reactorpowerbin(run)==%d", runperiod):"");
 
-    TH1D * hdisp  = (TH1D*)gROOT->FindObject(Form("hdisp%d_%d", whichh, runperiod+10));
+    tgsel->Draw("dt/1000 >> +htmp",
+      runperiod>=0?Form("reactorpowerbin(run)==%d", runperiod):"");
+
+    TH1D * hdisp = new TH1D(Form("hdisp%d_%d", whichh, runperiod+10),"",
+      nbin+nbin2, low, (nbin+nbin2)*htmp->GetBinWidth(1));
+
+    for(int i = 1; i <= hdisp->GetNbinsX(); i++){
+      hdisp->SetBinContent(i, htmp->GetBinContent(i) *
+                              htmp->GetBinWidth(1)/
+                              htmp->GetBinWidth(i));
+      hdisp->SetBinError  (i, htmp->GetBinError(i) *
+                              htmp->GetBinWidth(1)/
+                              htmp->GetBinWidth(i));
+    }
+
+    delete htmp;
+
+    hdisp->GetYaxis()->SetRangeUser(0,
+      (2*sqrt(hdisp->GetMaximum())+hdisp->GetMaximum())*2.5);
+    hdisp->Draw("e");
+    hdisp->SavePrimitive(cout);
+
+    char functionstring[1000];
+    if(snprintf(functionstring, 999, "%f*("
+       "%f*(%f*("
+         "%f*[2]*(1-[9])/0.257233*exp(-x/0.257233)+"  // H Li-9
+         "%f*[3]*(1-[9])/0.171825*exp(-x/0.171825)+"  // H He-8
+         "%f*[4]*(1-[5])/6.020366*exp(-x/6.020366)+"  // H N-17
+         "%f*[6]*(1-[5])/1.077693*exp(-x/1.077693)+"  // H C-16
+         "%f*[7]*(1-[9])/0.025002*exp(-x/0.025002)+"  // H B-13
+         "%f*[8]*(1-[9])/0.012624*exp(-x/0.012624))+" // H Li-11
+         "[0]*(1-[1])) + "                            // H bg
+       "%f*(%f*("
+         "%f*[2]*[9]/0.257233*exp(-x/0.257233)+" // Gd Li-9
+         "%f*[3]*[9]/0.171825*exp(-x/0.171825)+" // Gd He-8
+         "%f*[4]*[5]/6.020366*exp(-x/6.020366)+" // Gd N-17
+         "%f*[6]*[5]/1.077693*exp(-x/1.077693)+" // Gd C-16
+         "%f*[7]*[9]/0.025002*exp(-x/0.025002)+" // Gd B-13
+         "%f*[8]*[9]/0.012624*exp(-x/0.012624))+"// Gd Li-11
+         "[0]*[1]))",                            // Gd bg
+      denominator*hdisp->GetBinWidth(1),
+      Heff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
+      Geff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn)
+      >= 999){
+      printf("Could not create function string\n");
+      exit(1);
+    };
 
     for(unsigned int i = 0; i < parsave.size(); i++){
-      TF1 * eedisp = new TF1(Form("eedisp%d_%d_%d", i, whichh, runperiod+10),
-        Form("%f*("
-         "%f*(%f*("
-           "%f*[2]*(1-[9])/0.257233*exp(-x/0.257233)+"  // H Li-9
-           "%f*[3]*(1-[9])/0.171825*exp(-x/0.171825)+"  // H He-8
-           "%f*[4]*(1-[5])/6.020366*exp(-x/6.020366)+"  // H N-17
-           "%f*[6]*(1-[5])/1.077693*exp(-x/1.077693)+"  // H C-16
-           "%f*[7]*(1-[9])/0.025002*exp(-x/0.025002)+"  // H B-13
-           "%f*[8]*(1-[9])/0.012624*exp(-x/0.012624))+" // H Li-11
-           "[0]*(1-[1])) + "                            // H bg
-         "%f*(%f*("
-           "%f*[2]*[9]/0.257233*exp(-x/0.257233)+" // Gd Li-9
-           "%f*[3]*[9]/0.171825*exp(-x/0.171825)+" // Gd He-8
-           "%f*[4]*[5]/6.020366*exp(-x/6.020366)+" // Gd N-17
-           "%f*[6]*[5]/1.077693*exp(-x/1.077693)+" // Gd C-16
-           "%f*[7]*[9]/0.025002*exp(-x/0.025002)+" // Gd B-13
-           "%f*[8]*[9]/0.012624*exp(-x/0.012624))+"// Gd Li-11
-           "[0]*[1]))",                            // Gd bg
-        denominator*hdisp->GetBinWidth(1),
-        Heff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
-        Geff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn),
-        0, 100);
+      double bestpar[npar], bestchi2 = 0;
+      for(int j = 0; j < npar; j++) bestpar[j] = parsave[i][j].val;
+      int vnpar = npar;
+      fcn(vnpar, NULL, bestchi2, bestpar, 0);
 
-      if(runperiod == -1) eedisp->SetParameter(0,
-         parsave[i][0]+parsave[i][10]+parsave[i][11]);
-      else if(runperiod == 0) eedisp->SetParameter(0, parsave[i][0]);
-      else if(runperiod == 1) eedisp->SetParameter(0, parsave[i][10]);
-      else/*(runperiod == 2)*/eedisp->SetParameter(0, parsave[i][11]);
+      const double chi2tolerance = 0.01;
+      fcnstopat = bestchi2+1+chi2tolerance;
 
-      for(int j = 1; j < eedisp->GetNpar(); j++)
-        eedisp->SetParameter(j, parsave[i][j]);
+      const unsigned int ncurves = 1000;
+      vector<TF1 *> bounds;
+      printf("Forming plot confidence band...\n");
+      for(unsigned int t = 0; t <= ncurves; t++){
 
-      eedisp->SetLineWidth(2);
-      eedisp->SetLineColor(kRed);
-      eedisp->SetNpx(400);
-      eedisp->Draw("Same");
+        double eedisppar[npar];
+        
+        if(t == 0){
+          for(int j = 0; j < npar; j++) eedisppar[j]=parsave[i][j].val;
+          bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2));
+        }
+        else if(t < npar*2+1){
+          const bool lo = (t-1)%2;
+          const int par = (t-1)/2;
+          if(lo) printf("%d min/max\n", par);
+          TMinuit * mn = make_a_tminuit();
+          setupmn(mn, expectedgdfrac);
+          fixat(mn, par+1,
+                lo?parsave[i][par].min():parsave[i][par].max());
+          
+          for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
+          const double dchi2 = mn->fAmin-bestchi2; 
+          if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
+            printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
+          }else{ 
+            printf("OK!\n"); 
+            for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
+            bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2)); 
+          }
+
+          delete mn;
+        }
+        else if(t < npar*2 + npar*(npar-1)/2 + 1){
+
+          const int ourt = t - npar*2 - 1;
+          int npar1 = 1, npar2 = 2;
+          for(int moose = 0; moose < ourt; moose++){
+            npar2++;
+            if(npar2 > npar){
+              npar1++;
+              npar2 = npar1+1;
+            }
+          }
+
+          TMinuit * mn = make_a_tminuit();
+          setupmn(mn, expectedgdfrac);
+          printf("%d %d contour\n", npar1, npar2);
+          mn->Command("MIGRAD");
+          mn->fGraphicsMode = true;
+          mn->Command("Set print 0");
+          mn->Command(Form("MNCONT %d %d 20", npar1, npar2));
+          TGraph * gr = mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+          if(!gr){
+            printf("Could not get contour!\n"); continue;
+          }
+          mn->Command("Set print -1");
+          for(int squirrel = 0; squirrel < gr->GetN(); squirrel++){
+            printf("  contour point %d: %f %f\n", squirrel, mn->fXpt[squirrel], mn->fYpt[squirrel]);
+            fixat(mn, npar1, gr->GetX()[squirrel]);
+            fixat(mn, npar2, gr->GetY()[squirrel]);
+
+            for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
+            const double dchi2 = mn->fAmin-bestchi2; 
+            if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
+              printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
+            }else{ 
+              printf("OK!\n"); 
+              for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
+              bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2)); 
+            }
+          }
+          delete mn;
+          delete gr;
+        }
+        else{
+          double dchi2 = 0;
+          if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
+          do{
+            for(int j=0; j<npar; j++) eedisppar[j]=parsave[i][j].rand();
+            fcnearlystop = true;
+            double chi2 = 0;
+            fcn(vnpar, NULL, chi2, eedisppar, 0);
+            fcnearlystop = false;
+            dchi2 = chi2-bestchi2;
+          }while(fabs(dchi2-1) > chi2tolerance);
+
+          bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2));
+        }
+
+      }
+
+      printf("Making high and low graphs\n");
+      TGraph ghigh, glow;
+      const int xpoints = 100;
+      const double llow = low?low:0.001;
+      for(int ix = -1; ix <= xpoints; ix++){
+        const double x = ix == -1?0:
+           exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
+        double lowest = 1e50, highest = -1e50;
+        int besttl = -1, bestth = -1;
+        for(unsigned int t = 0; t < bounds.size(); t++){
+          const double y = bounds[t]->Eval(x);
+          if(y < lowest) besttl=t, lowest = y;
+          if(y > highest)bestth=t, highest= y;
+        }
+
+        const double dispx = x < high?x:
+          high + (x - high)*(double(nbin2)/(high2-high))/
+                            (double(nbin )/(high -low ));
+        ghigh.SetPoint(ghigh.GetN(), dispx, highest);
+        glow .SetPoint( glow.GetN(), dispx,  lowest);
+      }
+
+      TGraph * gbest = new TGraph();
+      for(int ix = -1; ix <= xpoints; ix++){
+        const double x = ix == -1?0:
+           exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
+        const double dispx = x < high?x:
+          high + (x - high)*(double(nbin2)/(high2-high))/
+                            (double(nbin )/(high -low ));
+
+        gbest->SetPoint(gbest->GetN(), dispx, bounds[0]->Eval(x));
+      }
+      gbest->SetLineColor(kBlack);
+      gbest->SetLineWidth(3);
+      gbest->SetLineStyle(kDashed);
+
+      printf("Making combined graph\n");
+      TGraph * gall = new TGraph();
+      for(int p = glow.GetN()-1; p >= 0; p--)
+        gall->SetPoint(gall->GetN(),  glow.GetX()[p],  glow.GetY()[p]);
+      for(int p = 0; p < ghigh.GetN(); p++)
+        gall->SetPoint(gall->GetN(), ghigh.GetX()[p], ghigh.GetY()[p]);
+
+      gall->SetFillColor(TColor::GetColor("#ccccff"));
+      gall->SetFillStyle(1001);
+      gall->SavePrimitive(cout);
+      gall->Draw("f");
+      gbest->Draw("l");
+
+      for(unsigned int soup = 0; soup < bounds.size(); soup++){
+        bounds[soup]->SetLineWidth(1);
+        bounds[soup]->SetNpx(400);
+        bounds[soup]->Draw("same");
+      }
+
+      hdisp->GetXaxis()->SetTickLength(0);
+      hdisp->GetXaxis()->SetLabelSize(0);
+      TGaxis * na1 = new TGaxis(low, 0, high, 0, low, high, 508, "+");
+      TGaxis * na2 = new TGaxis(high, 0,
+       hdisp->GetBinLowEdge(hdisp->GetNbinsX()+1),0,high,high2,503,"+");
+      na1->SetLabelFont(42);
+      na2->SetLabelFont(42);
+      na1->SetLabelSize(0.05);
+      na2->SetLabelSize(0.05);
+      na1->Draw();
+      na2->Draw();
+
+      hdisp->Draw("samee");
     }
   }
 }
@@ -270,97 +665,6 @@ void contour(TMinuit * mn, const int par1, const int par2,
   mn->Command(Form("set print %d", oldprintlevel));
 }
 
-void setupmn(TMinuit * mn, const double expectedgdfrac)
-{
-  mn->SetPrintLevel(-1);
-  dopull = true;
-  for(int i = 0; i < npar; i++) mn->Command(Form("REL %d", i+1));
-  mn->Command("SET LIM  1 0 1e-3");
-  mn->Command("SET LIM 11 0 1e-3");
-  mn->Command("SET LIM 12 0 1e-3");
-  if(rrmlivetimes[0] == 0) fixatzero(mn, 1);
-  if(rrmlivetimes[1] == 0) fixatzero(mn, 11);
-  if(rrmlivetimes[2] == 0) fixatzero(mn, 12);
-
-  mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
-  mn->Command("Set LIM 2 0 0.5");
-
-  mn->Command("SET LIM 3 0 3e-3");
-  mn->Command("SET LIM 4 0 3e-3");
-  mn->Command("SET LIM 5 0 10"); // allow 100% production plus
-                                 // a large factor for slop.  There's
-                                 // a pull term, too.
-  mn->Command("SET LIM 6 0 0.5");
-  mn->Command("SET LIM 7 0 1");  // as with N-17
-  mn->Command("SET LIM 8 0 3");
-  mn->Command("SET LIM 9 0 1");
-
-  mn->Command(Form("SET PAR 10 %f", expectedgdfrac));
-  mn->Command("Set LIM 10 0 0.5");
-}
-
-void fcn(int & npar, double * gin, double & like, double *par, int flag)
-{
-  like = denominator*Heff*(
-           li9ebn*par[2]*(1-par[9])+// H Li-9
-           he8ebn*par[3]*(1-par[9])+// H He-8
-           n17ebn*par[4]*(1-par[5])+// H N-17
-           c16ebn*par[6]*(1-par[5])+// H C-16
-           b13ebn*par[7]*(1-par[9])+// H B-13
-          li11ebn*par[8]*(1-par[9])+// H Li-11
-           99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
-         denominator*Geff*(
-           li9ebn*par[2]*par[9]+ // Gd Li-9
-           he8ebn*par[3]*par[9]+ // Gd He-8
-           n17ebn*par[4]*par[5]+ // Gd N-17
-           c16ebn*par[6]*par[5]+ // Gd C-16
-           b13ebn*par[7]*par[9]+ // Gd B-13
-          li11ebn*par[8]*par[9]+ // Gd Li-11
-           99.999*(par[0]+par[10]+par[11])*par[1]);     // Gd bg
-
-  const double li9t = 0.257233,
-               he8t = 0.171825,
-               n17t = 6.020366,
-               c16t = 1.077693,
-               b13t = 0.025002,
-               li11t= 0.012624;
-
-  for(unsigned int i = 0; i < events.size(); i++){
-    const double bg = events[i].period == 0?par[0]:
-                      events[i].period == 1?par[10]:
-                                            par[11];
-    const double livefrac = rrmlivetimes[events[i].period]/rrmlivetime;
-    const double f = events[i].ish?
-      Heff*(
-        livefrac*(
-          li9ebn*par[2]*(1-par[9])/li9t*exp(-events[i].t/li9t)+
-          he8ebn*par[3]*(1-par[9])/he8t*exp(-events[i].t/he8t)+
-          n17ebn*par[4]*(1-par[5])/n17t*exp(-events[i].t/n17t)+
-          c16ebn*par[6]*(1-par[5])/c16t*exp(-events[i].t/c16t)+
-          b13ebn*par[7]*(1-par[9])/b13t*exp(-events[i].t/b13t)+
-          li11ebn*par[8]*(1-par[9])/li11t*exp(-events[i].t/li11t))+
-        bg*(1-par[1])) : // H bg
-       Geff*(
-         livefrac*(
-           li9ebn*par[2]*par[9]/li9t*exp(-events[i].t/li9t)+
-           he8ebn*par[3]*par[9]/he8t*exp(-events[i].t/he8t)+
-           n17ebn*par[4]*par[5]/n17t*exp(-events[i].t/n17t)+
-           c16ebn*par[6]*par[5]/c16t*exp(-events[i].t/c16t)+
-           b13ebn*par[7]*par[9]/b13t*exp(-events[i].t/b13t)+
-           li11ebn*par[8]*par[9]/li11t*exp(-events[i].t/li11t))+
-         bg*par[1]); // Gd bg
-
-    if(f > 0) like += -log(f);
-  }
-
-  like *= 2;
-
-  // pull terms
-  if(dopull){
-    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
-    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
-  }
-}
 
 double lratsig(const double l1, const double l2)
 {
@@ -461,25 +765,9 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   //////////////////
 
-  TMinuit * mn = new TMinuit(npar);
-  mn->SetPrintLevel(-1);
-  mn->Command("SET STRATEGY 2");
-  mn->SetFCN(fcn);
-  int err;
-  mn->mnparm(1 -1, "bgrrm0", 1e-4,  1e-6, 0, 0, err);
-  mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
-  mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err); // n: yes
-  mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err); // n: yes
-  mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err); // n: yes
-  mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
-  mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err); // n: yes
-  mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err); // n: no
-  mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err); // n: no
-  mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
-  mn->mnparm(11-1, "bgrrm1", 1e-4,  1e-6, 0, 0, err);
-  mn->mnparm(12-1, "bgrrm2", 1e-4,  1e-6, 0, 0, err);
+  TMinuit * mn = make_a_tminuit();
 
-  vector< vector<double> > parsaves;
+  vector< vector<parres> > parsaves;
   {
     setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 7;
@@ -488,9 +776,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("MIGRAD");
     printf("%sNo Li-9 or other bn isotopes (%.2f)%s\n",
            RED, mn->fAmin, CLR);
-    vector<double> parsave;
-    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    //parsaves.push_back(parsave);
   }
   const double chi2nothing = mn->fAmin;
 
@@ -550,9 +835,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("SHOW min");
     printf("%sLi-9 prob without other isotopes (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
-    vector<double> parsave;
-    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    //parsaves.push_back(parsave);
   }
   const double chi2justli9 = mn->fAmin;
 
@@ -634,12 +916,15 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
       for(unsigned int i = 0; i < nfixn; i++) fixatzero(mn, fixn[i]);
     }
     mn->Command("MIGRAD");
-    mn->Command("MINOS 10000 3 5 8");
+    mn->Command("MINOS 10000");
     mn->Command("SHOW min");
     printf("%sLi-9 prob with all other isotopes (%.2f): %f %f +%f%s\n",
       RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
-    vector<double> parsave;
-    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
+    vector<parres> parsave;
+    for(int i = 0; i < npar; i++)
+      parsave.push_back(parres(getpar(mn, i), mn->fErp[i], mn->fErn[i],
+                        getlimup(mn, i), getlimlo(mn, i),
+      /* XXX fragile */ neutrons > 0 && (i == 7 || i == 8)));
     parsaves.push_back(parsave);
   }
   const double chi2_all = mn->fAmin;
@@ -651,13 +936,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     setupmn(mn, expectedgdfrac);
     fixat(mn, 8, maxb13);
     mn->Command("MIGRAD");
-    mn->Command("MINOS 10000 3 5");
+    mn->Command("MINOS 10000");
     mn->Command("SHOW min");
     printf("%sLi-9 prob w/everything, B-13 fixed at limit (%.2f): %f %f +%f%s\n", RED,
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
-    vector<double> parsave;
-    for(int i = 0; i < npar; i++) parsave.push_back(getpar(mn, i));
-    if(neutrons == 0) parsaves.push_back(parsave);
   }
 
   /* // These are wrong if we are using any pulls
@@ -731,10 +1013,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   
   //////////////////////////////////////////////////////////////////////
-  drawhist(tgsel, thsel, parsaves, 48, 1, 97);
-  if(neutrons == 1) drawhist(tgsel, thsel, parsaves, 10, 0, 10);
-  else              drawhist(tgsel, thsel, parsaves, 20, 0, 20);
-  drawhist(tgsel, thsel, parsaves, 10, 0.001, 0.501);
+  //drawhist(tgsel, thsel, parsaves, 48, 1, 97);
+  //if(neutrons==1)drawhist(tgsel, thsel, parsaves,  3, 0,  3,  2, 100);
+  //else           drawhist(tgsel, thsel, parsaves, 15, 0,  3, 10, 100);
+  drawhist(                 tgsel, thsel, parsaves, 10, 0,0.5, 1, 100);
 
 
   /* setupmn(mn, expectedgdfrac);
