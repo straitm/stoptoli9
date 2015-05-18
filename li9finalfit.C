@@ -18,6 +18,13 @@
 #include "TTree.h"
 #include "TRandom3.h"
 
+static const double li9t = 0.257233,
+                    he8t = 0.171825,
+                    n17t = 6.020366,
+                    c16t = 1.077693,
+                    b13t = 0.025002,
+                    li11t= 0.012624;
+
 static TRandom3 superrand;
 
 struct parres{
@@ -76,6 +83,19 @@ struct ev{
   bool ish; // is it H-n?
   double t; // time
   int period; // RRM run period
+  double nt_li9, nt_he8, nt_n17, nt_c16, nt_b13, nt_li11;
+
+  ev(bool ish_, double t_, int period_){
+    ish = ish_;
+    t = t_;
+    period = period_;
+    nt_li9 = -t/li9t; 
+    nt_he8 = -t/he8t; 
+    nt_n17 = -t/n17t; 
+    nt_c16 = -t/c16t; 
+    nt_b13 = -t/b13t; 
+    nt_li11 = -t/li11t; 
+  }
 };
 
 vector<ev> events;
@@ -201,89 +221,6 @@ int reactorpowerbin(const int run)
 static bool fcnearlystop = false;
 static float fcnstopat = 0;
 
-/*void fcn(int & npar, double * gin, double & like, double *par, int flag)
-{
-  like = 2*(denominator*Heff*(
-           li9ebn*par[2]*(1-par[9])+// H Li-9
-           he8ebn*par[3]*(1-par[9])+// H He-8
-           n17ebn*par[4]*(1-par[5])+// H N-17
-           c16ebn*par[6]*(1-par[5])+// H C-16
-           b13ebn*par[7]*(1-par[9])+// H B-13
-          li11ebn*par[8]*(1-par[9])+// H Li-11
-           99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
-         denominator*Geff*(
-           li9ebn*par[2]*par[9]+ // Gd Li-9
-           he8ebn*par[3]*par[9]+ // Gd He-8
-           n17ebn*par[4]*par[5]+ // Gd N-17
-           c16ebn*par[6]*par[5]+ // Gd C-16
-           b13ebn*par[7]*par[9]+ // Gd B-13
-          li11ebn*par[8]*par[9]+ // Gd Li-11
-           99.999*(par[0]+par[10]+par[11])*par[1]));     // Gd bg
-
-  // pull terms
-  if(dopull){
-    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
-    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
-  }
-
-  if(fcnearlystop && like > fcnstopat) return;
-
-  static const double li9t = 0.257233,
-                      he8t = 0.171825,
-                      n17t = 6.020366,
-                      c16t = 1.077693,
-                      b13t = 0.025002,
-                      li11t= 0.012624;
-
-  static const double li9_ebn_t =  li9ebn/ li9t,
-                      he8_ebn_t =  he8ebn/ he8t,
-                      n17_ebn_t =  n17ebn/ n17t,
-                      c16_ebn_t =  c16ebn/ c16t,
-                      b13_ebn_t =  b13ebn/ b13t,
-                     li11_ebn_t = li11ebn/li11t;
-
-  static const double livefrac[3] = {
-    rrmlivetimes[0]/rrmlivetime,
-    rrmlivetimes[1]/rrmlivetime,
-    rrmlivetimes[2]/rrmlivetime };
-
-  const double bg[3] = { par[0], par[10], par[11] };
-
-  for(unsigned int i = 0; i < events.size(); i++){
-    const int per = events[i].period;
-    const double f = events[i].ish?
-      Heff*(
-        livefrac[per]*(
-          (1-par[9])*(
-           b13_ebn_t*par[7]*exp(-events[i].t/ b13t)+
-          li11_ebn_t*par[8]*exp(-events[i].t/li11t)+
-           li9_ebn_t*par[2]*exp(-events[i].t/ li9t)+
-           he8_ebn_t*par[3]*exp(-events[i].t/ he8t))+
-
-          (1-par[5])*(
-          n17_ebn_t*par[4]*exp(-events[i].t/n17t)+
-          c16_ebn_t*par[6]*exp(-events[i].t/c16t))
-        )+
-        bg[per]*(1-par[1])) : // H bg
-       Geff*(
-         livefrac[per]*(
-           par[9]*(
-            b13_ebn_t*par[7]*exp(-events[i].t/ b13t)+
-           li11_ebn_t*par[8]*exp(-events[i].t/li11t)+
-            li9_ebn_t*par[2]*exp(-events[i].t/ li9t)+
-            he8_ebn_t*par[3]*exp(-events[i].t/ he8t))+
-
-           par[5]*(
-           n17_ebn_t*par[4]*exp(-events[i].t/n17t)+
-           c16_ebn_t*par[6]*exp(-events[i].t/c16t))
-         )+
-         bg[per]*par[1]); // Gd bg
-
-    if(f > 0) like -= 2*log(f);
-    if(fcnearlystop && like > fcnstopat) return;
-  }
-}*/
-
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   like = 2*(denominator*Heff*(
@@ -311,43 +248,74 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   if(fcnearlystop && like > fcnstopat) return;
 
-  const double li9t = 0.257233,
-               he8t = 0.171825,
-               n17t = 6.020366,
-               c16t = 1.077693,
-               b13t = 0.025002,
-               li11t= 0.012624;
+  static const double li9ebn_t =  li9ebn/ li9t,
+                      he8ebn_t =  he8ebn/ he8t,
+                      n17ebn_t =  n17ebn/ n17t,
+                      c16ebn_t =  c16ebn/ c16t,
+                      b13ebn_t =  b13ebn/ b13t,
+                     li11ebn_t = li11ebn/li11t;
+
+  const double carbon_gd_frac = par[9];
+  const double oxygen_gd_frac = par[5];
+  const double carbon_h_frac = 1-par[9];
+  const double oxygen_h_frac = 1-par[5];
+
+  const double li9_ebn_tp_gd =  li9ebn_t*par[2]*carbon_gd_frac,
+               he8_ebn_tp_gd =  he8ebn_t*par[3]*carbon_gd_frac,
+               n17_ebn_tp_gd =  n17ebn_t*par[4]*oxygen_gd_frac,
+               c16_ebn_tp_gd =  c16ebn_t*par[6]*oxygen_gd_frac,
+               b13_ebn_tp_gd =  b13ebn_t*par[7]*carbon_gd_frac,
+              li11_ebn_tp_gd = li11ebn_t*par[8]*carbon_gd_frac;
+
+  const double li9_ebn_tp_h =  li9ebn_t*par[2]*carbon_h_frac,
+               he8_ebn_tp_h =  he8ebn_t*par[3]*carbon_h_frac,
+               n17_ebn_tp_h =  n17ebn_t*par[4]*oxygen_h_frac,
+               c16_ebn_tp_h =  c16ebn_t*par[6]*oxygen_h_frac,
+               b13_ebn_tp_h =  b13ebn_t*par[7]*carbon_h_frac,
+              li11_ebn_tp_h = li11ebn_t*par[8]*carbon_h_frac;
+
+  static const double eff_gd_livefrac[3] = {
+    rrmlivetimes[0]/rrmlivetime*Geff,
+    rrmlivetimes[1]/rrmlivetime*Geff,
+    rrmlivetimes[2]/rrmlivetime*Geff };
+
+  static const double eff_h_livefrac[3] = {
+    rrmlivetimes[0]/rrmlivetime*Heff,
+    rrmlivetimes[1]/rrmlivetime*Heff,
+    rrmlivetimes[2]/rrmlivetime*Heff };
+
+  const double eff_h_bg [3]={ par[0]*Heff*(1-par[1]),
+                              par[10]*Heff*(1-par[1]),
+                              par[11]*Heff*(1-par[1]) };
+  const double eff_gd_bg[3]={ par[0]*Geff*par[1],
+                              par[10]*Geff*par[1],
+                              par[11]*Geff*par[1] };
 
   for(unsigned int i = 0; i < events.size(); i++){
-    const double bg = events[i].period == 0?par[0]:
-                      events[i].period == 1?par[10]:
-                                            par[11];
-    const double livefrac = rrmlivetimes[events[i].period]/rrmlivetime;
-    const double f = events[i].ish?
-      Heff*(
-        livefrac*(
-          li9ebn*par[2]*(1-par[9])/li9t*exp(-events[i].t/li9t)+
-          he8ebn*par[3]*(1-par[9])/he8t*exp(-events[i].t/he8t)+
-          n17ebn*par[4]*(1-par[5])/n17t*exp(-events[i].t/n17t)+
-          c16ebn*par[6]*(1-par[5])/c16t*exp(-events[i].t/c16t)+
-          b13ebn*par[7]*(1-par[9])/b13t*exp(-events[i].t/b13t)+
-          li11ebn*par[8]*(1-par[9])/li11t*exp(-events[i].t/li11t))+
-        bg*(1-par[1])) : // H bg
-       Geff*(
-         livefrac*(
-           li9ebn*par[2]*par[9]/li9t*exp(-events[i].t/li9t)+
-           he8ebn*par[3]*par[9]/he8t*exp(-events[i].t/he8t)+
-           n17ebn*par[4]*par[5]/n17t*exp(-events[i].t/n17t)+
-           c16ebn*par[6]*par[5]/c16t*exp(-events[i].t/c16t)+
-           b13ebn*par[7]*par[9]/b13t*exp(-events[i].t/b13t)+
-           li11ebn*par[8]*par[9]/li11t*exp(-events[i].t/li11t))+
-         bg*par[1]); // Gd bg
+    ev * e = &(events[i]);
+    const int per = e->period;
+    double f;
+    if(e->ish)
+      f = eff_h_livefrac[per]*(
+          b13_ebn_tp_h*exp(e->nt_b13)+ li11_ebn_tp_h*exp(e->nt_li11)+
+          li9_ebn_tp_h*exp(e->nt_li9)+ he8_ebn_tp_h*exp(e->nt_he8)+
+          n17_ebn_tp_h*exp(e->nt_n17)+ c16_ebn_tp_h*exp(e->nt_c16)
+        )+
+        eff_h_bg[per]; // H bg
+    else
+      f = eff_gd_livefrac[per]*(
+          b13_ebn_tp_gd*exp(e->nt_b13)+ li11_ebn_tp_gd*exp(e->nt_li11)+
+          li9_ebn_tp_gd*exp(e->nt_li9)+ he8_ebn_tp_gd*exp(e->nt_he8)+
+          n17_ebn_tp_gd*exp(e->nt_n17)+ c16_ebn_tp_gd*exp(e->nt_c16)
+         )+
+         eff_gd_bg[per]; // Gd bg
 
-    if(f > 0) like += -2*log(f);
-    if(fcnearlystop && like > fcnstopat) return;
+    if(f > 0){
+      like -= 2*log(f);
+      if(fcnearlystop && like > fcnstopat) return;
+    }
   }
 }
-
 
 static TMinuit * make_a_tminuit()
 {
@@ -595,7 +563,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
       delete gr;
     }
 
-    const unsigned int ncurves = 10;
+    const unsigned int ncurves = 100;
     for(unsigned int t = 0; t < ncurves; t++){
       double dchi2 = 0;
       if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
@@ -781,6 +749,7 @@ double lratsig(const double l1, const double l2)
 
 void li9finalfit(int neutrons = -1, int contourmask = 0)
 {
+  if(neutrons < -1) return;
   // First factor takes into account the efficiency of selecting a
   // neutron after a muon, second is the prompt energy cut, third as
   // documented above
@@ -854,19 +823,13 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   for(int i = 0; i < tgsel->GetEntries(); i++){
     tgsel->GetEntry(i);
-    ev evt;
-    evt.t = (tim - 0.002)/1000;
-    evt.ish = false;
-    evt.period = reactorpowerbin(int(run));
-    events.push_back(evt);
+    events.push_back(ev(false, (tim - 0.002)/1000,
+                     reactorpowerbin(int(run))));
   }
   for(int i = 0; i < thsel->GetEntries(); i++){
     thsel->GetEntry(i);
-    ev evt;
-    evt.t = (tim - 0.002)/1000;
-    evt.ish = true;
-    evt.period = reactorpowerbin(int(run));
-    events.push_back(evt);
+    events.push_back(ev(true, (tim - 0.002)/1000,
+                     reactorpowerbin(int(run))));
   }
 
   //////////////////
