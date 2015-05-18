@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
@@ -200,6 +201,89 @@ int reactorpowerbin(const int run)
 static bool fcnearlystop = false;
 static float fcnstopat = 0;
 
+/*void fcn(int & npar, double * gin, double & like, double *par, int flag)
+{
+  like = 2*(denominator*Heff*(
+           li9ebn*par[2]*(1-par[9])+// H Li-9
+           he8ebn*par[3]*(1-par[9])+// H He-8
+           n17ebn*par[4]*(1-par[5])+// H N-17
+           c16ebn*par[6]*(1-par[5])+// H C-16
+           b13ebn*par[7]*(1-par[9])+// H B-13
+          li11ebn*par[8]*(1-par[9])+// H Li-11
+           99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
+         denominator*Geff*(
+           li9ebn*par[2]*par[9]+ // Gd Li-9
+           he8ebn*par[3]*par[9]+ // Gd He-8
+           n17ebn*par[4]*par[5]+ // Gd N-17
+           c16ebn*par[6]*par[5]+ // Gd C-16
+           b13ebn*par[7]*par[9]+ // Gd B-13
+          li11ebn*par[8]*par[9]+ // Gd Li-11
+           99.999*(par[0]+par[10]+par[11])*par[1]));     // Gd bg
+
+  // pull terms
+  if(dopull){
+    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
+    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+  }
+
+  if(fcnearlystop && like > fcnstopat) return;
+
+  static const double li9t = 0.257233,
+                      he8t = 0.171825,
+                      n17t = 6.020366,
+                      c16t = 1.077693,
+                      b13t = 0.025002,
+                      li11t= 0.012624;
+
+  static const double li9_ebn_t =  li9ebn/ li9t,
+                      he8_ebn_t =  he8ebn/ he8t,
+                      n17_ebn_t =  n17ebn/ n17t,
+                      c16_ebn_t =  c16ebn/ c16t,
+                      b13_ebn_t =  b13ebn/ b13t,
+                     li11_ebn_t = li11ebn/li11t;
+
+  static const double livefrac[3] = {
+    rrmlivetimes[0]/rrmlivetime,
+    rrmlivetimes[1]/rrmlivetime,
+    rrmlivetimes[2]/rrmlivetime };
+
+  const double bg[3] = { par[0], par[10], par[11] };
+
+  for(unsigned int i = 0; i < events.size(); i++){
+    const int per = events[i].period;
+    const double f = events[i].ish?
+      Heff*(
+        livefrac[per]*(
+          (1-par[9])*(
+           b13_ebn_t*par[7]*exp(-events[i].t/ b13t)+
+          li11_ebn_t*par[8]*exp(-events[i].t/li11t)+
+           li9_ebn_t*par[2]*exp(-events[i].t/ li9t)+
+           he8_ebn_t*par[3]*exp(-events[i].t/ he8t))+
+
+          (1-par[5])*(
+          n17_ebn_t*par[4]*exp(-events[i].t/n17t)+
+          c16_ebn_t*par[6]*exp(-events[i].t/c16t))
+        )+
+        bg[per]*(1-par[1])) : // H bg
+       Geff*(
+         livefrac[per]*(
+           par[9]*(
+            b13_ebn_t*par[7]*exp(-events[i].t/ b13t)+
+           li11_ebn_t*par[8]*exp(-events[i].t/li11t)+
+            li9_ebn_t*par[2]*exp(-events[i].t/ li9t)+
+            he8_ebn_t*par[3]*exp(-events[i].t/ he8t))+
+
+           par[5]*(
+           n17_ebn_t*par[4]*exp(-events[i].t/n17t)+
+           c16_ebn_t*par[6]*exp(-events[i].t/c16t))
+         )+
+         bg[per]*par[1]); // Gd bg
+
+    if(f > 0) like -= 2*log(f);
+    if(fcnearlystop && like > fcnstopat) return;
+  }
+}*/
+
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   like = 2*(denominator*Heff*(
@@ -264,6 +348,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   }
 }
 
+
 static TMinuit * make_a_tminuit()
 {
   TMinuit * mn = new TMinuit(npar);
@@ -316,13 +401,16 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
 }
 
 
-TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t, double * eedisppar,
-  char * functionstring, float low, float high2)
+TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t,
+                      double * eedisppar, char * functionstring,
+                      float low, float high2)
 {
   TF1 * f = new TF1(
     Form("eedisp%d_%d_%d_%d", i, whichh, runperiod+10, t),
     functionstring, low, high2);
 
+  f->SetLineWidth(1);
+  f->SetNpx(400);
   if(runperiod == -1) f->SetParameter(0,
      eedisppar[0]+eedisppar[10]+eedisppar[11]);
   else if(runperiod == 0) f->SetParameter(0, eedisppar[0]);
@@ -337,13 +425,13 @@ TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t, double * eedisppa
 
 int whichh = 0;
 void drawhist(TTree * tgsel, TTree * thsel,
-              const vector< vector<parres> > & parsave, 
+              const vector<parres> & parsave, 
               const int nbin, const double low, const double high,
               const int nbin2, const double high2)
 {
   whichh++;
 
-  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 1224, 1002);
+  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0,800, 500);
   // XXX c1->Divide(2, 2);
   // XXX c1->cd(1);
   
@@ -379,12 +467,6 @@ void drawhist(TTree * tgsel, TTree * thsel,
                               htmp->GetBinWidth(i));
     }
 
-    delete htmp;
-
-    hdisp->GetYaxis()->SetRangeUser(0,
-      (2*sqrt(hdisp->GetMaximum())+hdisp->GetMaximum())*2.5);
-    hdisp->Draw("e");
-    hdisp->SavePrimitive(cout);
 
     char functionstring[1000];
     if(snprintf(functionstring, 999, "%f*("
@@ -404,7 +486,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
          "%f*[7]*[9]/0.025002*exp(-x/0.025002)+" // Gd B-13
          "%f*[8]*[9]/0.012624*exp(-x/0.012624))+"// Gd Li-11
          "[0]*[1]))",                            // Gd bg
-      denominator*hdisp->GetBinWidth(1),
+      denominator*(high-low)/nbin,
       Heff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn,
       Geff, livefrac, li9ebn, he8ebn, n17ebn, c16ebn, b13ebn, li11ebn)
       >= 999){
@@ -412,175 +494,199 @@ void drawhist(TTree * tgsel, TTree * thsel,
       exit(1);
     };
 
-    for(unsigned int i = 0; i < parsave.size(); i++){
-      double bestpar[npar], bestchi2 = 0;
-      for(int j = 0; j < npar; j++) bestpar[j] = parsave[i][j].val;
-      int vnpar = npar;
-      fcn(vnpar, NULL, bestchi2, bestpar, 0);
+    delete htmp;
 
-      const double chi2tolerance = 0.01;
-      fcnstopat = bestchi2+1+chi2tolerance;
+    hdisp->GetYaxis()->SetRangeUser(0,
+      (2*sqrt(hdisp->GetMaximum())+hdisp->GetMaximum())*2.5);
+    hdisp->Draw("e");
+    hdisp->SavePrimitive(cout);
 
-      const unsigned int ncurves = 1000;
-      vector<TF1 *> bounds;
-      printf("Forming plot confidence band...\n");
-      for(unsigned int t = 0; t <= ncurves; t++){
+    double bestpar[npar], bestchi2 = 0;
+    for(int j = 0; j < npar; j++) bestpar[j] = parsave[j].val;
+    int vnpar = npar;
+    fcn(vnpar, NULL, bestchi2, bestpar, 0);
 
+    const double chi2tolerance = 0.01;
+    fcnstopat = bestchi2+1+chi2tolerance;
+
+    vector<TF1 *> bounds;
+    vector<int> resulttype;
+    printf("Forming plot confidence band...\n");
+
+    bounds.push_back(make_bounds_tf1(0, whichh, runperiod, 0, bestpar, functionstring, low, high2));
+    resulttype.push_back(0);
+
+    for(int t = 0; t < npar*2; t++){
+      const bool lo = t%2;
+      const int par = t/2;
+      if(lo) printf("%d min/max\n", par);
+      TMinuit * mn = make_a_tminuit();
+      setupmn(mn, expectedgdfrac);
+      fixat(mn, par+1,
+            lo?parsave[par].min():parsave[par].max());
+      
+      for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
+      const double dchi2 = mn->fAmin-bestchi2; 
+      if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
+        printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
+      }else{ 
+        printf("OK!\n"); 
         double eedisppar[npar];
-        
-        if(t == 0){
-          for(int j = 0; j < npar; j++) eedisppar[j]=parsave[i][j].val;
-          bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2));
+        for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
+        bounds.push_back(make_bounds_tf1(1, whichh, runperiod, t, eedisppar, functionstring, low, high2)); 
+        resulttype.push_back(1);
+        bounds[bounds.size()-1]->SetLineColor(kRed);
+        bounds[bounds.size()-1]->Draw("same");
+        c1->Modified(); c1->Update();
+      }
+      delete mn;
+    }
+
+    for(int t = 0; t < npar*(npar-1)/2; t++){ break; //XXX
+      int npar1 = 1, npar2 = 2;
+      for(int moose = 0; moose < t; moose++){
+        npar2++;
+        if(npar2 > npar){
+          npar1++;
+          npar2 = npar1+1;
         }
-        else if(t < npar*2+1){
-          const bool lo = (t-1)%2;
-          const int par = (t-1)/2;
-          if(lo) printf("%d min/max\n", par);
-          TMinuit * mn = make_a_tminuit();
-          setupmn(mn, expectedgdfrac);
-          fixat(mn, par+1,
-                lo?parsave[i][par].min():parsave[i][par].max());
-          
-          for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
-          const double dchi2 = mn->fAmin-bestchi2; 
-          if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
-            printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
-          }else{ 
-            printf("OK!\n"); 
-            for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
-            bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2)); 
-          }
+      }
+      if(parsave[npar1-1].fix || parsave[npar2-1].fix) continue;
 
-          delete mn;
-        }
-        else if(t < npar*2 + npar*(npar-1)/2 + 1){
+      TMinuit * mn = make_a_tminuit();
+      setupmn(mn, expectedgdfrac);
 
-          const int ourt = t - npar*2 - 1;
-          int npar1 = 1, npar2 = 2;
-          for(int moose = 0; moose < ourt; moose++){
-            npar2++;
-            if(npar2 > npar){
-              npar1++;
-              npar2 = npar1+1;
-            }
-          }
-
-          TMinuit * mn = make_a_tminuit();
-          setupmn(mn, expectedgdfrac);
-          printf("%d %d contour\n", npar1, npar2);
-          mn->Command("MIGRAD");
-          mn->fGraphicsMode = true;
-          mn->Command("Set print 0");
-          mn->Command(Form("MNCONT %d %d 20", npar1, npar2));
-          TGraph * gr = mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
-          if(!gr){
-            printf("Could not get contour!\n"); continue;
-          }
-          mn->Command("Set print -1");
-          for(int squirrel = 0; squirrel < gr->GetN(); squirrel++){
-            printf("  contour point %d: %f %f\n", squirrel, mn->fXpt[squirrel], mn->fYpt[squirrel]);
-            fixat(mn, npar1, gr->GetX()[squirrel]);
-            fixat(mn, npar2, gr->GetY()[squirrel]);
-
-            for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
-            const double dchi2 = mn->fAmin-bestchi2; 
-            if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
-              printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
-            }else{ 
-              printf("OK!\n"); 
-              for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
-              bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2)); 
-            }
-          }
-          delete mn;
-          delete gr;
-        }
-        else{
-          double dchi2 = 0;
-          if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
-          do{
-            for(int j=0; j<npar; j++) eedisppar[j]=parsave[i][j].rand();
-            fcnearlystop = true;
-            double chi2 = 0;
-            fcn(vnpar, NULL, chi2, eedisppar, 0);
-            fcnearlystop = false;
-            dchi2 = chi2-bestchi2;
-          }while(fabs(dchi2-1) > chi2tolerance);
-
-          bounds.push_back(make_bounds_tf1(i, whichh, runperiod+10, t, eedisppar, functionstring, low, high2));
-        }
-
+      for(int X = 0; X < npar; X++){
+        mn->Command(Form("SET PAR %d %f",X+1,parsave[X].val));
+        if(parsave[X].fix) mn->Command(Form("FIX %d", X+1));
       }
 
-      printf("Making high and low graphs\n");
-      TGraph ghigh, glow;
-      const int xpoints = 100;
-      const double llow = low?low:0.001;
-      for(int ix = -1; ix <= xpoints; ix++){
-        const double x = ix == -1?0:
-           exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
-        double lowest = 1e50, highest = -1e50;
-        int besttl = -1, bestth = -1;
-        for(unsigned int t = 0; t < bounds.size(); t++){
-          const double y = bounds[t]->Eval(x);
-          if(y < lowest) besttl=t, lowest = y;
-          if(y > highest)bestth=t, highest= y;
+      printf("%d %d contour\n", npar1, npar2);
+      mn->Command("MIGRAD");
+      mn->fGraphicsMode = true;
+      mn->Command("Set print 0");
+      mn->Command(Form("MNCONT %d %d 20", npar1, npar2));
+      TGraph * gr = mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+      if(!gr){
+        printf("Could not get contour!\n"); continue;
+      }
+      mn->Command("Set print -1");
+      for(int squirrel = 0; squirrel < gr->GetN(); squirrel++){
+        printf("  contour point %d: %f %f\n", squirrel, mn->fXpt[squirrel], mn->fYpt[squirrel]);
+        fixat(mn, npar1, gr->GetX()[squirrel]);
+        fixat(mn, npar2, gr->GetY()[squirrel]);
+
+        for(int y = 0; y < 2; y++) mn->Command("MIGRAD"); 
+        const double dchi2 = mn->fAmin-bestchi2; 
+        if(dchi2 > 1 + chi2tolerance || dchi2 < -1e-5){ 
+          printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
+        }else{ 
+          printf("OK!\n"); 
+          double eedisppar[npar];
+          for(int V = 0; V < npar; V++) eedisppar[V] = getpar(mn, V); 
+          bounds.push_back(make_bounds_tf1(2, whichh, runperiod, t, eedisppar, functionstring, low, high2)); 
+          resulttype.push_back(2);
+          bounds[bounds.size()-1]->SetLineColor(kBlack);
+          bounds[bounds.size()-1]->Draw("same");
+          c1->Modified(); c1->Update();
         }
+      }
+      delete mn;
+      delete gr;
+    }
 
-        const double dispx = x < high?x:
-          high + (x - high)*(double(nbin2)/(high2-high))/
-                            (double(nbin )/(high -low ));
-        ghigh.SetPoint(ghigh.GetN(), dispx, highest);
-        glow .SetPoint( glow.GetN(), dispx,  lowest);
+    const unsigned int ncurves = 10;
+    for(unsigned int t = 0; t < ncurves; t++){
+      double dchi2 = 0;
+      if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
+      double eedisppar[npar];
+      do{
+        for(int j=0; j<npar; j++) eedisppar[j]=parsave[j].rand();
+        double chi2 = 0;
+        fcnearlystop = true;
+        fcn(vnpar, NULL, chi2, eedisppar, 0);
+        fcnearlystop = false;
+        dchi2 = chi2-bestchi2;
+      }while(fabs(dchi2-1) > chi2tolerance);
+
+      bounds.push_back(make_bounds_tf1(3, whichh, runperiod, t, eedisppar, functionstring, low, high2));
+      resulttype.push_back(3);
+      bounds[bounds.size()-1]->SetLineColor(kGreen+2);
+      bounds[bounds.size()-1]->Draw("same");
+      c1->Modified(); c1->Update();
+    }
+
+    printf("Making high and low graphs\n");
+    TGraph ghigh, glow;
+    const int xpoints = 100;
+    const double llow = low?low:0.001;
+    for(int ix = -1; ix <= xpoints; ix++){
+      const double x = ix == -1?0:
+        exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
+      double lowest = 1e50, highest = -1e50;
+      int besttl = -1, bestth = -1;
+      for(unsigned int t = 0; t < bounds.size(); t++){
+        const double y = bounds[t]->Eval(x);
+        if(y < lowest) besttl=t, lowest = y;
+        if(y > highest)bestth=t, highest= y;
       }
 
-      TGraph * gbest = new TGraph();
-      for(int ix = -1; ix <= xpoints; ix++){
-        const double x = ix == -1?0:
-           exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
-        const double dispx = x < high?x:
-          high + (x - high)*(double(nbin2)/(high2-high))/
-                            (double(nbin )/(high -low ));
+      const double dispx = x < high?x:
+        high + (x - high)*(double(nbin2)/(high2-high))/
+        (double(nbin )/(high -low ));
+      ghigh.SetPoint(ghigh.GetN(), dispx, highest);
+      glow .SetPoint( glow.GetN(), dispx,  lowest);
+    }
 
-        gbest->SetPoint(gbest->GetN(), dispx, bounds[0]->Eval(x));
-      }
-      gbest->SetLineColor(kBlack);
-      gbest->SetLineWidth(3);
-      gbest->SetLineStyle(kDashed);
+    TGraph * gbest = new TGraph();
+    for(int ix = -1; ix <= xpoints; ix++){
+      const double x = ix == -1?0:
+        exp(log(llow) + double(ix)*(log(high2)-log(llow))/xpoints);
+      const double dispx = x < high?x:
+        high + (x - high)*(double(nbin2)/(high2-high))/
+        (double(nbin )/(high -low ));
 
-      printf("Making combined graph\n");
-      TGraph * gall = new TGraph();
-      for(int p = glow.GetN()-1; p >= 0; p--)
-        gall->SetPoint(gall->GetN(),  glow.GetX()[p],  glow.GetY()[p]);
-      for(int p = 0; p < ghigh.GetN(); p++)
-        gall->SetPoint(gall->GetN(), ghigh.GetX()[p], ghigh.GetY()[p]);
+      gbest->SetPoint(gbest->GetN(), dispx, bounds[0]->Eval(x));
+    }
+    gbest->SetLineColor(kBlack);
+    gbest->SetLineWidth(3);
+    gbest->SetLineStyle(kDashed);
 
-      gall->SetFillColor(TColor::GetColor("#ccccff"));
-      gall->SetFillStyle(1001);
-      gall->SavePrimitive(cout);
-      gall->Draw("f");
-      gbest->Draw("l");
+    printf("Making combined graph\n");
+    TGraph * gall = new TGraph();
+    for(int p = glow.GetN()-1; p >= 0; p--)
+      gall->SetPoint(gall->GetN(),  glow.GetX()[p],  glow.GetY()[p]);
+    for(int p = 0; p < ghigh.GetN(); p++)
+      gall->SetPoint(gall->GetN(), ghigh.GetX()[p], ghigh.GetY()[p]);
 
-      for(unsigned int soup = 0; soup < bounds.size(); soup++){
+    gall->SetFillColor(TColor::GetColor("#ccccff"));
+    gall->SetFillStyle(1001);
+    gall->SavePrimitive(cout);
+    gbest->SavePrimitive(cout);
+    gall->Draw("f");
+    gbest->Draw("l");
+
+    for(unsigned int soup = 0; soup < bounds.size(); soup++){
+      if(resulttype[soup] == 1 || resulttype[soup] == 2) {
         bounds[soup]->SetLineWidth(1);
         bounds[soup]->SetNpx(400);
         bounds[soup]->Draw("same");
       }
-
-      hdisp->GetXaxis()->SetTickLength(0);
-      hdisp->GetXaxis()->SetLabelSize(0);
-      TGaxis * na1 = new TGaxis(low, 0, high, 0, low, high, 508, "+");
-      TGaxis * na2 = new TGaxis(high, 0,
-       hdisp->GetBinLowEdge(hdisp->GetNbinsX()+1),0,high,high2,503,"+");
-      na1->SetLabelFont(42);
-      na2->SetLabelFont(42);
-      na1->SetLabelSize(0.05);
-      na2->SetLabelSize(0.05);
-      na1->Draw();
-      na2->Draw();
-
-      hdisp->Draw("samee");
     }
+
+    hdisp->GetXaxis()->SetTickLength(0);
+    hdisp->GetXaxis()->SetLabelSize(0);
+    TGaxis * na1 = new TGaxis(low, 0, high, 0, low, high, 508, "+");
+    TGaxis * na2 = new TGaxis(high, 0,
+        hdisp->GetBinLowEdge(hdisp->GetNbinsX()+1),0,high,high2,503,"+");
+    na1->SetLabelFont(42);
+    na2->SetLabelFont(42);
+    na1->SetLabelSize(0.05);
+    na2->SetLabelSize(0.05);
+    na1->Draw();
+    na2->Draw();
+
+    hdisp->Draw("samee");
   }
 }
 
@@ -779,6 +885,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2nothing = mn->fAmin;
 
+/*
   {
     setupmn(mn, expectedgdfrac);
     dopull = false;
@@ -907,7 +1014,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
-
+*/
   {
     setupmn(mn, expectedgdfrac);
     if(neutrons > 0){
@@ -1013,10 +1120,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   
   //////////////////////////////////////////////////////////////////////
-  //drawhist(tgsel, thsel, parsaves, 48, 1, 97);
-  //if(neutrons==1)drawhist(tgsel, thsel, parsaves,  3, 0,  3,  2, 100);
-  //else           drawhist(tgsel, thsel, parsaves, 15, 0,  3, 10, 100);
-  drawhist(                 tgsel, thsel, parsaves, 10, 0,0.5, 1, 100);
+  //drawhist(tgsel, thsel, parsaves[0], 48, 1, 97);
+  if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3,  2, 100);
+  else           drawhist(tgsel, thsel, parsaves[0], 15, 0,  3, 10, 100);
+  //drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
 
 
   /* setupmn(mn, expectedgdfrac);
