@@ -475,7 +475,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
     fcn(vnpar, NULL, bestchi2, bestpar, 0);
 
     const double chi2tolerance = 0.01;
-    fcnstopat = bestchi2+1+chi2tolerance;
+    fcnstopat = bestchi2+1+chi2tolerance*2;
 
     vector<TF1 *> bounds;
     vector<int> resulttype;
@@ -510,7 +510,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
       delete mn;
     }
 
-    for(int t = 0; t < npar*(npar-1)/2; t++){ break; //XXX
+    for(int t = 0; t < npar*(npar-1)/2; t++){
       int npar1 = 1, npar2 = 2;
       for(int moose = 0; moose < t; moose++){
         npar2++;
@@ -563,7 +563,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
       delete gr;
     }
 
-    const unsigned int ncurves = 100;
+    const unsigned int ncurves = 1000;
     for(unsigned int t = 0; t < ncurves; t++){
       double dchi2 = 0;
       if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
@@ -1084,9 +1084,9 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   
   //////////////////////////////////////////////////////////////////////
   //drawhist(tgsel, thsel, parsaves[0], 48, 1, 97);
-  if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3,  2, 100);
-  else           drawhist(tgsel, thsel, parsaves[0], 15, 0,  3, 10, 100);
-  //drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
+  //if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3,  2, 100);
+  //else           drawhist(tgsel, thsel, parsaves[0], 15, 0,  3, 10, 100);
+  drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
 
 
   /* setupmn(mn, expectedgdfrac);
