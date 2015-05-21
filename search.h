@@ -18,17 +18,16 @@ struct dataparts{
 
   int ids_didfit;
   float ids_chi2, id_chi2;
-  float ids_end_x, ids_end_y, ids_end_z;
-  float id_entr_x, id_entr_y;
   float ids_entr_x, ids_entr_y, ids_entr_z;
-  float ids_gclen;
+  float ids_end_x,  ids_end_y,  ids_end_z;
+  float id_entr_x,  id_entr_y,  id_entr_z;
+  float id_end_x,   id_end_y,   id_end_z;
+  float ids_gclen, id_idexitqf, id_ivqbal;
   float ids_ivlen, ids_buflen;
   float ids_theta, ids_phi;
   float id_ivlen, id_buflen;
 
-  bool fido_didfit;
-  float fido_entrx, fido_entry, fido_entrz;
-  float fido_endx, fido_endy, fido_endz;
+  bool id_didfit;
 
   double deltaT;
   double trgtime;
@@ -37,7 +36,7 @@ struct dataparts{
   float qrms, qdiff;
 };
 
-static const unsigned int noff = 85;
+static const unsigned int noff = 92;
 static const char * turnoff[noff] = {
 "lilike",
 "ctaplanarity",
@@ -78,6 +77,13 @@ static const char * turnoff[noff] = {
 "fido_targlen",
 "fido_th",
 "fido_used_ov",
+"fido_didfit",
+"fido_entrx",
+"fido_entry",
+"fido_entrz",
+"fido_endx",
+"fido_endy",
+"fido_endz",
 "hamphi",
 "hamth",
 "hamx",

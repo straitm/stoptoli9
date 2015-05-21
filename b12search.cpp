@@ -16,7 +16,7 @@ using std::vector;
 #include "search.h"
 
 // True if we are processing ND data.
-static const bool near = false;
+static const bool near = true;
 
 static double maxtime = 1000;
 static double minenergy = 4;
@@ -874,13 +874,12 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  /* XXX const */ double mux = fidocorrx(bits.ids_end_x),
-               muy = fidocorry(bits.ids_end_y),
-               muz = fidocorrz(bits.ids_end_z);
-  mux = (mux+entr_mux)/2; // XXX
-  muy = (muy+entr_muy)/2; // XXX
-  muz = (muz+entr_muz)/2; // XXX
+  const double mux = near?bits.ids_end_x:fidocorrx(bits.ids_end_x),
+               muy = near?bits.ids_end_y:fidocorry(bits.ids_end_y),
+               muz = near?bits.ids_end_z:fidocorrz(bits.ids_end_z);
   const float gclen = bits.ids_gclen;
+  const float idexitqf = bits.id_idexitqf;
+  const float ivqbal = bits.id_ivqbal;
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
   const bool mucoinov = bits.coinov;
@@ -897,7 +896,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
 
-  double michelt = 0, michele = 0, michdist = 0;
+  double michelt = 0, michelx = 0, michely = 0, michelz = 0, 
+         michele = 0, michdist = 0;
   bool followingov = false;
   double followingovtime = 0, followingqivtime = 0;
   double firstlatenearneutrontime = 0, firstlatenearneutronenergy = 0;
@@ -907,6 +907,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   TBranch 
     * const nidtubesbr      = fitree->GetBranch("nidtubes"),
     * const fido_qivbr      = fitree->GetBranch("fido_qiv"),
+    * const fido_didfitbr   = fitree->GetBranch("id_didfit"),
+    * const fido_entrxbr    = fitree->GetBranch("id_entr_x"),
+    * const fido_entrybr    = fitree->GetBranch("id_entr_y"),
+    * const fido_entrzbr    = fitree->GetBranch("id_entr_z"),
+    * const fido_endxbr     = fitree->GetBranch("id_end_x"),
+    * const fido_endybr     = fitree->GetBranch("id_end_y"),
+    * const fido_endzbr     = fitree->GetBranch("id_end_z"),
     
     * const runbr           = chtree->GetBranch("run"),
     * const coinovbr        = chtree->GetBranch("coinov"),
@@ -916,13 +923,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctmqtqallbr     = chtree->GetBranch("ctmqtqall"),
     * const ctrmstsbr       = chtree->GetBranch("ctrmsts"),
     * const qdiffbr         = chtree->GetBranch("qdiff"),
-    * const fido_didfitbr   = chtree->GetBranch("fido_didfit"),
-    * const fido_entrxbr    = chtree->GetBranch("fido_entrx"),
-    * const fido_entrybr    = chtree->GetBranch("fido_entry"),
-    * const fido_entrzbr    = chtree->GetBranch("fido_entrz"),
-    * const fido_endxbr     = chtree->GetBranch("fido_endx"),
-    * const fido_endybr     = chtree->GetBranch("fido_endy"),
-    * const fido_endzbr     = chtree->GetBranch("fido_endz"),
     * const ctEvisIDbr      = chtree->GetBranch("ctEvisID"),
     * const ctqbr           = chtree->GetBranch("ctq"),
     * const trgtimebr       = chtree->GetBranch("trgtime");
@@ -942,6 +942,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   }
 
 
+  const double max_micht = near?30000:5500;
+  const double max_time_probably_a_mich = 5500;
+
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
@@ -957,7 +960,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // will often count this Michel as a neutron also for the zeroth
     // element of the count arrays (but not the first), so don't double
     // count by accident.  
-    if(dt < 5500 && !bits.coinov){
+    if(dt < max_micht && !bits.coinov){
       ctEvisIDbr->GetEntry(i);
       if(bits.ctEvisID == 0){
         ctqbr->GetEntry(i);
@@ -966,14 +969,16 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       ctXbr->GetEntry(i);
       if(bits.ctEvisID > michele){
         michele = bits.ctEvisID, michelt = dt;
-        michdist =
-          sqrt(pow(mux-bamacorrxy(bits.ctX[0], bits.ctEvisID), 2) +
-               pow(muy-bamacorrxy(bits.ctX[1], bits.ctEvisID), 2) +
-               pow(muz-bamacorrz( bits.ctX[2], bits.ctEvisID), 2));
+        michelx = bamacorrxy(bits.ctX[0], bits.ctEvisID);
+        michely = bamacorrxy(bits.ctX[1], bits.ctEvisID);
+        michelz = bamacorrxy(bits.ctX[2], bits.ctEvisID);
+        michdist = sqrt(pow(mux-michelx, 2) +
+                        pow(muy-michely, 2) +
+                        pow(muz-michelz, 2));
       }
     }
 
-    if(dt < 5500){
+    if(dt < max_micht){
       fido_qivbr->GetEntry(i);
       if(bits.coinov){
          followingov = true;
@@ -1019,7 +1024,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
 
-    const bool alsoamichel = dt < 5500;
+    const bool alsoamichel = dt < max_time_probably_a_mich;
     nneutronanydist[0]++;
     if(gd) ngdneutronanydist[0]++;
     if(nnear) nneutronnear[0]++;
@@ -1065,8 +1070,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%d %d %d " \
      "%f %f %f %f %f " \
      "%d %d %d %d %d %d %d %d " \
-     "%lf %.0lf %f %f %f %f %.0f %f %f " \
-     "%f %f %f %f %f %f %f %f %d %f %f %f %d %f %f"
+     "%lf %.1f %.1f %.1f %.0lf %f %f %f %f %.0f %f %f " \
+     "%f %f %f %f %f %f %f %f %d %f %f %f %d %f %f %f %f"
 
      #define LATEVARS \
      murun, mutrgid, mucoinov, \
@@ -1075,13 +1080,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      nneutronnear[0],  nneutronanydist[0], \
      ngdneutronnear[1], ngdneutronanydist[1], \
      nneutronnear[1],  nneutronanydist[1], \
-     michele, michelt, gclen, entr_mux, entr_muy, entr_muz, \
+     michele, michelx, michely, michelz, \
+     michelt, gclen, entr_mux, entr_muy, entr_muz, \
      deadtime, nondeadenergy, michdist, \
      mufqid, mufqiv, muctqid, muctqiv, \
      timeleft, ttlastvalid, ttlastmuon, \
      ttlastgcmuon, followingov, followingovtime, \
      followingqiv, followingqivtime, printed, \
-     firstlatenearneutrontime, firstlatenearneutronenergy
+     firstlatenearneutrontime, firstlatenearneutronenergy, \
+     idexitqf, ivqbal
 
     if(dt_ms > maxtime){ // stop looking and print muon info
       if(printed == 0) printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
@@ -1138,7 +1145,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And they must be near each other.
-      if(dist > 800) goto end; 
+      //if(dist > 800) goto end; 
 
       trgIdbr->GetEntry(i);
       runbr->GetEntry(i);
@@ -1195,8 +1202,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     fido_entrzbr->GetEntry(i);
     fido_endzbr ->GetEntry(i);
     nidtubesbr->GetEntry(i);
-    if(bits.fido_didfit && bits.nidtubes > 30 &&
-       bits.fido_entrz > bits.fido_endz){
+    if(bits.id_didfit && bits.nidtubes > 30 &&
+       bits.id_entr_z > bits.id_end_z){
       lastgcmuontime = bits.trgtime;
 
       fido_entrxbr->GetEntry(i);
@@ -1207,8 +1214,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       const double mutime = bits.trgtime;
 
       tmuons.push_back(maketrack(
-        bits.fido_entrx, bits.fido_entry, bits.fido_entrz,
-        bits.fido_endx, bits.fido_endy, bits.fido_endz,
+        bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
+        bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
         mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
     }
 
@@ -1289,7 +1296,7 @@ static void search(dataparts & parts, TTree * const chtree,
     ids_didfitbr->GetEntry(mi);
 
     // Must be possible that it's a stopper
-    //XXX if(!parts.ids_didfit) goto end;
+    if(!parts.ids_didfit) goto end;
 
     trgtimebr->GetEntry(mi);
 
@@ -1301,8 +1308,8 @@ static void search(dataparts & parts, TTree * const chtree,
     if(parts.fido_qiv < 5000) goto end;
 
     fido_qidbr->GetEntry(mi);
-    //XXX if(parts.fido_qid/(near?13333:8300) > 700) goto end;
-    if(parts.fido_qid/8300 < 60) goto end; // XXX
+    if(parts.fido_qid/(near?13500:8300) > 700) goto end;
+    if(parts.fido_qid/(near?13500:8300) < 60) goto end;
 
     ids_chi2br->GetEntry(mi);
     nivtubesbr->GetEntry(mi);
@@ -1392,24 +1399,26 @@ int main(int argc, char ** argv)
     "trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
     "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
     "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
-    "latengd/I:latennear/I:laten/I:miche/F:micht/F:gclen/F:"
+    "latengd/I:latennear/I:laten/I:miche/F:"
+    "michx/F:michy/F:michz/F:micht/F:gclen/F:"
     "fex/F:fey/F:fez/F:deadt/F:"
     "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
     "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
     "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
-    "ndecay/I:firstlatenneart/F:firstlatenneare/F");
+    "ndecay/I:firstlatenneart/F:firstlatenneare/F:idexitqf/F:ivqbal/F");
   if(is_be12search) // same as above with 2s appended to each name
                     // some are dumb, since, i.e., mutrig === mutrig2
     printf(
       ":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
       "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
       "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
-      "latengd2/I:latennear2/I:laten2/I:miche2/F:micht2/F:gclen2/F:"
+      "latengd2/I:latennear2/I:laten2/I:miche2/F:"
+      "michx2/F:michy2/F:michz2/F:micht2/F:gclen2/F:"
       "fex2/F:fey2/F:fez2/F:deadt2/F:"
       "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
       "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
       "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
-      "ndecay2/I:firstlatenneart2/F:firstlatenneare2/F");
+      "ndecay2/I:firstlatenneart2/F:firstlatenneare2/F:idexitqf2/F:ivqbal2/F");
   printf("\n");
 
   for(int i = 4; i < argc; i+=2){
@@ -1477,36 +1486,39 @@ int main(int argc, char ** argv)
                     fitree->AddBranchToCache(#x);
  
     fSBA(ids_didfit);
+
     fSBA(ids_end_x);
     fSBA(ids_end_y);
     fSBA(ids_end_z);
-    fSBA(id_entr_x);
-    fSBA(id_entr_y);
     fSBA(ids_entr_x);
     fSBA(ids_entr_y);
     fSBA(ids_entr_z);
-    fSBA(ids_gclen);
-    fSBA(ids_chi2);
-    fSBA(ids_ivlen);
-    fSBA(ids_buflen);
-    fSBA(id_chi2);
-    fSBA(id_ivlen);
-    fSBA(id_buflen);
-    fSBA(ids_gclen);
-    fSBA(ids_theta);
-    fSBA(ids_phi);
-    fSBA(fido_qiv);
+
+    fSBA(id_entr_x);
+    fSBA(id_entr_y);
+    fSBA(id_entr_z);
+    fSBA(id_end_x);
+    fSBA(id_end_y);
+    fSBA(id_end_z);
+
     fSBA(fido_qid);
+    fSBA(fido_qiv);
+    fSBA(id_buflen);
+    fSBA(id_chi2);
+    fSBA(id_didfit);
+    fSBA(id_ivlen);
+    fSBA(ids_buflen);
+    fSBA(ids_chi2);
+    fSBA(ids_gclen);
+    fSBA(ids_ivlen);
+    fSBA(ids_phi);
+    fSBA(ids_theta);
     fSBA(nidtubes);
     fSBA(nivtubes);
 
-    cSBA(fido_didfit);
-    cSBA(fido_entrx);
-    cSBA(fido_entry);
-    cSBA(fido_entrz);
-    cSBA(fido_endx);
-    cSBA(fido_endy);
-    cSBA(fido_endz);
+    fSBA(id_idexitqf);
+    fSBA(id_ivqbal);
+
     cSBA(ctq);
     cSBA(ctqIV);
     cSBA(deltaT);
