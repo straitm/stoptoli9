@@ -244,6 +244,13 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   if(dopull){
     like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
     like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+    
+    // Good approximation for the chi2 surface of B-13 from 
+    // plain beta decays, an independent measurement.
+    // 
+    // Probably best to only use this when specifically looking at B-13
+    //
+    // like += 1.59456 * par[7] +  0.434626 * par[7]*par[7];
   }
 
   if(fcnearlystop && like > fcnstopat) return;
@@ -361,7 +368,7 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
                                  // a pull term, too.
   mn->Command("SET LIM 6 0 0.5");
   mn->Command("SET LIM 7 0 1");  // as with N-17
-  mn->Command("SET LIM 8 0 1"); // was 0 3, why?
+  mn->Command("SET LIM 8 0 1");
   mn->Command("SET LIM 9 0 1");
 
   mn->Command(Form("SET PAR 10 %f", expectedgdfrac));
@@ -668,34 +675,34 @@ void contour(TMinuit * mn, const int par1, const int par2,
   TCanvas * c = new TCanvas(Form("c%d_%d%d", whichc, par1, par2),
                             Form("c%d_%d%d", whichc, par1, par2),
                             600, 350);
-  mn->Command("MIGRAD");
   const double minx = getpar(mn, par1-1);
   const double miny = getpar(mn, par2-1);
 
   const int oldprintlevel = mn->fISW[4];
   mn->Command("Set print 0");
 
-  mn->fUp = 2.3; // 68% in 2D
+  mn->Command("MIGRAD");
+  mn->fUp = 2.30; // 68% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * sigma_2d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
-/*
-  mn->fUp = 2.61; // 90% in 1D
-  mn->Command(Form("mncont %d %d %d", par1, par2, points));
-  TGraph * ninty_1d =
-    mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
-*/
-
-  mn->fUp = 4.61; // 90%
+  mn->Command("MIGRAD");
+  mn->fUp = 4.61; // 90% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * ninty_2d =
+    mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
+
+  mn->Command("MIGRAD");
+  mn->fUp = 2.71; // 90% in 1D
+  mn->Command(Form("mncont %d %d %d", par1, par2, points));
+  TGraph * ninty_1d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
 
 
   if(ninty_2d){
     ninty_2d->SetNameTitle("ninty_2d", "ninty_2d");
-    ninty_2d->SavePrimitive(cout);
+    //ninty_2d->SavePrimitive(cout);
     ninty_2d->SetFillColor(kViolet);
     ninty_2d->Draw("alf");
     ninty_2d->GetXaxis()->SetRangeUser(0, xrange);
@@ -705,10 +712,11 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ((TGaxis*)(ninty_2d->GetXaxis()))->SetMaxDigits(3);
     ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
-  //if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
+  if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
+  else printf("ACK! Couldn't make 90% 1D contour!\n");
   if(sigma_2d){
     sigma_2d->SetNameTitle("sigma_2d", "sigma_2d");
-    sigma_2d->SavePrimitive(cout);
+    //sigma_2d->SavePrimitive(cout);
     sigma_2d->SetLineColor(kBlack);
     sigma_2d->Draw("l");
   }
@@ -848,7 +856,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2nothing = mn->fAmin;
 
-/*
   {
     setupmn(mn, expectedgdfrac);
     dopull = false;
@@ -977,7 +984,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
-*/
+
   {
     setupmn(mn, expectedgdfrac);
     if(neutrons > 0){
@@ -1000,7 +1007,8 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   const double chi2_all = mn->fAmin;
 
   const double maxb13 = getpar(mn, 7) + mn->fErp[7] * sqrt(2.3);
-  printf("%s90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
+  printf("%sApprox 90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
+  printf("%sBut look at the contour!\n%s", RED, CLR);
 
   if(neutrons < 1){
     setupmn(mn, expectedgdfrac);
@@ -1078,6 +1086,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   // B-13 vs. Li-11
   if(contourmask & 0x20){
     setupmn(mn, expectedgdfrac);
+    mn->Command("SET LIM 8 0 3");
     contour(mn, 8, 9, 3, 0.008, npoint, "");
   }
 
@@ -1086,7 +1095,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   //drawhist(tgsel, thsel, parsaves[0], 48, 1, 97);
   //if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3,  2, 100);
   //else           drawhist(tgsel, thsel, parsaves[0], 15, 0,  3, 10, 100);
-  drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
+  //drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
 
 
   /* setupmn(mn, expectedgdfrac);
