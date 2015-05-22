@@ -54,6 +54,13 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like += pow((b13life - 17.33e-3/log(2))/0.17e-3*log(2),2);
 }
 
+double getpar(TMinuit * mn, int i)
+{
+  double answer, dum;
+  mn->GetParameter(i, answer, dum);
+  return answer;
+}
+
 void b13finalfit()
 {
   const bool fit = true;
@@ -62,7 +69,6 @@ void b13finalfit()
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas("c1", "c1", 1000, 1000);
-  c->SetLogy();
 
   const char * const RED = "\033[31;1m"; // bold red
   const char * const CLR = "\033[m"    ; // clear
@@ -80,11 +86,6 @@ void b13finalfit()
   t->Draw(Form("dt/1000 - 2.028e-6 >> hfit(%d, %f, %f)", nbins, lowtime, hightime),
           scut.c_str());
   TH1D * hfit = (TH1D*)gROOT->FindObject("hfit");
-
-  printf("Drawing...\n");
-  t->Draw(Form("dt - 2.028e-3 >> hdisp(%d, %f, %f)", 100, 1., 501.),
-          scut.c_str(), "e");
-  TH1D * hdisp = (TH1D*)gROOT->FindObject("hdisp");
 
   for(int i = 0; i < nbins; i++) sig[i] = hfit->GetBinContent(i+1);
 
@@ -104,66 +105,37 @@ void b13finalfit()
   mn->Command("MIGRAD");
   mn->Command("MIGRAD");
 
-  TF1 * ee = new TF1("ee", Form(
-    " [0]"
-    "+[1]*exp(-x/[7])"
-    "+[2]*exp(-x/%f)"
-    "+[3]*exp(-x/%f)"
-    "+[4]*exp(-x/%f)"
-    "+[5]*exp(-x/%f)"
-    "+[6]*exp(-x/[8])",
-    li8life*1000, c15life*1000, n16life*1000, be11life*1000),
-    0, 501);
-  ee->SetNpx(200);
-
-  double val[9];
-
-  for(int i = 0; i < 9; i++){
-    double errd;
-    mn->GetParameter(i, val[i], errd);
-    if(i < 7)
-      ee->SetParameter(i, val[i]*hdisp->GetBinWidth(1)/1000);
-    else
-      ee->SetParameter(i, val[i]*1000);
-  }
-
-  ee->Draw("same");
-
-  TF1* b12= new TF1("b12", Form("[0]*exp(-x/[1])"), 0, 501);
-  TF1* li8= new TF1("li8", Form("[0]*exp(-x/%f)", li8life*1000), 0, 501);
-  TF1* c15= new TF1("c15", Form("[0]*exp(-x/%f)", c15life*1000), 0, 501);
-  TF1* n16= new TF1("n16", Form("[0]*exp(-x/%f)", n16life*1000), 0, 501);
-  TF1* be11=new TF1("be11",Form("[0]*exp(-x/%f)",be11life*1000), 0, 501);
-  TF1* b13= new TF1("b13", Form("[0]*exp(-x/[1])"), 0, 501);
-
-  b12->SetParameter(0, val[1]*hdisp->GetBinWidth(1)/1000);
-  b12->SetParameter(1, val[7]*1000);
-  li8->SetParameter(0, val[2]*hdisp->GetBinWidth(1)/1000);
-  c15->SetParameter(0, val[3]*hdisp->GetBinWidth(1)/1000);
-  n16->SetParameter(0, val[4]*hdisp->GetBinWidth(1)/1000);
-  be11->SetParameter(0,val[5]*hdisp->GetBinWidth(1)/1000);
-  b13->SetParameter(0, val[6]*hdisp->GetBinWidth(1)/1000);
-  b13->SetParameter(1, val[8]*1000);
-
-  b12->SetNpx(400);
-  n16->SetNpx(400);
-  be11->SetNpx(400);
-  li8->SetNpx(400);
-  b13->SetNpx(400);
-
-  li8->Draw("same");
-  b13->Draw("same");
-  b12->Draw("same");
-
-  new TCanvas;
-
-  mn->fUp = 2.3; // 90% in 1D
+  mn->fUp = 2.71; // 90% in 1D
   mn->Command("MINOS 10000 7");
 
-  b13->SetParameter(0, mn->fErp[6]*hdisp->GetBinWidth(1)/1000);
-  b13->SetParameter(1, 17.33/log(2));
-  const double limrat = b13->Integral(0, 200)/b12->Integral(0, 200);
+  const double bestchi2 = mn->fAmin;
+
+  mn->Command(Form("SET PAR 7 %f", mn->fErp[6]));
+  mn->Command("FIX 7");
+  mn->Command("MIGRAD");
+   
+  const double limrat = (getpar(mn, 6)/nb13life)/(getpar(mn, 1)/nb12life);
   printf("%sAt 90%% CL, fraction of B-13 < %.3f%s\n", RED, limrat, CLR);
   printf("%sAt 90%% CL, production prob of B-13 < %.3f%s\n",
-         RED, limrat/0.0108/0.93*0.186, CLR);
+         RED, limrat/0.010918/0.9289*0.186, CLR);
+
+  mn->SetPrintLevel(-1);
+
+  TGraph * surface = new TGraph;
+  for(int i = -50; i < 100; i++){
+    const double par = i * 1000;
+    mn->Command(Form("SET PAR 7 %f\n", par));
+    mn->Command("FIX 7");
+    mn->Command("MIGRAD");
+
+    const double prob = (getpar(mn, 6)/nb13life)/
+      (getpar(mn, 1)/nb12life)/0.010918/0.9289*0.186;
+    
+    const double delta = mn->fAmin-bestchi2;
+    printf("%8.4f %8.4f ", prob, delta);
+    for(int j = 0; j < int(fabs(delta*30)); j++)printf(delta>0?"#":"!");
+    printf("\n");
+    surface->SetPoint(surface->GetN(), prob, delta);
+  }
+  surface->Draw("ap%");
 }
