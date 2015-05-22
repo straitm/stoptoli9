@@ -123,7 +123,7 @@ static void envelope(const double mult)
       for(int i = 0; i < f->GetNpar(); i++)
         f->SetParameter(i, ppar[i]);
       for(int i = 0; i < 4; i++)
-        f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult)/
+        f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult);
       bounds.push_back(f);
       bounds[bounds.size()-1]->SetLineColor(kRed);
       bounds[bounds.size()-1]->SetLineWidth(1);
@@ -196,7 +196,8 @@ static void envelope(const double mult)
     delete gr;
   }
 
-  for(int curve = 0; curve < 1000; curve++){
+  const int nrand = 1000;
+  for(int curve = 0; curve < nrand; curve++){
     TF1 * f = new TF1(Form("f%d", curve), "[0]*exp(-x*log(2)/0.0202) + "
                            "[1]*exp(-x*log(2)/[2]) + "
                            "[3]*exp(-x*log(2)/7.13) + "
@@ -205,13 +206,11 @@ static void envelope(const double mult)
     do{
       for(int i = 0; i < f->GetNpar(); i++) pars[i] = bestpar[i].rand();
       gMinuit->Eval(par, NULL, like, pars, 0);
-      fprintf(stderr, ",");
     }while(fabs(like - bestlike - 0.5) > 0.01);
 
-    fprintf(stderr, "%f\n", like);
+    if(curve%10 == 0) printf("%d/%d\n", curve, nrand);
 
-    for(int i = 0; i < f->GetNpar(); i++)
-      f->SetParameter(i, pars[i]);
+    for(int i = 0; i < f->GetNpar(); i++) f->SetParameter(i, pars[i]);
 
     for(int i = 0; i < 4; i++)
       f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult);
@@ -221,8 +220,6 @@ static void envelope(const double mult)
     bounds[bounds.size()-1]->Draw("same");
     c1->Modified(); c1->Update();
   }
-
-    
 
   const double low = 0.1, high = 20;
 
