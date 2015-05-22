@@ -12,6 +12,10 @@
 #include <algorithm>
 using std::vector;
 
+// Usually set to zero to get the capture rates, but set to 1 
+// to do the C-13 -> B-12+n analysis
+static const int NNEUTRON = 1;
+
 static void printfr(const char * const msg, ...)
 {
   va_list ap;
@@ -57,8 +61,13 @@ static const double ferrcapprob13 = 2./35.0;
 
 TRandom3 ran;
 
-static const double f13 = 0.0107;
-static const double f13_hi = 0.01147, f13_lo = 0.00963;
+// Weighted average of T and GC measurements
+static const double f13 = 0.010918;
+
+// Conservatively assign a range 10x the quoted (gaussian?) error,
+// i.e. about 3x the quoted error if it is gaussian. This makes *NO*
+// difference since the other errors are so much larger.
+static const double f13_hi = 0.010928, f13_lo = 0.010908;
 
 // ratio of probability of capture on C-13 / C-12
 static const double caprat = capprob13 / capprob12;
@@ -158,8 +167,8 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
 {
   t->Draw(Form("dt/1000 - 2.028e-6 >> h(%d, 0.001, 100)", nbin),
           Form("(%s) && "
-          "latennear == 0 && timeleft > 100e3 && miche < 12 && "
-          "e > 4 && e < 15 && !earlymich", addcut), "e");
+          "latennear == %d && timeleft > 100e3 && miche < 12 && "
+          "e > 4 && e < 15 && !earlymich", addcut, NNEUTRON), "e");
   TH1D * h = (TH1D*)gROOT->FindObject("h");
   h->Fit("ee", "lq");
   h->Fit("ee", "li");
@@ -181,17 +190,52 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
   const double ferrorfit = ee->GetParError(0)/ee->GetParameter(0);
   const double rawintegral = ee->GetParameter(0)*0.0202/log(2)/h->GetBinWidth(1);
 
+  const double integral_pd_oec = rawintegral/livetime/eff;
+
+  const double fsyst = sqrt(pow(fsysterr(),2) + pow(ferr_energy,2));
+
+  if(NNEUTRON == 1){
   printf("stuff with b12 lifetime raw %f +- %f\n",
          rawintegral, ferrorfit * rawintegral);
 
-  const double integral_pd_oec = rawintegral/livetime/eff;
-  printf("stuff with b12 lifetime raw per day with overall eff corrected\n\t%f +- %f\n",
+  printf("stuff with b12 lifetime raw per day with overall eff "
+         "corrected\n\t%f +- %f (just the fit error)\n",
          integral_pd_oec, ferrorfit * integral_pd_oec);
 
-  const double fsyst = sqrt(pow(fsysterr(),2) + pow(ferr_energy,2));
   printf("fractional stat err from fit: %f\n", ferrorfit);
-  printf("fractional systematic error from B-13 alone:   %.2f%%\n", fsysterr()*100);
-  printf("fractional systematic err with energy err too: %.2f%%\n", fsyst*100);
+  printf("fractional systematic error from B-13 alone: %.2f%%\n", fsysterr()*100);
+  printf("fractional systematic energy cut error:      %.2f%%\n", ferr_energy*100);
+  printf("Quadrature sum of those, FWIW:               %.2f%%\n", fsyst*100);
+  printf("fractional systematic neutron eff error:     %.2f%%\n", f_neff_dt_error*100);
+
+  const double f_b12nsysterr = sqrt(pow(ferr_energy, 2)+pow(f_neff_dt_error, 2));
+  printf("Since you are looking at B-12+n production,\nyour fractional "
+    "systematic error is %f\n", f_b12nsysterr);
+
+  printf("And the rate of B-12 like events with a neutron, corrected "
+    "for\nefficiencies, is %f +- %f +- %f\n\n",
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg,
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
+
+  printf("And now correct for accidentals: %f +- %f +- %f\n\n",
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007,
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
+     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
+
+  const double f_b12n_finalsyst = sqrt(pow(n_c13cap_err/n_c13cap, 2)
+    +pow(f_neff_dt_error, 2)
+    -pow(ferr_energy, 2)); // cancels, so remove from n_c13cap error!
+
+  printf("For the probablility per capture, the B-12 energy cut error\n"
+    "*cancels*, but there is the error on the C-13 denominator, so\n"
+    "the fractional systematic is %f\n\n", f_b12n_finalsyst);
+
+  printf("And so the probability per capture is %f +- %f +- %f\n\n", 
+     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007)/n_c13cap,
+     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit)/n_c13cap,
+     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12n_finalsyst)/n_c13cap);
+  }
 
   const double totferr = sqrt(pow(ferrorfit,2)+pow(fsyst,2));
 
@@ -331,12 +375,12 @@ void b12finalfit(const char * const addcut = "1")
   ee->FixParameter(6, 0);
   ee->FixParameter(7, 0);
 
-  // XXX
-    ee->FixParameter(4, 0);
-    ee->FixParameter(5, 15);
-    ee->FixParameter(6, 0);
-    ee->FixParameter(7, 15);
-  // XXX
+  // 
+  ee->FixParameter(4, 0);
+  ee->FixParameter(5, 15);
+  ee->FixParameter(6, 0);
+  ee->FixParameter(7, 15);
+  // 
 
   const double norm = all(t, ee, addcut);
 return; // <------
