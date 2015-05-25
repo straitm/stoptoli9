@@ -2,7 +2,7 @@ const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR     = "\033[m"    ; // clear
 
 const double livetime = 489.509, n_c12cap = 349.607007, n_c13cap=3.584972;
-const double n_c13cap_err = 0.265262;
+const double n_c12cap_err = 15.772699, n_c13cap_err = 0.265262;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 const double rrmmurates[3]   = { 5.238001, 144.768195, 199.515966 };
 
