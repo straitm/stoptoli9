@@ -260,23 +260,34 @@ bool isibd(const int run, const int prompttrig)
   return ibd.GetEntries(Form("run==%d && trig==%d", run, prompttrig));
 }
 
-void li8finalfit(const int nn)
+struct ve{
+  double val, eup, elo;
+  ve(const double val_, const double eup_, const double elo_)
+  {
+    val = val_, eup = eup_, elo = elo_;
+  }
+};
+
+ve li8finalfit(const int nn, const bool excludeibd = false,
+               const bool quiet = false)
 {
+  static int stacklevel = 0;
+  stacklevel++;
   TFile * fiel = new TFile(rootfile3up, "read");
   TTree * t = (TTree *) fiel->Get("t");
 
-  //ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", "run:trig");
-  //ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
+  ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", "run:trig");
+  ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
 
-  const char * const cut =
-   nn == 1? // terrible
-  "!earlymich && miche<12 && dist<400 && latennear==1 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02": // && !isibd(run, trig)":
-   nn == -1?
-  "!earlymich && miche<12 && dist<400 &&                 e>5 && e<14 && timeleft>1e5 && b12like < 0.02": // && !isibd(run, trig)":
-  "!earlymich && miche<12 && dist<400 && latennear==0 && e>5 && e<14 && timeleft>1e5 && b12like < 0.02"; // && !isibd(run, trig)";
+  char cut[1000];
+  snprintf(cut, 999, "!earlymich && miche<12 && dist<400 %s "
+           "&& e>5 && e<14 && timeleft>1e5 && b12like < 0.02 %s",
+    nn == 1? "&& latennear==1": nn == -1?  "": "&& latennear==0",
+    excludeibd?"&& !isibd(run, trig)":"");
 
-  t->Draw("dt/1000 >> hfit(10000, 0.001, 100)", cut);
-  TH1D * hfit = (TH1D *)gROOT->FindObject("hfit");
+  TH1D * hfit = new TH1D(Form("hfit%d", nn), "", 10000, 0.001, 100);
+
+  t->Draw(Form("dt/1000 >> hfit%d", nn), cut);
 
   TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
                "[1]*exp(-x*log(2)/[2]) + "
@@ -286,64 +297,60 @@ void li8finalfit(const int nn)
   ee->SetParameters(1, 1, 0.8399, 1, 1);
   ee->SetParLimits(3, 0, 1);
   ee->FixParameter(2, 0.8399);
-  hfit->Fit("ee", "l");
+  hfit->Fit("ee", "lq");
   ee->ReleaseParameter(2);
-  hfit->Fit("ee", "l"); // "le"
+  hfit->Fit("ee", "leq");
+  if(!quiet) gMinuit->Command("show min");
 
-  printf("%sli8 lifetime: %f +%f %f%s\n", RED,
+  if(!quiet) printf("%sli8 lifetime: %f +%f %f%s\n", RED,
          ee->GetParameter(2), gMinuit->fErp[2], gMinuit->fErn[2], CLR);
 
   ee->FixParameter(2, 0.8399);
 
-  hfit->Fit("ee", "le");
-  gMinuit->Command("show min");
+  hfit->Fit("ee", "leq");
+  if(!quiet) gMinuit->Command("show min");
+  
+  if(!quiet){
+    TH1D * hdisp = new TH1D(Form("hdisp%d", nn), "", 40, 0.1, 20.1);
+    t->Draw(Form("dt/1000 >> hdisp%d", nn), cut, "e");
 
-  t->Draw("dt/1000 >> hdisp(40, 0.1, 20.1)", cut, "e");
-  TH1D * hdisp = (TH1D *)gROOT->FindObject("hdisp");
+    TF1 * eedisp = (TF1 *)ee->Clone("eedisp");
+    eedisp->SetNpx(400);
+    eedisp->SetLineColor(kBlack);
+    eedisp->SetLineStyle(kDashed);
 
-  TF1 * eedisp = (TF1 *)ee->Clone("eedisp");
-  eedisp->SetNpx(400);
-  eedisp->SetLineColor(kBlack);
-  eedisp->SetLineStyle(kDashed);
+    int tomult[4] = { 0, 1, 3, 4};
+    const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
+    for(int i = 0; i < 4; i++)
+      eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
 
-  int tomult[4] = { 0, 1, 3, 4};
-  const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
-  for(int i = 0; i < 4; i++)
-    eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
+    //envelope(mult);
+    eedisp->Draw("same");
 
-  envelope(mult);
-  eedisp->Draw("same");
+    TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
+    TF1 * li8 = new TF1("li8", "[0]*exp(-x*log(2)/0.8399)", 0, 100);
+    TF1 * n16 = new TF1("n16", "[0]*exp(-x*log(2)/7.13)"  , 0, 100);
+    TF1 * acc = new TF1("acc", "[0]", 0, 100);
 
-  TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-  TF1 * li8 = new TF1("li8", "[0]*exp(-x*log(2)/0.8399)", 0, 100);
-  TF1 * n16 = new TF1("n16", "[0]*exp(-x*log(2)/7.13)"  , 0, 100);
-  TF1 * acc = new TF1("acc", "[0]", 0, 100);
+    b12->SetNpx(400);
 
-  b12->SetNpx(400);
-
-  TF1 * parts[4] = { b12, li8, n16, acc };
+    TF1 * parts[4] = { b12, li8, n16, acc };
 
 
-  b12->SetParameter(0, eedisp->GetParameter(0));
-  li8->SetParameter(0, eedisp->GetParameter(1));
-  n16->SetParameter(0, eedisp->GetParameter(3));
-  acc->SetParameter(0, eedisp->GetParameter(4));
+    b12->SetParameter(0, eedisp->GetParameter(0));
+    li8->SetParameter(0, eedisp->GetParameter(1));
+    n16->SetParameter(0, eedisp->GetParameter(3));
+    acc->SetParameter(0, eedisp->GetParameter(4));
 
-  hdisp->GetYaxis()->SetRangeUser(acc->GetParameter(0)/50,
-                                  acc->GetParameter(0)*10);
+    hdisp->GetYaxis()->SetRangeUser(acc->GetParameter(0)/50,
+                                    acc->GetParameter(0)*10);
 
-  for(int i = 0; i < 4; i++){
-    parts[i]->SetLineStyle(7);
-    parts[i]->SetLineWidth(2);
-    parts[i]->Draw("Same");
-  } 
-
-  const double Nfound = li8->Integral(0, 20)/hdisp->GetBinWidth(1);
-  const double Nerrup = Nfound * gMinuit->fErp[1]/ee->GetParameter(1);
-  const double Nerrlo = Nfound * gMinuit->fErn[1]/ee->GetParameter(1);
-
-  printf("%sN found, before efficiency: %f +%f %f%s\n",
-         RED, Nfound, Nerrup, Nerrlo, CLR);
+    for(int i = 0; i < 4; i++){
+      parts[i]->SetLineStyle(7);
+      parts[i]->SetLineWidth(2);
+      parts[i]->Draw("Same");
+    } 
+  }
 
   const double eff = 1
     * 0.981 // subsequent muons
@@ -355,22 +362,69 @@ void li8finalfit(const int nn)
     * 0.906 // b12likelihood
   ;
 
+  const ve Nfound_uncorr(
+    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1),
+    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1) *
+      gMinuit->fErp[1]/ee->GetParameter(1),
+    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1) *
+      gMinuit->fErn[1]/ee->GetParameter(1));
+
+  if(!quiet) printf("%sN found, before efficiency: %.3f +%.3f %.3f%s\n",
+         RED, Nfound_uncorr.val, Nfound_uncorr.eup, Nfound_uncorr.elo, CLR);
   const double captures = (nn == 0?n_c12cap:nn==-1?n_c12cap+n_c13cap:n_c13cap)*livetime;
+
+  ve Nfound_corr1(0, 0, 0);
+  if(nn == 0){
+    for(int i = 0; i < stacklevel; i++) printf(" ");
+    printf("Finding correction for 1-neutron events with inefficiency...\n");
+    ve correction = li8finalfit(1, excludeibd, true);
+    correction.val *= (1 - neff_dr_800_avg*neff_dt_avg);
+    correction.eup *= (1 - neff_dr_800_avg*neff_dt_avg);
+    correction.elo *= (1 - neff_dr_800_avg*neff_dt_avg);
+    for(int i = 0; i < stacklevel; i++) printf(" ");
+    printf("Subtracting %.3g events for 1-neutron events\n", correction.val);
+    Nfound_corr1.val = Nfound_uncorr.val - correction.val;
+    Nfound_corr1.elo = sqrt(pow(Nfound_uncorr.elo, 2) - pow(correction.elo, 2));
+    Nfound_corr1.eup = sqrt(pow(Nfound_uncorr.eup, 2) - pow(correction.eup, 2));
+  }
+  else{
+    Nfound_corr1 = Nfound_uncorr;
+  }
+
+  ve Nfound_corr2(0, 0, 0);
+  if(!excludeibd){
+    for(int i = 0; i < stacklevel; i++) printf(" ");
+    printf("Finding correction for IBD events...\n");
+    ve correction = li8finalfit(nn, true, true);
+    
+    correction.val = Nfound_corr1.val - correction.val;
+
+    // zero-neutron assumed to be all Li-9, one-neutron N-17
+    const double bn_prob = nn == 0? 0.492: 0.951;
+    correction.val /= bn_prob;
+
+    for(int i = 0; i < stacklevel; i++) printf(" ");
+    printf("Subtracting %.3g events for IBD events\n", correction.val);
+    Nfound_corr2.val = Nfound_uncorr.val - correction.val;
+    Nfound_corr2.elo = Nfound_corr1.elo; // neglect error on correction
+    Nfound_corr2.eup = Nfound_corr1.eup;
+  }
+  else{
+    Nfound_corr2 = Nfound_corr1;
+  }
 
   const double toprob = 1./captures/eff;
 
-  printf("neutron Efficiency: %.2f%%\n",  (nn == 1?neff_dr_800_avg*neff_dt_avg:1)*100);
-  printf("Total Efficiency: %.2f%%\n", eff*100);
-  printf("%sProb per C-%s: %g +%g %g%s\n", 
-      RED, nn==1?"13":nn==-1?"nat":"12", toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
-/*
-  TCanvas * c3 = new TCanvas;
+  if(!quiet){
+    printf("neutron Efficiency: %.2f%%\n",  (nn == 1?neff_dr_800_avg*neff_dt_avg:1)*100);
+    printf("Total Efficiency: %.2f%%\n", eff*100);
+    printf("%sProb per C-%s: %.3g +%.3g %.3g%s\n", 
+        RED, nn==1?"13":nn==-1?"nat":"12", toprob*Nfound_corr2.val,
+        toprob*Nfound_corr2.eup, toprob*Nfound_corr2.elo, CLR);
+    printf("%sSystematic error: %.3g%s\n", RED,
+      (nn==1?n_c13cap_err/n_c13cap:n_c12cap_err/n_c12cap)*toprob*Nfound_corr2.val, CLR);
+  }
 
-  const char * const cutmich =
-    "!earlymich && dist < 400 && e > 4 && e < 14 && latennear == 2"
-    "&& timeleft > 100e3  && dt/1000 > 0.25 && dt/1000 < 4";
-
-  t->Draw("miche >> emichhist(319, 0.25, 80)", cutmich, "ehist");
-*/
-
+  stacklevel--;
+  return Nfound_corr2;
 }
