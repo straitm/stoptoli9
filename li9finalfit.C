@@ -887,18 +887,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     mn->Command("MINOS 10000 7");
     mn->Command("SHOW MIN");
   }
-
-  {
-    setupmn(mn, expectedgdfrac);
-    dopull = false;
-    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
-    mn->Command("SET LIM 5 0 1");
-    mn->Command("SET LIM 7 0 1");
-    mn->Command("MIGRAD");
-    //mn->Command("MIGRAD");
-    //mn->Command("MINOS");
-    //mn->Command("MIGRAD");
-  }
   const double chi2all_nopull = mn->fAmin;
 
   printf("%sSignificance of any betan (%f vs. %f), no cheaty pulls: %.1f%s\n",

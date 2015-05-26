@@ -1,3 +1,6 @@
+/* Actually the fitter for C-15 and Be-11, for which N-16 is the major 
+ * background */
+
 #include "TMarker.h"
 #include "TH1.h"
 #include "TROOT.h"
@@ -105,7 +108,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // pull term for N-16, which is already measured by other people to be
   // 11+-1%. I take this to be 10.7+-1, where I recompute the central
   // value from Measday table 5.13, Kane column, but take Measday's 1%
-  // error rather than the ~0.5% that Kane's errors sume to since he
+  // error rather than the ~0.5% that Kane's errors sum to since he
   // probably knows better than me how much to trust Kane's errors.
   like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life)/
                              (n16eff*Ocaptures*0.025/n16life), 2);
@@ -218,6 +221,8 @@ void n16finalfit()
 
   double val[6];
 
+  dopull = 1;
+  command(mn, "MIGRAD");
   for(int i = 0; i < 6; i++){
     double derr;
     mn->GetParameter(i, val[i], derr);
@@ -225,6 +230,7 @@ void n16finalfit()
   }
   //eep->SetParameter(0, 0);
   eep->Draw("same");
+  eep->SavePrimitive(cout);
 
   command(mn, "REL 4");
   command(mn, "REL 6");
@@ -267,16 +273,19 @@ void n16finalfit()
     0, hightime);
   ee->SetNpx(200);
 
+
   for(int i = 0; i < 6; i++){
     double derr;
     mn->GetParameter(i, val[i], derr);
     ee->SetParameter(i, val[i]*hdisp->GetBinWidth(1));
   }
 
+
   //for(int i = 1; i <= hdisp->GetNbinsX(); i++)
     //hdisp->SetBinContent(i, hdisp->GetBinContent(i) - ee->GetParameter(0));
 
   //ee->SetParameter(0, 0);
+  ee->SavePrimitive(cout);
   ee->Draw("same");
 
   TF1* b12= new TF1("b12", Form("[0]*exp(-x/%f)", b12life), 0, hightime);
@@ -317,8 +326,9 @@ void n16finalfit()
   scalemarker(best);
 
   mn->fUp = 2.296; // 68% contour in 2D
-  command(mn, "mncont 4 6 90");
+  command(mn, "mncont 4 6 400");
   TGraph * onesigma_2d = getplot(mn); 
+  onesigma_2d->SetNameTitle("onesigma", "onesigma");
   scalegraph(onesigma_2d);
 
   double be11min = 10000, be11max = 0, c15min = 10000, c15max = 0;
@@ -339,7 +349,7 @@ void n16finalfit()
          RED, c15min, c15max, CLR);
 
   mn->fUp = 2.71; // 90% in 1D
-  command(mn, "mncont 4 6 90");
+  command(mn, "mncont 4 6 200");
   TGraph * ninty_1d = getplot(mn);
   scalegraph(ninty_1d);
 
@@ -359,8 +369,9 @@ void n16finalfit()
   TCanvas * c2 = new TCanvas("c2", "c2", 1000, 1000);
 
   mn->fUp = 4.6051; // 90% CL contour in 2D
-  command(mn, "mncont 4 6 90");
+  command(mn, "mncont 4 6 200");
   TGraph * ninty_2d = getplot(mn);
+  ninty_2d->SetNameTitle("ninty", "ninty");
   scalegraph(ninty_2d);
 
   if(ninty_2d){
@@ -376,5 +387,8 @@ void n16finalfit()
     onesigma_2d->Draw("l");
   }
   best->Draw();
+
+  onesigma_2d->SavePrimitive(cout);
+  ninty_2d   ->SavePrimitive(cout);
   printf("best fit marker at %f %f\n", best->GetX(), best->GetY());
 }

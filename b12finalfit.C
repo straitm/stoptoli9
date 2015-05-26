@@ -14,7 +14,7 @@ using std::vector;
 
 // Usually set to zero to get the capture rates, but set to 1 
 // to do the C-13 -> B-12+n analysis
-static const int NNEUTRON = 1;
+static const int NNEUTRON = 0;
 
 static void printfr(const char * const msg, ...)
 {
@@ -90,10 +90,20 @@ double conversion(const bool nominal = false)
   const double p1212_hi = 0.1981, p1212_lo = 0.1739;
 
 
-  // my guesses for the 13->13 and 13-12 reactions
-  const double p1313 = 0.2, p1312 = 0.43;
+  // My guess for C-13->B-13. There is no data other than my own, which
+  // only constrains it to < 85%. I am putting in a guess somewhat
+  // higher on average than for B-12->B-12 since the neutron separation
+  // energy of B-13 is larger. Measday says that the (pi, gamma) reaction
+  // feeds the ground state quite strongly, supporting this.
+  const double p1313 = 0.2;
   const double p1313_lo = 0.1, p1313_hi = 0.3;
-  const double p1312_lo = 0.43-0.08, p1312_hi = 0.43+0.08;
+
+  // my own measurement for C-13->B-12, which circularly depends on the
+  // results gotten here, so since I don't have joint fit set up, must
+  // iterate a little. Fortunately, this is not a dominant error, so it
+  // pretty much doesn't matter.
+  const double p1312 = 0.4738;
+  const double p1312_err = sqrt(0.0247*0.0247 + 0.0336*0.0336);
 
   double caprat_now = caprat + ran.Gaus(0, ferrorp13op12*caprat);
   if(caprat_now < 0) caprat_now = 0;
@@ -106,7 +116,7 @@ double conversion(const bool nominal = false)
   double p1212_now = ran.Rndm()*(p1212_hi-p1212_lo) + p1212_lo;
 
   double p1313_now = ran.Rndm()*(p1313_hi-p1313_lo) + p1313_lo;
-  double p1312_now = ran.Rndm()*(p1312_hi-p1312_lo) + p1312_lo;
+  double p1312_now = ran.Gaus(0, p1312_err) + p1312;
 
   // If nominal, throw all that out and set to nominal values.
   // (const-correct, what's that?)
@@ -194,9 +204,12 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
 
   const double fsyst = sqrt(pow(fsysterr(),2) + pow(ferr_energy,2));
 
-  if(NNEUTRON == 1){
   printf("stuff with b12 lifetime raw %f +- %f\n",
          rawintegral, ferrorfit * rawintegral);
+
+  printf("stuff with b12 lifetime raw with overall eff "
+         "corrected\n\t%f +- %f (just the fit error)\n",
+         integral_pd_oec*livetime, ferrorfit * integral_pd_oec*livetime);
 
   printf("stuff with b12 lifetime raw per day with overall eff "
          "corrected\n\t%f +- %f (just the fit error)\n",
@@ -208,33 +221,34 @@ double all(TTree * t, TF1 * ee, const char * const addcut)
   printf("Quadrature sum of those, FWIW:               %.2f%%\n", fsyst*100);
   printf("fractional systematic neutron eff error:     %.2f%%\n", f_neff_dt_error*100);
 
-  const double f_b12nsysterr = sqrt(pow(ferr_energy, 2)+pow(f_neff_dt_error, 2));
-  printf("Since you are looking at B-12+n production,\nyour fractional "
-    "systematic error is %f\n", f_b12nsysterr);
+  if(NNEUTRON == 1){
+    const double f_b12nsysterr = sqrt(pow(ferr_energy, 2)+pow(f_neff_dt_error, 2));
+    printf("Since you are looking at B-12+n production,\nyour fractional "
+      "systematic error is %f\n", f_b12nsysterr);
 
-  printf("And the rate of B-12 like events with a neutron, corrected "
-    "for\nefficiencies, is %f +- %f +- %f\n\n",
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg,
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
+    printf("And the rate of B-12 like events with a neutron, corrected "
+      "for\nefficiencies, is %f +- %f +- %f\n\n",
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg,
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
 
-  printf("And now correct for accidentals: %f +- %f +- %f\n\n",
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007,
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
-     integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
+    printf("And now correct for accidentals: %f +- %f +- %f\n\n",
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007,
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit,
+       integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12nsysterr);
 
-  const double f_b12n_finalsyst = sqrt(pow(n_c13cap_err/n_c13cap, 2)
-    +pow(f_neff_dt_error, 2)
-    -pow(ferr_energy, 2)); // cancels, so remove from n_c13cap error!
+    const double f_b12n_finalsyst = sqrt(pow(n_c13cap_err/n_c13cap, 2)
+      +pow(f_neff_dt_error, 2)
+      -pow(ferr_energy, 2)); // cancels, so remove from n_c13cap error!
 
-  printf("For the probablility per capture, the B-12 energy cut error\n"
-    "*cancels*, but there is the error on the C-13 denominator, so\n"
-    "the fractional systematic is %f\n\n", f_b12n_finalsyst);
+    printf("For the probablility per capture, the B-12 energy cut error\n"
+      "*cancels*, but there is the error on the C-13 denominator, so\n"
+      "the fractional systematic is %f\n\n", f_b12n_finalsyst);
 
-  printf("And so the probability per capture is %f +- %f +- %f\n\n", 
-     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007)/n_c13cap,
-     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit)/n_c13cap,
-     (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12n_finalsyst)/n_c13cap);
+    printf("And so the probability per capture is %f +- %f +- %f\n\n", 
+       (integral_pd_oec/neff_dt_avg/neff_dr_800_avg - 0.007)/n_c13cap,
+       (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * ferrorfit)/n_c13cap,
+       (integral_pd_oec/neff_dt_avg/neff_dr_800_avg * f_b12n_finalsyst)/n_c13cap);
   }
 
   const double totferr = sqrt(pow(ferrorfit,2)+pow(fsyst,2));

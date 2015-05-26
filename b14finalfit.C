@@ -15,7 +15,7 @@ void b14finalfit()
     * 0.96 // b12like
   ;
 
-  printf("%sEfficiency: %.2f%s\n", RED, eff*100, CLR);
+  printf("%sEfficiency: %.2f%%%s\n", RED, eff*100, CLR);
 
   const char * const cut =
     "!earlymich && miche < 12 && b12like < 0.06 && dist < 400 && latennear == 0 && e > 15"

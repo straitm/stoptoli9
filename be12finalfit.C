@@ -21,7 +21,7 @@ void be12finalfit()
     * 0.977 // previous muons
    ;
 
-  printf("%sBe-12 eff: %.1f\nB-12 eff:  %.1f\nTotal eff: %.1f%s\n",
+  printf("%sBe-12 eff: %.1f%%\nB-12 eff:  %.1f%%\nTotal eff: %.1f%%%s\n",
          RED, be12eff*100, b12eff*100, b12eff*be12eff*100, CLR);
 
   TTree * t = new TTree("t", "t");
