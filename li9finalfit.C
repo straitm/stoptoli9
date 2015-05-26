@@ -186,7 +186,7 @@ void fixat(TMinuit * mn, int i, float v)
 {
   mn->Command(Form("REL %d", i));
   if(getlimup(mn, i-1)) mn->Command(Form("SET LIM %d", i));
-  mn->Command(Form("SET PAR %d %f", i, v));
+  mn->Command(Form("SET PAR %d %g", i, v));
   mn->Command(Form("FIX %d", i));
 }
 
@@ -331,18 +331,19 @@ static TMinuit * make_a_tminuit()
   mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(1 -1, "bgrrm0", 1e-4,  1e-6, 0, 0, err);
+  mn->mnparm(1 -1, "bgrrm0", 1e-7,  1e-7, 0, 0, err);
   mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
-  mn->mnparm(3 -1, "Li-9",   1e-5,  1e-6, 0, 0, err); // n: yes
-  mn->mnparm(4 -1, "He-8",    0.1,  1e-3, 0, 0, err); // n: yes
-  mn->mnparm(5 -1, "N-17",    0.1,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(3 -1, "Li-9",   1e-4,  1e-6, 0, 0, err); // n: yes
+  mn->mnparm(4 -1, "He-8",   1e-4,  1e-3, 0, 0, err); // n: yes
+  mn->mnparm(5 -1, "N-17",    0.5,   0.5, 0, 0, err); // n: yes
   mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
-  mn->mnparm(7 -1, "C-16",   0.01,   0.5, 0, 0, err); // n: yes
-  mn->mnparm(8 -1, "B-13",   0.01,     1, 0, 0, err); // n: no
-  mn->mnparm(9 -1, "Li-11",  0.01,  3e-3, 0, 0, err); // n: no
+  mn->mnparm(7 -1, "C-16",   0.05,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(8 -1, "B-13",   0.1,     1, 0, 0, err); // n: no
+  mn->mnparm(9 -1, "Li-11",  0.1,  3e-3, 0, 0, err); // n: no
   mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
-  mn->mnparm(11-1, "bgrrm1", 1e-4,  1e-6, 0, 0, err);
-  mn->mnparm(12-1, "bgrrm2", 1e-4,  1e-6, 0, 0, err);
+  mn->mnparm(11-1, "bgrrm1", 3e-5,  1e-6, 0, 0, err);
+  mn->mnparm(12-1, "bgrrm2", 6e-5,  1e-6, 0, 0, err);
+
   return mn;
 }
 
@@ -351,14 +352,14 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->SetPrintLevel(-1);
   dopull = true;
   for(int i = 0; i < npar; i++) mn->Command(Form("REL %d", i+1));
-  mn->Command("SET LIM  1 0 1e-5");
+  mn->Command("SET LIM  1 0 1e-4");
   mn->Command("SET LIM 11 0 1e-3");
   mn->Command("SET LIM 12 0 1e-3");
   if(rrmlivetimes[0] == 0) fixatzero(mn, 1);
   if(rrmlivetimes[1] == 0) fixatzero(mn, 11);
   if(rrmlivetimes[2] == 0) fixatzero(mn, 12);
 
-  mn->Command(Form("SET PAR 2 %f", expectedgdfrac));
+  mn->Command(Form("SET PAR 2 %g", expectedgdfrac));
   mn->Command("Set LIM 2 0 0.5");
 
   mn->Command("SET LIM 3 0 3e-3");
@@ -371,7 +372,7 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("SET LIM 8 0 1");
   mn->Command("SET LIM 9 0 1");
 
-  mn->Command(Form("SET PAR 10 %f", expectedgdfrac));
+  mn->Command(Form("SET PAR 10 %g", expectedgdfrac));
   mn->Command("Set LIM 10 0 0.5");
 }
 
@@ -532,12 +533,12 @@ void drawhist(TTree * tgsel, TTree * thsel,
       setupmn(mn, expectedgdfrac);
 
       for(int X = 0; X < npar; X++){
-        mn->Command(Form("SET PAR %d %f",X+1,parsave[X].val));
+        mn->Command(Form("SET PAR %d %g",X+1,parsave[X].val));
         if(parsave[X].fix) mn->Command(Form("FIX %d", X+1));
       }
 
       printf("%d %d contour\n", npar1, npar2);
-      mn->Command("MIGRAD");
+      mn->Command("MIGRAD"); mn->Command("MIGRAD");
       mn->fGraphicsMode = true;
       mn->Command("Set print 0");
       mn->Command(Form("MNCONT %d %d 20", npar1, npar2));
@@ -570,7 +571,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
       delete gr;
     }
 
-    const unsigned int ncurves = 1000;
+    const unsigned int ncurves = 3000;
     for(unsigned int t = 0; t < ncurves; t++){
       double dchi2 = 0;
       if(t%10 == 0) printf("Random %d/%d\n", t, ncurves);
@@ -636,7 +637,9 @@ void drawhist(TTree * tgsel, TTree * thsel,
 
     gall->SetFillColor(TColor::GetColor("#ccccff"));
     gall->SetFillStyle(1001);
+    gall->SetNameTitle("errorband", "errorband");
     gall->SavePrimitive(cout);
+    gbest->SetNameTitle("bestfit", "bestfit");
     gbest->SavePrimitive(cout);
     gall->Draw("f");
     gbest->Draw("l");
@@ -669,19 +672,21 @@ int whichc = -1;
 TCanvas * cans[100]; // oh no
 void contour(TMinuit * mn, const int par1, const int par2,
              const double xrange, const double yrange, const int points,
-             const char * const comment)
+             const char * const comment,
+             const char * const nintyname = "ninty",
+             const char * const sigmaname = "sigma")
 {
   whichc++;
   TCanvas * c = new TCanvas(Form("c%d_%d%d", whichc, par1, par2),
                             Form("c%d_%d%d", whichc, par1, par2),
                             600, 350);
+  mn->Command("MIGRAD");
   const double minx = getpar(mn, par1-1);
   const double miny = getpar(mn, par2-1);
 
   const int oldprintlevel = mn->fISW[4];
   mn->Command("Set print 0");
 
-  mn->Command("MIGRAD");
   mn->fUp = 2.30; // 68% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * sigma_2d =
@@ -701,8 +706,8 @@ void contour(TMinuit * mn, const int par1, const int par2,
 
 
   if(ninty_2d){
-    ninty_2d->SetNameTitle("ninty_2d", "ninty_2d");
-    //ninty_2d->SavePrimitive(cout);
+    ninty_2d->SetNameTitle(nintyname, nintyname);
+    ninty_2d->SavePrimitive(cout);
     ninty_2d->SetFillColor(kViolet);
     ninty_2d->Draw("alf");
     ninty_2d->GetXaxis()->SetRangeUser(0, xrange);
@@ -715,8 +720,8 @@ void contour(TMinuit * mn, const int par1, const int par2,
   if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
   else printf("ACK! Couldn't make 90% 1D contour!\n");
   if(sigma_2d){
-    sigma_2d->SetNameTitle("sigma_2d", "sigma_2d");
-    //sigma_2d->SavePrimitive(cout);
+    sigma_2d->SetNameTitle(sigmaname, sigmaname);
+    sigma_2d->SavePrimitive(cout);
     sigma_2d->SetLineColor(kBlack);
     sigma_2d->Draw("l");
   }
@@ -776,7 +781,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     "%smiche < 12 && !earlymich && prompttime > 100e9 && dt < 100e3",
            neutrons >= 0?Form("nlate==%d&&", neutrons):"");
   char cut[1000];
-  snprintf(cut, 999, "%s && dist < %f", nodistcut, dist);
+  snprintf(cut, 999, "%s && dist < %f %s %s %s", nodistcut, dist,
+      rrmlivetimes[0]==0?"&& reactorpowerbin(run) != 0":"",
+      rrmlivetimes[1]==0?"&& reactorpowerbin(run) != 1":"",
+      rrmlivetimes[2]==0?"&& reactorpowerbin(run) != 2":"");
 
   ////////////////////////////////////////////////////////////////////
 
@@ -831,13 +839,13 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   for(int i = 0; i < tgsel->GetEntries(); i++){
     tgsel->GetEntry(i);
-    events.push_back(ev(false, (tim - 0.002)/1000,
-                     reactorpowerbin(int(run))));
+    const int rpb = reactorpowerbin(int(run));
+    events.push_back(ev(false, (tim - 0.002)/1000, rpb));
   }
   for(int i = 0; i < thsel->GetEntries(); i++){
     thsel->GetEntry(i);
-    events.push_back(ev(true, (tim - 0.002)/1000,
-                     reactorpowerbin(int(run))));
+    const int rpb = reactorpowerbin(int(run));
+    events.push_back(ev(true, (tim - 0.002)/1000, rpb));
   }
 
   //////////////////
@@ -847,8 +855,8 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   vector< vector<parres> > parsaves;
   {
     setupmn(mn, expectedgdfrac);
-    const unsigned int nfix = 7;
-    const int fix[nfix] = { 3, 4, 5, 6, 7, 8, 9 };
+    const unsigned int nfix = 8;
+    const int fix[nfix] = { 3, 4, 5, 6, 7, 8, 9, 10 };
     for(unsigned int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
     mn->Command("MIGRAD");
     printf("%sNo Li-9 or other bn isotopes (%.2f)%s\n",
@@ -868,15 +876,34 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   const double chi2all_exceptli9he8_nopull = mn->fAmin;
 
   {
+    printf("%sRead the no-pull values of N-17 and C-16 here:%s\n", RED, CLR);
     setupmn(mn, expectedgdfrac);
     dopull = false;
     if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("SET LIM 7 0 10");
     mn->Command("MIGRAD");
+    mn->Command("MIGRAD");
+    mn->Command("MINOS 10000 5");
+    mn->Command("MINOS 10000 7");
+    mn->Command("SHOW MIN");
+  }
+
+  {
+    setupmn(mn, expectedgdfrac);
+    dopull = false;
+    if(neutrons > 0){ fixatzero(mn, 8); fixatzero(mn, 9); }
+    mn->Command("SET LIM 5 0 1");
+    mn->Command("SET LIM 7 0 1");
+    mn->Command("MIGRAD");
+    //mn->Command("MIGRAD");
+    //mn->Command("MINOS");
+    //mn->Command("MIGRAD");
   }
   const double chi2all_nopull = mn->fAmin;
 
-  printf("%sSignificance of any betan, no cheaty pulls: %.1f%s\n",
-         RED, lratsig(chi2nothing, chi2all_nopull), CLR);
+  printf("%sSignificance of any betan (%f vs. %f), no cheaty pulls: %.1f%s\n",
+         RED, chi2nothing, chi2all_nopull, 
+         lratsig(chi2nothing, chi2all_nopull), CLR);
 
   printf("%sSignificance of li9/he8 over other bn&accidental without pull: %.2f%s\n",
          RED, lratsig(chi2all_exceptli9he8_nopull, chi2all_nopull), CLR);
@@ -1010,16 +1037,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   printf("%sApprox 90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
   printf("%sBut look at the contour!\n%s", RED, CLR);
 
-  if(neutrons < 1){
-    setupmn(mn, expectedgdfrac);
-    fixat(mn, 8, maxb13);
-    mn->Command("MIGRAD");
-    mn->Command("MINOS 10000");
-    mn->Command("SHOW min");
-    printf("%sLi-9 prob w/everything, B-13 fixed at limit (%.2f): %f %f +%f%s\n", RED,
-      mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
-  }
-
   /* // These are wrong if we are using any pulls
     printf("%s", RED);
     printf("Li-9 preferred over nothing by %f\n",
@@ -1039,7 +1056,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   */
 
-  const int npoint = 120;
+  const int npoint = 100;
 
   // Li-9 vs. N-17 with nothing else
   if(contourmask & 0x01){
@@ -1069,7 +1086,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   // Li-9 vs. He-8
   if(contourmask & 0x08){
     setupmn(mn, expectedgdfrac);
-    contour(mn, 3, 4, 0.0079, 0.00149, npoint, "");
+    if(neutrons == -1) mn->Command("SET LIM 3 -3e-5 1e-3");
+    contour(mn, 3, 4, 0.0079, 0.00149, npoint, "",
+      neutrons == -1?"ignoring90":neutrons==0?"without90":"with90",
+      neutrons == -1?"ignoring1s":neutrons==0?"without1s":"with1s");
   }
 
   // Li-9 vs. He-8 with nothing else
@@ -1090,12 +1110,20 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     contour(mn, 8, 9, 3, 0.008, npoint, "");
   }
 
+  if(neutrons == 1){
+    setupmn(mn, expectedgdfrac);
+    const double assumedli9prob = 0.243774e-3;
+    fixat(mn, 3, assumedli9prob);
+    mn->Command("MIGRAD");
+    printf("%sSigmas between here & Li-9 prob = %f: %.1f%s\n",
+           RED, assumedli9prob, lratsig(mn->fAmin, chi2_all), CLR);
+  }
   
   //////////////////////////////////////////////////////////////////////
   //drawhist(tgsel, thsel, parsaves[0], 48, 1, 97);
-  //if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3,  2, 100);
-  //else           drawhist(tgsel, thsel, parsaves[0], 15, 0,  3, 10, 100);
-  //drawhist(                 tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
+  if(neutrons == -1)  drawhist(tgsel, thsel, parsaves[0], 15, 0,  3,10, 100);
+  else if(neutrons==1)drawhist(tgsel, thsel, parsaves[0],  3, 0,  3, 2, 100);
+  else                drawhist(tgsel, thsel, parsaves[0], 12, 0,0.6, 1, 100);
 
 
   /* setupmn(mn, expectedgdfrac);
