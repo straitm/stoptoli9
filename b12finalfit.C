@@ -102,8 +102,8 @@ double conversion(const bool nominal = false)
   // results gotten here, so since I don't have joint fit set up, must
   // iterate a little. Fortunately, this is not a dominant error, so it
   // pretty much doesn't matter.
-  const double p1312 = 0.4738;
-  const double p1312_err = sqrt(0.0247*0.0247 + 0.0336*0.0336);
+  const double p1312 = 0.4742;
+  const double p1312_err = sqrt(0.0247*0.0247 + 0.0337*0.0337);
 
   double caprat_now = caprat + ran.Gaus(0, ferrorp13op12*caprat);
   if(caprat_now < 0) caprat_now = 0;
@@ -171,7 +171,7 @@ static double fsysterr()
   return rms(vals)/conversion(true);
 }
 
-const int nbin = 4000;
+const int nbin = 100000;
  
 double all(TTree * t, TF1 * ee, const char * const addcut)
 {

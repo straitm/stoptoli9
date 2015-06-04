@@ -11,13 +11,16 @@ double ff(double * ta, double * par)
 
   double t = *ta;
 
+  const double mulife = 2196.9811;
+
   return par[0]*mt->GetBinWidth(1)*(
-      mupeff*(1-par[1])/2196.9811 * exp(-t/2196.9811)
-    + mumeff*par[1]*(par[3]/2196.9811-0.0003 /* correction for non-C-12 */)
-                          *(0.98767/par[3] * exp(-t/par[3])
-                           +0.01088/2037. * exp(-t/2037.)
-                           +0.00118/1796. * exp(-t/1796.)
-                           +0.00027/80.58 * exp(-t/80.58)));
+      mupeff*(1-par[1])/mulife * exp(-t/mulife)
+    + mumeff*par[1]*(par[3]/mulife-0.0003 /* correction for non-C-12 */)
+                          /(par[7]+par[8]+par[9]*par[10])
+                          *(par[7]/par[3] * exp(-t/par[3])
+                           +par[8]/par[6] * exp(-t/par[6])
+                           +par[9]/par[5] * exp(-t/par[5])
+                           +par[10]/80.58 * exp(-t/80.58)));
 }
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
@@ -40,10 +43,14 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like *= 2;
 
   // pulls
-  //like += pow((par[1] - 0.4406)/0.0040, 2);
+  like += pow((par[1] - 0.4410)/0.0032, 2);
   like += pow((par[2] - (-12))/6, 2);
   like += pow((par[3] - 2028)/2, 2);
-  like += pow((par[4] - 0.9888)/0.005, 2);
+  like += pow((par[4] - 0.9888)/0.003, 2);
+  like += pow((par[5] - 1796)/3, 2);
+  like += pow((par[6] - 2037)/8, 2);
+  like += pow((par[9] - 0.002)/0.002, 2);
+  like += pow((par[10] - 0.00022)/0.00007, 2);
 }
 
 void chargeratiofinalfit()
@@ -137,26 +144,36 @@ void chargeratiofinalfit()
 
   mt->Draw("e");
 
-  const unsigned int npar = 5;
+  const unsigned int npar = 11;
   TMinuit * mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
   mn->SetFCN(fcn);
 
   int err;
-  mn->mnparm(0, "nmuon", 1e6, 1e4, 0, 0, err);
+  mn->mnparm(0, "nmuon", 1.6e6, 1e4, 0, 0, err);
   mn->mnparm(1, "mumfrac", 0.44, 0.01, 0, 1, err);
   mn->mnparm(2, "michtoff", 12, 0.01, 0, 0, err);
-  mn->mnparm(3, "c12time", 2028, 0.01, 0, 0, err);
+  mn->mnparm(3, "c12time", 2028, 2, 0, 0, err);
   mn->mnparm(4, "michpluseff", 0.9888, 0.01, 0, 1, err);
+  mn->mnparm(5, "o16time", 1796, 3, 0, 0, err);
+  mn->mnparm(6, "c13time", 2037, 8, 0, 0, err);
+  mn->mnparm(7, "c12afrac", 0.98767, 0.01, 0, 1, err);
+  mn->mnparm(8, "c13afrac", 0.01088, 0.01, 0, 1, err);
+  mn->mnparm(9, "o16afrac", 0.002, 0.01, 0, 1, err);
+  mn->mnparm(10, "gdafrac", 0.0002, 0.01, 0, 1, err);
 
   mn->Command("SET STRATEGY 2");
+
+  mn->Command("FIX 8");
+  mn->Command("FIX 9");
+  
   mn->Command("MIGRAD");
   mn->Command("MIGRAD");
   mn->Command("MINOS");
   mn->Command("SHOW MINOS");
 
   TF1 * result = new TF1("result", ff, 0, 10000, npar);
-  for(int i = 0; i < npar; i++){
+  for(unsigned int i = 0; i < npar; i++){
     double par, e;
     mn->GetParameter(i, par, e);
     result->SetParameter(i, par);

@@ -363,15 +363,20 @@ ve li8finalfit(const int nn, const bool excludeibd = false,
   ;
 
   const ve Nfound_uncorr(
-    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1),
-    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1) *
+    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1),
+    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1) *
       gMinuit->fErp[1]/ee->GetParameter(1),
-    ee->GetParameter(1)/0.8399/hfit->GetBinWidth(1) *
+    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1) *
       gMinuit->fErn[1]/ee->GetParameter(1));
 
-  if(!quiet) printf("%sN found, before efficiency: %.3f +%.3f %.3f%s\n",
-         RED, Nfound_uncorr.val, Nfound_uncorr.eup, Nfound_uncorr.elo, CLR);
-  const double captures = (nn == 0?n_c12cap:nn==-1?n_c12cap+n_c13cap:n_c13cap)*livetime;
+  if(!quiet){
+    printf("%sN found, before efficiency: %.3f +%.3f %.3f%s\n",
+      RED, Nfound_uncorr.val, Nfound_uncorr.eup, Nfound_uncorr.elo, CLR);
+    printf("Efficiency: %.4f\n", eff);
+  }
+
+  const double captures = livetime*
+    (nn == 0?n_c12cap:nn==-1?  n_c12cap+n_c13cap:n_c13cap);
 
   ve Nfound_corr1(0, 0, 0);
   if(nn == 0){
