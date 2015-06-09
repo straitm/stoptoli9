@@ -92,13 +92,16 @@ void b12cutefficiency_finalfit()
   b12bgsubed->SetBinContent(1, mc->GetBinContent(1));
   b12bgsubed->SetBinError(1, mc->GetBinContent(1)/4.);
 
-  const double cut = 4;
+  const double cutlow = 4, cuthigh = 15;
 
-  double bb[3] = {0, cut, 16};
-  TH1D * cuth = b12bgsubed->Rebin(2, "cut", bb);
-  const double eff = cuth->GetBinContent(2)/cuth->Integral(1,2);
-  const double error = sqrt((cuth->GetBinContent(2)*cuth->GetBinError(2)/(cuth->Integral(1,2)**2))**2
-                          + (cuth->GetBinContent(1)*cuth->GetBinError(1)/(cuth->Integral(1,2)**2))**2);
-  printf("Efficiency for %.1f MeV cut for B-12+B-13: %.2f +- %.2f %%\n",
-         cut, eff*100, error*100);
+  double bb[4] = {0, cutlow, cuthigh, 16};
+  TH1D * cuth = b12bgsubed->Rebin(3, "cut", bb);
+  const double eff = cuth->GetBinContent(2)/cuth->Integral(1,3);
+  const double error = sqrt((cuth->GetBinContent(2)*cuth->GetBinError(2)
+                       /(cuth->Integral(1,3)**2))**2
+    + ((cuth->GetBinContent(3)+cuth->GetBinContent(1))
+     *sqrt(cuth->GetBinError(1)**2 + cuth->GetBinError(3)**2)
+      /(cuth->Integral(1,3)**2))**2);
+  printf("Efficiency for %.1f-%.1f MeV cut for B-12+B-13: %.2f +- %.2f %%\n",
+         cutlow, cuthigh, eff*100, error*100);
 };

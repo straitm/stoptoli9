@@ -85,9 +85,11 @@ static const double energyeff = 0.8494;  // B-12 energy cut
 static const double energyeff_e = 0.0063;
 
 // time until end of run
-static const double othereff = 1-(1-0.9709)*hightime/100e3;
+static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
-static const double eff = othereff * energyeff;
+static const double mich_eff = 0.9996;
+
+static const double eff = mich_eff * eor_eff * energyeff;
 static const double ferr_energy = energyeff_e/energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
@@ -150,25 +152,60 @@ void b12finalfit()
     events.push_back(ev(dt-offset));
   }
 
+  printf("MIGRAD");
   mn->Command("MIGRAD");
   puts(""); mn->Command("show par");
+  printf("MINOS");
   mn->Command("MINOS 10000 1");
   puts(""); mn->Command("show min");
 
   const double ferrorfit = (mn->fErp[0]-mn->fErn[0])/2/getpar(mn, 0);
 
-  printf("stuff with b12 lifetime raw %f +- %f\n",
+  printf("\nStuff with b12 lifetime raw %f +- %f\n",
          getpar(mn, 0), ferrorfit * getpar(mn, 0));
 
   const double b12like_central = getpar(mn, 0)/eff/mum_count * 100;
-
-  printf("stuff with b12 lifetime raw with overall eff "
-         "corrected, %% per mu-\n"
-         "\t%f +- %f (fit) +- %f (mu count) +- %f (B-12 eff), %f (total)\n",
-         b12like_central, ferrorfit*b12like_central,
-                          mum_count_e/mum_count*b12like_central,
-                          ferr_energy*b12like_central,
-                          sqrt(pow(ferrorfit,2) +
+  const double staterr = ferrorfit*b12like_central;
+  const double muerr = mum_count_e/mum_count*b12like_central;
+  const double b12err = ferr_energy*b12like_central;
+  const double toterr = sqrt(pow(ferrorfit,2) +
                                pow(mum_count_e/mum_count,2) +
-                               pow(ferr_energy, 2))*b12like_central);
+                               pow(ferr_energy, 2))*b12like_central;
+  printf("\nStuff with b12 lifetime raw with overall eff "
+         "corrected, %% per mu- stop\n"
+         "%f +- %f (fit) +- %f (mu count) +- %f (B-12 eff), %f (total)\n",
+         b12like_central, staterr, muerr, b12err, toterr);
+
+  const double b12like_central_percap = b12like_central/(0.0762/0.998);
+  const double staterr_percap = staterr/(0.0762/0.998);
+  const double muerr_percap = muerr/(0.0762/0.998);
+  const double b12err_percap = b12err/(0.0762/0.998);
+  const double capfracerr_percap = b12like_central_percap
+    * sqrt(pow(0.0092,2)+pow(0.003,2));
+  const double toterr_percap = sqrt(pow(staterr_percap,2)+
+                                    pow(muerr_percap,2)+
+                                    pow(b12err_percap,2)+
+                                    pow(capfracerr_percap,2));
+
+  printf("\nOr %% per mu- capture\n"
+         "%f +- %f (fit) +- %f (mu count) +- %f (B-12 eff),\n"
+         "+- %f (capture fraction) %f (total)\n",
+         b12like_central_percap, staterr_percap, muerr_percap,
+         b12err_percap, capfracerr_percap, toterr_percap);
+
+  const double b12like_central_rate = b12like_central/2.028e-6/1e5;
+  const double staterr_rate = staterr/2.028e-6/1e5;
+  const double muerr_rate = muerr/2.028e-6/1e5;
+  const double b12err_rate = b12err/2.028e-6/1e5;
+  const double lifetimeerr_rate = b12like_central_rate
+    * 0.002e-6/2.028e-6;
+  const double toterr_rate = sqrt(pow(staterr_rate,2)+
+                                  pow(muerr_rate,2)+
+                                  pow(b12err_rate,2)+
+                                  pow(lifetimeerr_rate,2));
+
+  printf("\nOr 10^3/s: %f +- %f (fit) +- %f (mu count) +- %f (B-12 eff),\n"
+         "+- %f (lifetime) %f (total)\n",
+         b12like_central_rate, staterr_rate, muerr_rate,
+         b12err_rate, lifetimeerr_rate, toterr_rate);
 }

@@ -224,20 +224,20 @@ static float fcnstopat = 0;
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   like = 2*(denominator*Heff*(
-           li9ebn*par[2]*(1-par[9])+// H Li-9
-           he8ebn*par[3]*(1-par[9])+// H He-8
-           n17ebn*par[4]*(1-par[5])+// H N-17
-           c16ebn*par[6]*(1-par[5])+// H C-16
-           b13ebn*par[7]*(1-par[9])+// H B-13
-          li11ebn*par[8]*(1-par[9])+// H Li-11
+           li9ebn*par[2]*(1-par[9])*exp(-1/li9_t)+// H Li-9
+           he8ebn*par[3]*(1-par[9])*exp(-1/he8_t)+// H He-8
+           n17ebn*par[4]*(1-par[5])*exp(-1/n17_t)+// H N-17
+           c16ebn*par[6]*(1-par[5])*exp(-1/c16_t)+// H C-16
+           b13ebn*par[7]*(1-par[9])*exp(-1/b13_t)+// H B-13
+          li11ebn*par[8]*(1-par[9])*exp(-1/li11_t)+// H Li-11
            99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
          denominator*Geff*(
-           li9ebn*par[2]*par[9]+ // Gd Li-9
-           he8ebn*par[3]*par[9]+ // Gd He-8
-           n17ebn*par[4]*par[5]+ // Gd N-17
-           c16ebn*par[6]*par[5]+ // Gd C-16
-           b13ebn*par[7]*par[9]+ // Gd B-13
-          li11ebn*par[8]*par[9]+ // Gd Li-11
+           li9ebn*par[2]*par[9]*exp(-1/li9_t)+ // Gd Li-9
+           he8ebn*par[3]*par[9]*exp(-1/he8_t)+ // Gd He-8
+           n17ebn*par[4]*par[5]*exp(-1/n17_t)+ // Gd N-17
+           c16ebn*par[6]*par[5]*exp(-1/c16_t)+ // Gd C-16
+           b13ebn*par[7]*par[9]*exp(-1/b13_t)+ // Gd B-13
+          li11ebn*par[8]*par[9]*exp(-1/li11_t)+ // Gd Li-11
            99.999*(par[0]+par[10]+par[11])*par[1]));     // Gd bg
 
   // pull terms
