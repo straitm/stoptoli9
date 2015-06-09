@@ -116,12 +116,15 @@ static double getpar(TMinuit * mn, int i)
   return answer;
 }
 
-void b12finalfit()
+void b12finalfit(const char * const cut =
+"mx**2+my**2 < 1050**2 && mz > -1175 && "
+"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+"timeleft > %f && miche < 12 && !earlymich && "
+"e > 4 && e < 15 && dt < %f")
 {
   printf("%sB-12 selection efficiency is %.1f%%%s\n", RED, eff*100, CLR);
 
   TFile *_file0 = TFile::Open(rootfile3up);
-  //TFile *_file0 = TFile::Open("/tmp/b12tmp.root", "read");
   TTree * t = (TTree *)_file0->Get("t");
  
   const int npar = 4;
@@ -134,10 +137,6 @@ void b12finalfit()
   mn->mnparm(1, "n_li8", 1e3,  1e1, 0, 1e4, err);
   mn->mnparm(2, "n_n16", 1e3,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
-  const char * const cut = "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
-          "timeleft > %f && miche < 12 && !earlymich && "
-          "e > 4 && e < 15 && dt < %f";
   printf("Making cuts...\n");
   TFile tmpfile("/tmp/b12tmp.root", "recreate");
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
