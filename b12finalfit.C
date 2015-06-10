@@ -15,6 +15,39 @@ const double b12life = 20.20/log(2.);
 const double li8life = 839.9/log(2.);
 const double n16life = 7130./log(2.);
 
+
+// Weighted average of T and GC measurements for the HP region
+const double f13 = 0.010921;
+
+const double mulife = 2196.9811e-6;
+
+const double c_atomic_capture_prob = 0.998;
+const double c_atomic_capture_prob_err = 0.001;
+
+const double lifetime_c12 = 2028.e-6;
+const double lifetime_c13 = 2037.e-6;
+const double lifetime_c12_err = 2.e-6;
+const double lifetime_c13_err = 8.e-6;
+
+const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
+const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
+                                  +pow(lifetime_c13_err*   f13 ,2));
+
+const double capprob12 = 1-lifetime_c12/mulife;
+const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
+                           -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
+
+const double capprob13 = 1-lifetime_c13/mulife;
+const double errcapprob13 = (1-(lifetime_c13+lifetime_c13_err)/mulife)/2
+                           -(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
+
+const double capprob = c_atomic_capture_prob *
+                      (capprob12*(1-f13) + capprob13*f13);
+
+const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
+                              + pow(errcapprob13,2)*f13 +
+  pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
+
 struct ev{
   double t; // time
   ev(double t_){
@@ -36,42 +69,54 @@ static void printfr(const char * const msg, ...)
   printf(CLR);
 }
 
-int reactorpowerbin(const int run)
+/*
+ * Prints the message once with the requested precision and in RED, then
+ * again with all digits in the default color, starting with the first
+ * number.
+ *
+ * The message must only have floating point substitutions.
+ */
+static void printtwice(const char * const msg, const int digits, ...)
 {
-  static bool inited = false;
-  static vector<int> on_off, off_off;
-  if(!inited){
-    inited = true;
-    // From doc-5095-v2. I see that most are included in the on-off
-    ifstream offofffile("offoff.h");
-    // From doc-5341
-    ifstream onofffile ("onoff.h");
-    int r;
-    while(offofffile >> r) off_off.push_back(r);
-    while(onofffile  >> r) on_off.push_back(r);
+  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  
+  // Just for fun...
+  char * pmp = pmsg;
+  char * bmp = bmsg;
+  bool gotone = false;
+  for(unsigned int i = 0; i <= strlen(msg); i++){
+    switch(msg[i]){
+      case '\0':
+        *pmp++ = '\0';
+        *bmp++ = '\0';
+        break;
+      case '%':
+        gotone = true;
+        *pmp++ = '%';
+        *bmp++ = '%';
+        *pmp++ = '.';
+        *pmp++ = digits+'0';
+        break;
+      default:
+        *pmp++ = msg[i];
+        if(gotone) *bmp++ = msg[i];
+        break;
+    }
   }
+  
+  va_list ap;
+  va_start(ap, digits);
+  printf(RED);
+  vprintf(pmsg, ap);
+  printf(CLR);
 
-  if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
-  if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
-  return 2;
+  va_start(ap, digits);
+  vprintf(bmsg, ap);
 }
 
-static const double mum_count =   7.149e5;
-static const double mum_count_e = 0.054e5;
-
-static const double capprob12 = (37.9/(37.9 + 1/2197e-6));
-static const double ferrcapprob12 = 5./379.;
-
-static const double capprob13 = (35.0/(35.0 + 1/2197e-6));
-static const double ferrcapprob13 = 2./35.0;
-
-// Weighted average of T and GC measurements
-static const double f13 = 0.010918;
-
-// ratio of probability of capture on C-13 / C-12
-static const double caprat = capprob13 / capprob12;
-static const double ferrorp13op12 =
-  sqrt(pow(ferrcapprob13,2)+pow(ferrcapprob12,2));
+const double mum_count =   7.16322e5;
+const double mum_count_e = 0.05388e5;
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
@@ -122,7 +167,7 @@ void b12finalfit(const char * const cut =
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f")
 {
-  printf("%sB-12 selection efficiency is %.1f%%%s\n", RED, eff*100, CLR);
+  printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
@@ -160,7 +205,7 @@ void b12finalfit(const char * const cut =
 
   const double ferrorfit = (mn->fErp[0]-mn->fErn[0])/2/getpar(mn, 0);
 
-  printf("\nStuff with b12 lifetime raw %f +- %f\n",
+  printtwice("\nStuff with b12 lifetime raw %f +- %f\n", 0,
          getpar(mn, 0), ferrorfit * getpar(mn, 0));
 
   const double b12like_central = getpar(mn, 0)/eff/mum_count * 100;
@@ -170,41 +215,42 @@ void b12finalfit(const char * const cut =
   const double toterr = sqrt(pow(ferrorfit,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*b12like_central;
-  printf("\nStuff with b12 lifetime raw with overall eff "
-         "corrected, %% per mu- stop\n"
-         "%f +- %f (fit) +- %f (mu count) +- %f (B-12 eff), %f (total)\n",
-         b12like_central, staterr, muerr, b12err, toterr);
+  printtwice("\nStuff with b12 lifetime raw with overall eff "
+         "corrected, percent per mu- stop\n"
+         "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
+         3, b12like_central, staterr, muerr, b12err, toterr);
 
-  const double b12like_central_percap = b12like_central/(0.0762/0.998);
-  const double staterr_percap = staterr/(0.0762/0.998);
-  const double muerr_percap = muerr/(0.0762/0.998);
-  const double b12err_percap = b12err/(0.0762/0.998);
-  const double capfracerr_percap = b12like_central_percap
-    * sqrt(pow(0.0092,2)+pow(0.003,2));
+  const double b12like_central_percap = b12like_central/capprob;
+  const double staterr_percap = staterr/capprob;
+  const double muerr_percap = muerr/capprob;
+  const double b12err_percap = b12err/capprob;
+  const double capfracerr_percap =
+    b12like_central_percap * err_capprob/capprob;
   const double toterr_percap = sqrt(pow(staterr_percap,2)+
                                     pow(muerr_percap,2)+
                                     pow(b12err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printf("\nOr %% per mu- capture\n"
-         "%f +- %f (fit) +- %f (mu count) +- %f (B-12 eff),\n"
-         "+- %f (capture fraction) %f (total)\n",
+  printtwice("\nOr percent per mu- capture\n"
+         "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff) +-%f(cap frac), "
+         "%f(total)\n", 2, 
          b12like_central_percap, staterr_percap, muerr_percap,
          b12err_percap, capfracerr_percap, toterr_percap);
 
-  const double b12like_central_rate = b12like_central/2.028e-6/1e5;
-  const double staterr_rate = staterr/2.028e-6/1e5;
-  const double muerr_rate = muerr/2.028e-6/1e5;
-  const double b12err_rate = b12err/2.028e-6/1e5;
+  const double b12like_central_rate = b12like_central/lifetime_c/100;
+  const double staterr_rate = staterr/lifetime_c/100;
+  const double muerr_rate = muerr/lifetime_c/100;
+  const double b12err_rate = b12err/lifetime_c/100;
   const double lifetimeerr_rate = b12like_central_rate
-    * 0.002e-6/2.028e-6;
+    * lifetime_c_err/lifetime_c;
   const double toterr_rate = sqrt(pow(staterr_rate,2)+
                                   pow(muerr_rate,2)+
                                   pow(b12err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printf("\nOr 10^3/s: %f +- %f (fit) +- %f (mu count) +- %f (B-12 eff),\n"
-         "+- %f (lifetime) %f (total)\n",
+  printtwice("\nOr 10^3/s: %f +- %f(fit) +- %f(mu count) +- %f(B-12 eff),\n"
+         "+- %f(lifetime) %f(total)\n", 2,
          b12like_central_rate, staterr_rate, muerr_rate,
          b12err_rate, lifetimeerr_rate, toterr_rate);
+  puts("");
 }
