@@ -5,10 +5,15 @@
 #include "TTree.h"
 #include "TF1.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TROOT.h"
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
+#include "deadtime.C" // <-- note inclusion of source
+
+#define DISABLEN16
+
 using std::vector;
 
 const double b12life = 20.20/log(2.);
@@ -28,9 +33,11 @@ const double n16life_err = 20./log(2.);
 struct ev{
   double t; // time
   int n; // number of neutrons
-  ev(double t_, int n_){
+  double e; // nominal neutron efficiency
+  ev(double t_, int n_, double e_){
     t = t_;
     n = n_;
+    e = e_;
   }
 };
 
@@ -109,7 +116,10 @@ const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
-const double offset = 2.040e-6;
+const double offset = 2.040e-3;
+
+TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 2, 250, 1-offset, 5001-offset);
+
 
 const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
@@ -137,9 +147,8 @@ const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
 const double li8eff = mich_eff * eor_eff * li8eff_energy;
 
-// Using no distance cut ("nlate") so as not to have to figure out
-// what the efficiency for that is for the high purity sample.
-const double neff_nom = neff_dt_highpurity;
+// Constant 1% absolute error assumed on neutron efficiency.
+// Not a very rigourous model, but it's something.
 const double neff_err = 0.01;
 
 // Measured probablity of getting one accidental neutron.  These
@@ -198,6 +207,34 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
+double clamp(double x, double lo, double hi)
+{
+  return x < lo? lo: x > hi? hi: x;
+}
+
+double zeron_f(
+const double mt, const double acc,const double paccn, const double neff,
+const double n_b12, const double n_b12n, const double b12t,
+const double n_li8, const double n_li8n, const double li8t,
+const double n_b13, const double b13t,
+const double n_n16, const double n16t)
+{
+  return acc +
+    // Be really careful. Can get zero neutrons from a real zero-neutron
+    // event without an accidental or from a real one-neutron event with
+    // an inefficiency and without an accidental
+    ((1-paccn)*n_b12 + (1-neff)*(1-paccn)*n_b12n)/b12t*exp(mt/b12t) +
+    ((1-paccn)*n_li8 + (1-neff)*(1-paccn)*n_li8n)/li8t*exp(mt/li8t) +
+    // For B-13 and N-16, there are no real one-neutron events, so it
+    // is easier. (Ok, N-16 might come from O-17, but it is only a
+    // nuisance parameter here...)
+    (1-paccn)*n_b13/b13t*exp(mt/b13t)
+#ifndef DISABLEN16
+    + (1-paccn)*n_n16/n16t*exp(mt/n16t)
+#endif
+    ;
+}
+
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   const double p_b12 = par[0],
@@ -219,23 +256,27 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
                b13t  = par[10],
                li8t  = par[11],
                n16t  = par[12],
-               neff  = par[13];
+               neffdelta = par[13];
 
-  // Normalization
-  like =    n_b12 *exp(-lowtime/b12t)
-          + n_b12n*exp(-lowtime/b12t)
-          + n_b13 *exp(-lowtime/b13t)
-          + n_li8 *exp(-lowtime/li8t)
-          + n_li8n*exp(-lowtime/li8t)
-          + n_n16 *exp(-lowtime/n16t)
-          + totaltime*(acc+accn+accn2);
+  const double norm =
+      (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
+    + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
+    + n_b13 *(exp(-lowtime/b13t) - exp(-hightime/b13t))
+#ifndef DISABLEN16
+    + n_n16 *(exp(-lowtime/n16t) - exp(-hightime/n16t))
+#endif
+    + totaltime*(acc+accn+accn2);
+
+  like = norm;
 
   printf(".");  fflush(stdout);
 
   for(unsigned int i = 0; i < events.size(); i++){
     const double mt = -events[i].t;
+    const double neff =
+      clamp(events[i].e /* XXX neff_dt_highpurity  0.67 */ + neffdelta, 0.01, 0.95);
 
-    double f;
+    double f = 0;
     switch(events[i].n){
       case 0:
         f = acc +
@@ -243,17 +284,18 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
           // zero-neutron event without an accidental or from a real
           // one-neutron event with an inefficiency and without an
           // accidental
-          ((1-paccn)*n_b12/b12t + (1-neff)*(1-paccn)*n_b12n/b12t)
+          ((1-paccn)*n_b12 + (1-neff)*(1-paccn)*n_b12n)/b12t
             *exp(mt/b12t) +
-          ((1-paccn)*n_li8/li8t + (1-neff)*(1-paccn)*n_li8n/li8t)
+          ((1-paccn)*n_li8 + (1-neff)*(1-paccn)*n_li8n)/li8t
             *exp(mt/li8t) +
            // For B-13 and N-16, there are no real one-neutron events,
            // so it is easier. (Ok, N-16 might come from O-17, but it 
            // is only a nuisance parameter here...)
-           (1-paccn)*n_b13/b13t*exp(mt/b13t) +
-           (1-paccn)*n_n16/n16t*exp(mt/n16t)
+           (1-paccn)*n_b13/b13t*exp(mt/b13t)
+#ifndef DISABLEN16
+           + (1-paccn)*n_n16/n16t*exp(mt/n16t)
+#endif
           ;
-        like -= log(f);
         break;
       case 1:
         f = accn +
@@ -261,16 +303,17 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
           // is efficient and doesn't have an accidental, or that is
           // inefficient and does have an accidental, or from a real
           // zero-neutron event that is inefficient.
-          ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n/b12t+paccn*n_b12/b12t)
+          ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n+paccn*n_b12)/b12t
             *exp(mt/b12t) +
-          ((neff*(1-paccn)+(1-neff)*paccn)*n_li8n/li8t+paccn*n_li8/li8t)
+          ((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t
             *exp(mt/li8t) +
            // Can only get B-13 with a neutron from an inefficiency,
-           // assuming there's no O-16(mu,He-3)B-13.
-           paccn*n_b13/b13t*exp(mt/b13t) +
-           paccn*n_n16/n16t*exp(mt/n16t)
+           // assuming there's no O-16(mu,ppn)B-13 to speak of.
+           paccn*n_b13/b13t*exp(mt/b13t)
+#ifndef DISABLEN16
+           + paccn*n_n16/n16t*exp(mt/n16t)
+#endif
           ;
-        like -= log(f);
         break;
       case 2:
         f = accn2 +
@@ -281,13 +324,12 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
           neff*paccn*n_b12n/b12t*exp(mt/b12t) +
           neff*paccn*n_li8n/li8t*exp(mt/li8t)
         ;
-        like -= log(f);
         break;
       default:
-        // We don't try to handle multiple accidental neutrons.
-        // Just cut the event.
+        printf("NOT REACHED with %d neutrons\n", events[i].n);
         break;
     }
+    if(f > 0) like -= log(f);
   }
 
   like *= 2; // Convert to "chi2"
@@ -296,16 +338,21 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like += pow((b12t - b12life)/b12life_err, 2)
         + pow((b13t - b13life)/b13life_err, 2)
         + pow((li8t - li8life)/li8life_err, 2)
+#ifndef DISABLEN16
         + pow((n16t - n16life)/n16life_err, 2)
+#endif
           // and the neutron efficiency
-        + pow((neff - neff_nom)/neff_err, 2);
-
+        + pow(neffdelta/neff_err, 2);
   
-
   // pull term to impose unitarity bound on products of C-13.
   // Width is determined by the error on the number of captures
-  if(p_b12n + p_b13 + p_li8n > 1)
-    like += pow((p_b12n + p_b13 + p_li8n - 1)/errcapprob13*capprob13, 2);
+  //if(p_b12n + p_b13 + p_li8n > 1)
+    //like += pow((p_b12n + p_b13 + p_li8n - 1)/errcapprob13*capprob13, 2);
+}
+
+double dispf(double * x, double * par)
+{
+
 }
 
 static double getpar(int i)
@@ -411,13 +458,13 @@ void printc12b12results()
 void printc13b12nresults()
 {
   results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy, capprob13,
-    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 4, 3, 3);
+    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
 
 void printc13b13results()
 {
   results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy, capprob13,
-    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 3, 2, 2);
+    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
 
 
@@ -425,9 +472,9 @@ void fullb12finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
-"e > 4 && e < 15 && dt < %f")
+"e > 4 && e < 15 && dt < %f && laten <= 2")
 {
-  printf("%sB-12 selection efficiency is %.1f%%%s\n", RED, b12eff*100, CLR);
+  printtwice("B-12 selection efficiency is %.1f%%\n", 2, b12eff*100);
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
@@ -439,59 +486,80 @@ void fullb12finalfit(const char * const cut =
   //mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(0, "p_b12", 0.2,  1e2, 0, 1, err);
-  mn->mnparm(1, "p_b12n",0.5,  1e2, 0, 1, err);
-  mn->mnparm(2, "p_b13", 0.2,  1e2, 0, 1, err);
-  mn->mnparm(3, "p_li8", 0.01,  1e1, 0, 1, err);
-  mn->mnparm(4, "p_li8n",0.05,  1e1, 0, 1, err);
-  mn->mnparm(5, "n_n16",   1,  1e1, 0, 1e3, err);
-  mn->mnparm(6, "acc",   1,    1, 0, 100, err);
-  mn->mnparm(7, "accn",  0.1,  1, 0, 10, err);
-  mn->mnparm(8, "accn2", 0.01, 1, 0, 1, err);
+  mn->mnparm(0, "p_b12", 0.2,  0.01, 0, 1, err);
+  mn->mnparm(1, "p_b12n",0.5,  0.01, 0, 1, err);
+  mn->mnparm(2, "p_b13", 0.2,  0.01, 0, 1, err);
+  mn->mnparm(3, "p_li8", 0.01,  0.01, 0, 1, err);
+  mn->mnparm(4, "p_li8n",0.05,  0.01, 0, 1, err);
+  mn->mnparm(5, "n_n16",   1,  1, 0, 1e3, err);
+  mn->mnparm(6, "acc",   1,    0.1, 0, 100, err);
+  mn->mnparm(7, "accn",  0.1,  0.01, 0, 10, err);
+  mn->mnparm(8, "accn2", 0.01, 0.001, 0, 1, err);
   mn->mnparm(9, "b12t", b12life,  b12life_err, 0, 0, err);
   mn->mnparm(10, "b13t", b13life,  b13life_err, 0, 0, err);
   mn->mnparm(11, "li8t", li8life,  li8life_err, 0, 0, err);
   mn->mnparm(12, "n16t", n16life,  n16life_err, 0, 0, err);
-  mn->mnparm(13, "neff", neff_nom,  neff_err, 0, 0, err);
+  mn->mnparm(13, "neffdelta", 0,  neff_err, 0, 0, err);
 
-  // XXX kill N-16 for faster fitting.
+#ifdef DISABLEN16
   mn->Command("SET PAR 6 0");
   mn->Command("FIX 6");
   mn->Command("FIX 13");
+#endif
 
   // XXX fix Li-8 lifetime for faster fitting, since it really shouldn't
   // matter
   mn->Command("FIX 12");
+
+  mn->Command("FIX 14"); // neutron efficiency
+
+  mn->Command("FIX 10");  // more lifetimes
+  mn->Command("FIX 11");
   
   printf("Making cuts...\n");
-  TFile tmpfile("/tmp/b12tmp.root", "recreate");
+  TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  selt->Write();
   events.clear();
 
-  float dt;
+  float dt, mx, my, mz, fq;
   int nn;
   selt->SetBranchAddress("dt", &dt);
   selt->SetBranchAddress("laten", &nn);
+  selt->SetBranchAddress("mx", &mx);
+  selt->SetBranchAddress("my", &my);
+  selt->SetBranchAddress("mz", &mz);
+  selt->SetBranchAddress("fq", &fq);
 
-  printf("Filling in data array...\n");
+  printf("Filling in data array...");
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
-    events.push_back(ev(dt-offset, nn));
+    events.push_back(ev(dt-offset, nn, eff(fq, mx, my, mz)));
+    hdisp->Fill(nn, dt-offset);
+    if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }
 
-  printf("MIGRAD");
+  {
+    double emean = 0;
+    for(unsigned int i = 0; i < events.size(); i++)
+      emean += events[i].e/events.size();
+    printf("Mean neutron efficiency: %f\n", emean);
+  }
+
+  printf("\nMIGRAD");
   mn->Command("MIGRAD");
   puts(""); mn->Command("show par");
 
-  for(int i = 1; i <= 3; i++){
-    printf(Form("MINOS %d", i));
-    mn->Command(Form("MINOS 10000 %d", i));
-    puts("");
-    mn->Command(Form("show min %d", i));
-  }
-
+/*
+  mn->SetPrintLevel(2);
+  mn->Command("MINOS 2000 1 2 3");
+  mn->SetPrintLevel(-1);
+  puts("");
+  mn->Command("show min");
 
   printc12b12results();
   printc13b12nresults();
   printc13b13results();
+*/
+  mn->SetPrintLevel(1);
 }
