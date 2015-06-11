@@ -12,8 +12,12 @@
 using std::vector;
 
 const double b12life = 20.20/log(2.);
-const double b13life = 17.33/log(2.);
+const double b13life = 17.33/log(2.); 
+
+// This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
+// 82, 027309
 const double li8life = 839.9/log(2.);
+
 const double n16life = 7130./log(2.);
 
 const double b12life_err = 0.02/log(2.);
@@ -64,12 +68,8 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
-
-
 const double mum_count =   7.16322e5;
 const double mum_count_e = 0.05388e5;
-
-
 
 // Weighted average of T and GC measurements for the HP region
 const double f13 = 0.010921;
@@ -107,7 +107,6 @@ const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
 const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
 
 
-
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
 const double offset = 2.040e-6;
@@ -140,14 +139,17 @@ const double li8eff = mich_eff * eor_eff * li8eff_energy;
 
 // Using no distance cut ("nlate") so as not to have to figure out
 // what the efficiency for that is for the high purity sample.
-const double neff = neff_dt_highpurity;
+const double neff_nom = neff_dt_highpurity;
+const double neff_err = 0.01;
+
+// Measured probablity of getting one accidental neutron.  These
+// are *detected* muons, so don't apply efficiency to them.
+const double paccn = 1.1e-4;
 
 /*
- * Prints the message once with the requested precision and in RED, then
- * again with all digits in the default color, starting with the first
- * number.
- *
- * The message must only have floating point substitutions.
+ * Prints the message once with the requested floating point precision
+ * and in RED, then again with all digits in the default color, starting
+ * with the first floating point number.
  */
 static void printtwice(const char * const msg, const int digits, ...)
 {
@@ -165,11 +167,19 @@ static void printtwice(const char * const msg, const int digits, ...)
         *bmp++ = '\0';
         break;
       case '%':
-        gotone = true;
-        *pmp++ = '%';
-        *bmp++ = '%';
-        *pmp++ = '.';
-        *pmp++ = digits+'0';
+        switch(msg[i+1]){
+          case 'e': case 'E': case 'f': case 'F':
+          case 'g': case 'G': case 'a': case 'A': 
+            gotone = true;
+            *pmp++ = '%';
+            *bmp++ = '%';
+            *pmp++ = '.';
+            *pmp++ = digits+'0';
+            break;
+          default:
+            *pmp++ = msg[i];
+            if(gotone) *bmp++ = msg[i];
+        }
         break;
       default:
         *pmp++ = msg[i];
@@ -204,62 +214,212 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
                n_n16 = par[5],
                acc   = par[6],
                accn  = par[7],
-               b12t  = par[8],
-               b13t  = par[9],
-               li8t  = par[10],
-               n16t  = par[11];
+               accn2 = par[8],
+               b12t  = par[9],
+               b13t  = par[10],
+               li8t  = par[11],
+               n16t  = par[12],
+               neff  = par[13];
 
+  // Normalization
   like =    n_b12 *exp(-lowtime/b12t)
           + n_b12n*exp(-lowtime/b12t)
           + n_b13 *exp(-lowtime/b13t)
           + n_li8 *exp(-lowtime/li8t)
           + n_li8n*exp(-lowtime/li8t)
           + n_n16 *exp(-lowtime/n16t)
-          + totaltime*(acc+accn);
+          + totaltime*(acc+accn+accn2);
 
   printf(".");  fflush(stdout);
 
   for(unsigned int i = 0; i < events.size(); i++){
     const double mt = -events[i].t;
-    const double n = events[i].n;
 
     double f;
-    if(n == 0)
-      f =          n_b12 /b12t*exp(mt/b12t) +
-                   n_b13 /b13t*exp(mt/b13t) +
-                   n_li8 /li8t*exp(mt/li8t) +
-         (1-neff)*(n_b12n/b12t*exp(mt/b12t) +
-                   n_li8n/li8t*exp(mt/li8t)) +
-                   n_n16 /n16t*exp(mt/n16t) +
-          acc;
-    else if(n == 1)
-      f = neff*(n_b12n/b12t*exp(mt/b12t) +
-                n_li8n/li8t*exp(mt/li8t)) +
-          accn;
-    else
-      continue;
-
-    if(f > 0) like -= log(f);
+    switch(events[i].n){
+      case 0:
+        f = acc +
+          // Be really careful. Can get zero neutrons from a real
+          // zero-neutron event without an accidental or from a real
+          // one-neutron event with an inefficiency and without an
+          // accidental
+          ((1-paccn)*n_b12/b12t + (1-neff)*(1-paccn)*n_b12n/b12t)
+            *exp(mt/b12t) +
+          ((1-paccn)*n_li8/li8t + (1-neff)*(1-paccn)*n_li8n/li8t)
+            *exp(mt/li8t) +
+           // For B-13 and N-16, there are no real one-neutron events,
+           // so it is easier. (Ok, N-16 might come from O-17, but it 
+           // is only a nuisance parameter here...)
+           (1-paccn)*n_b13/b13t*exp(mt/b13t) +
+           (1-paccn)*n_n16/n16t*exp(mt/n16t)
+          ;
+        like -= log(f);
+        break;
+      case 1:
+        f = accn +
+          // Can get one neutron from a real one-neutron event that
+          // is efficient and doesn't have an accidental, or that is
+          // inefficient and does have an accidental, or from a real
+          // zero-neutron event that is inefficient.
+          ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n/b12t+paccn*n_b12/b12t)
+            *exp(mt/b12t) +
+          ((neff*(1-paccn)+(1-neff)*paccn)*n_li8n/li8t+paccn*n_li8/li8t)
+            *exp(mt/li8t) +
+           // Can only get B-13 with a neutron from an inefficiency,
+           // assuming there's no O-16(mu,He-3)B-13.
+           paccn*n_b13/b13t*exp(mt/b13t) +
+           paccn*n_n16/n16t*exp(mt/n16t)
+          ;
+        like -= log(f);
+        break;
+      case 2:
+        f = accn2 +
+          // Can get two neutrons from a real one-neutron event that
+          // is efficient and has an accidental. Note that we *must*
+          // handle this case for the above normalization component of
+          // the likelihood to be correct.
+          neff*paccn*n_b12n/b12t*exp(mt/b12t) +
+          neff*paccn*n_li8n/li8t*exp(mt/li8t)
+        ;
+        like -= log(f);
+        break;
+      default:
+        // We don't try to handle multiple accidental neutrons.
+        // Just cut the event.
+        break;
+    }
   }
 
-  like *= 2;
+  like *= 2; // Convert to "chi2"
 
-  // pull terms
+  // pull terms for lifetimes
   like += pow((b12t - b12life)/b12life_err, 2)
         + pow((b13t - b13life)/b13life_err, 2)
         + pow((li8t - li8life)/li8life_err, 2)
-        + pow((n16t - n16life)/n16life_err, 2);
+        + pow((n16t - n16life)/n16life_err, 2)
+          // and the neutron efficiency
+        + pow((neff - neff_nom)/neff_err, 2);
 
+  
+
+  // pull term to impose unitarity bound on products of C-13.
+  // Width is determined by the error on the number of captures
   if(p_b12n + p_b13 + p_li8n > 1)
     like += pow((p_b12n + p_b13 + p_li8n - 1)/errcapprob13*capprob13, 2);
 }
 
-static double getpar(TMinuit * mn, int i)
+static double getpar(int i)
 {
   double answer, dum;
   mn->GetParameter(i, answer, dum);
   return answer;
 }
+
+double sani_minos(const double in)
+{
+  if(in == -54321) return 0;
+  return in;
+}
+
+void results(const char * const iname, const int mni,
+             const double ifrac, const double eff,
+             const double ferr_energy, const double thiscapprob,
+             const double thiscapprob_err, const double lifetime,
+             const double lifetime_err, const double nuc_cap,
+             const int prec1, const int prec2, const int prec3)
+{
+  // I did the fit in terms of probability per capture so that it was
+  // straightforward to impose a unitarity bound, but this was only
+  // a constant factor shift, now shift back to doing it in terms of
+  // counts so I can step through the uncertainties.
+  const double fit = nuc_cap*eff*getpar(mni);
+  const double ferrorfitup = sani_minos(mn->fErp[mni])/getpar(mni);
+  const double ferrorfitlo = sani_minos(mn->fErn[mni])/getpar(mni);
+
+  printtwice("\n%s raw %f +%f %f\n", 0, iname,
+    fit, ferrorfitup*fit, ferrorfitlo*fit);
+
+  const double like_central = fit/eff/mum_count * 100/ifrac;
+  const double staterrup = ferrorfitup*like_central;
+  const double staterrlo = ferrorfitlo*like_central;
+  const double muerr = mum_count_e/mum_count*like_central;
+  const double err = ferr_energy*like_central;
+  const double toterrup = sqrt(pow(ferrorfitup,2) +
+                               pow(mum_count_e/mum_count,2) +
+                               pow(ferr_energy, 2))*like_central;
+  const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
+                               pow(mum_count_e/mum_count,2) +
+                               pow(ferr_energy, 2))*like_central;
+  printtwice("\n%s, eff corrected, percent per mu- stop\n"
+    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), +%f %f(total)\n",
+    prec1, iname, like_central, staterrup, staterrlo, muerr, err,
+    toterrup, toterrlo);
+
+  const double like_central_percap = like_central/thiscapprob;
+  const double staterr_percapup = staterrup/thiscapprob;
+  const double staterr_percaplo = staterrlo/thiscapprob;
+  const double muerr_percap = muerr/thiscapprob;
+  const double err_percap = err/thiscapprob;
+  const double capfracerr_percap =
+    like_central_percap * thiscapprob_err/thiscapprob;
+  const double toterr_percapup = sqrt(pow(staterr_percapup,2)+
+                                    pow(muerr_percap,2)+
+                                    pow(err_percap,2)+
+                                    pow(capfracerr_percap,2));
+  const double toterr_percaplo = -sqrt(pow(staterr_percaplo,2)+
+                                    pow(muerr_percap,2)+
+                                    pow(err_percap,2)+
+                                    pow(capfracerr_percap,2));
+
+  printtwice("\nOr percent per mu- capture\n"
+         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
+         "+%f %f(total)\n", prec2, 
+         like_central_percap, staterr_percapup, staterr_percaplo,
+         muerr_percap, err_percap, capfracerr_percap,
+         toterr_percapup, toterr_percaplo);
+
+  const double like_central_rate = like_central/lifetime/100;
+  const double staterr_rateup = staterrup/lifetime/100;
+  const double staterr_ratelo = staterrlo/lifetime/100;
+  const double muerr_rate = muerr/lifetime/100;
+  const double err_rate = err/lifetime/100;
+  const double lifetimeerr_rate = like_central_rate
+    * lifetime_err/lifetime;
+  const double toterr_rateup = sqrt(pow(staterr_rateup,2)+
+                                  pow(muerr_rate,2)+
+                                  pow(err_rate,2)+
+                                  pow(lifetimeerr_rate,2));
+  const double toterr_ratelo = -sqrt(pow(staterr_ratelo,2)+
+                                  pow(muerr_rate,2)+
+                                  pow(err_rate,2)+
+                                  pow(lifetimeerr_rate,2));
+
+  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff),\n"
+         "+-%f(lifetime) +%f %f(total)\n", prec3,
+         like_central_rate, staterr_rateup, staterr_ratelo,
+         muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
+         toterr_ratelo);
+  puts("");
+}
+
+void printc12b12results()
+{
+  results("C-12 -> B-12", 0, 1-f13, b12eff, b12ferr_energy, capprob12,
+    errcapprob12, lifetime_c12, lifetime_c12_err, c12nuc_cap, 3, 2, 2);
+}
+
+void printc13b12nresults()
+{
+  results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy, capprob13,
+    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 4, 3, 3);
+}
+
+void printc13b13results()
+{
+  results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy, capprob13,
+    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 3, 2, 2);
+}
+
 
 void fullb12finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
@@ -272,7 +432,7 @@ void fullb12finalfit(const char * const cut =
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
  
-  const int npar = 12;
+  const int npar = 14;
   mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
   mn->fGraphicsMode = false;
@@ -285,18 +445,24 @@ void fullb12finalfit(const char * const cut =
   mn->mnparm(3, "p_li8", 0.01,  1e1, 0, 1, err);
   mn->mnparm(4, "p_li8n",0.05,  1e1, 0, 1, err);
   mn->mnparm(5, "n_n16",   1,  1e1, 0, 1e3, err);
-  mn->mnparm(6, "acc",   10 ,    1, 0, 1e3, err);
-  mn->mnparm(7, "accn",  10 ,    1, 0, 1e3, err);
-  mn->mnparm(8, "b12t", b12life,  b12life_err, 0, 0, err);
-  mn->mnparm(9, "b13t", b13life,  b13life_err, 0, 0, err);
-  mn->mnparm(10, "li8t", li8life,  li8life_err, 0, 0, err);
-  mn->mnparm(11, "n16t", n16life,  n16life_err, 0, 0, err);
+  mn->mnparm(6, "acc",   1,    1, 0, 100, err);
+  mn->mnparm(7, "accn",  0.1,  1, 0, 10, err);
+  mn->mnparm(8, "accn2", 0.01, 1, 0, 1, err);
+  mn->mnparm(9, "b12t", b12life,  b12life_err, 0, 0, err);
+  mn->mnparm(10, "b13t", b13life,  b13life_err, 0, 0, err);
+  mn->mnparm(11, "li8t", li8life,  li8life_err, 0, 0, err);
+  mn->mnparm(12, "n16t", n16life,  n16life_err, 0, 0, err);
+  mn->mnparm(13, "neff", neff_nom,  neff_err, 0, 0, err);
 
   // XXX kill N-16 for faster fitting.
   mn->Command("SET PAR 6 0");
   mn->Command("FIX 6");
-  mn->Command("FIX 12");
+  mn->Command("FIX 13");
 
+  // XXX fix Li-8 lifetime for faster fitting, since it really shouldn't
+  // matter
+  mn->Command("FIX 12");
+  
   printf("Making cuts...\n");
   TFile tmpfile("/tmp/b12tmp.root", "recreate");
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
@@ -321,80 +487,11 @@ void fullb12finalfit(const char * const cut =
     printf(Form("MINOS %d", i));
     mn->Command(Form("MINOS 10000 %d", i));
     puts("");
-    mn->Command("show min");
+    mn->Command(Form("show min %d", i));
   }
 
-  // I did the fit in terms of probability per capture so that it was
-  // straightforward to impose a unitarity bound, but this was only
-  // a constant factor shift, now shift back to doing it in terms of
-  // counts so I can step through the uncertainties.
 
-  const double fit = c12nuc_cap*b12eff*getpar(mn, 0);
-  const double ferrorfitup = mn->fErp[0]/getpar(mn, 0);
-  const double ferrorfitlo = mn->fErn[0]/getpar(mn, 0);
-
-  printtwice("\nC-12 -> B-12 raw %f +%f %f\n", 0,
-    fit, ferrorfitup*fit, ferrorfitlo*fit);
-
-  const double b12like_central = fit/b12eff/mum_count * 100;
-  const double staterrup = ferrorfitup*b12like_central;
-  const double staterrlo = ferrorfitlo*b12like_central;
-  const double muerr = mum_count_e/mum_count*b12like_central;
-  const double b12err = b12ferr_energy*b12like_central;
-  const double toterrup = sqrt(pow(ferrorfitup,2) +
-                               pow(mum_count_e/mum_count,2) +
-                               pow(b12ferr_energy, 2))*b12like_central;
-  const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
-                               pow(mum_count_e/mum_count,2) +
-                               pow(b12ferr_energy, 2))*b12like_central;
-  printtwice("\nC-12 -> B-12, eff corrected, percent per mu- stop\n"
-         "%f +%f%f(fit) +-%f(mu count) +-%f(B-12 eff), +%f%f(total)\n",
-         3, b12like_central, staterrup, staterrlo, muerr, b12err,
-         toterrup, toterrlo);
-
-  const double b12like_central_percap = b12like_central/capprob12;
-  const double staterr_percapup = staterrup/capprob12;
-  const double staterr_percaplo = staterrlo/capprob12;
-  const double muerr_percap = muerr/capprob12;
-  const double b12err_percap = b12err/capprob12;
-  const double capfracerr_percap =
-    b12like_central_percap * err_capprob/capprob12;
-  const double toterr_percapup = sqrt(pow(staterr_percapup,2)+
-                                    pow(muerr_percap,2)+
-                                    pow(b12err_percap,2)+
-                                    pow(capfracerr_percap,2));
-  const double toterr_percaplo = -sqrt(pow(staterr_percaplo,2)+
-                                    pow(muerr_percap,2)+
-                                    pow(b12err_percap,2)+
-                                    pow(capfracerr_percap,2));
-
-  printtwice("\nOr percent per C-12 mu- capture\n"
-         "%f +%f%f(fit) +-%f(mu count) +-%f(B-12 eff) +-%f(cap frac), "
-         "+%f%f(total)\n", 2, 
-         b12like_central_percap, staterr_percapup, staterr_percaplo,
-         muerr_percap, b12err_percap, capfracerr_percap,
-         toterr_percapup, toterr_percaplo);
-
-  const double b12like_central_rate = b12like_central/lifetime_c12/100;
-  const double staterr_rateup = staterrup/lifetime_c12/100;
-  const double staterr_ratelo = staterrlo/lifetime_c12/100;
-  const double muerr_rate = muerr/lifetime_c12/100;
-  const double b12err_rate = b12err/lifetime_c12/100;
-  const double lifetimeerr_rate = b12like_central_rate
-    * lifetime_c12_err/lifetime_c12;
-  const double toterr_rateup = sqrt(pow(staterr_rateup,2)+
-                                  pow(muerr_rate,2)+
-                                  pow(b12err_rate,2)+
-                                  pow(lifetimeerr_rate,2));
-  const double toterr_ratelo = -sqrt(pow(staterr_ratelo,2)+
-                                  pow(muerr_rate,2)+
-                                  pow(b12err_rate,2)+
-                                  pow(lifetimeerr_rate,2));
-
-  printtwice("\nOr 10^3/s: %f +%f%f(fit) +-%f(mu count) +-%f(B-12 eff),\n"
-         "+-%f(lifetime) +%f%f(total)\n", 2,
-         b12like_central_rate, staterr_rateup, staterr_ratelo,
-         muerr_rate, b12err_rate, lifetimeerr_rate, toterr_rateup,
-         toterr_ratelo);
-  puts("");
+  printc12b12results();
+  printc13b12nresults();
+  printc13b13results();
 }
