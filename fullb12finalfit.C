@@ -12,11 +12,12 @@
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
-//#define DISABLEN16
+#define DISABLEN16
+#define DISABLELI
 
 using std::vector;
 
-bool unitarity = false;
+bool unitarity = true;
 
 const double nom_b12life = 20.20/log(2.);
 const double b12life_err = 0.02/log(2.);
@@ -143,29 +144,34 @@ const double totaltime = hightime - lowtime;
 const double b12energyeff = 0.8494;  // B-12 energy cut
 const double b12energyeff_e = 0.0063;
 
-const double b13energyeff = b12energyeff * 1.016; // estimate from MC
+const double b13energyeff = b12energyeff * 1.014; // estimate from MC
 const double b13energyeff_e = 0.02; // BS
 
-const double li8eff_energy = b12energyeff * 1.078; // estimate from MC
+const double li8eff_energy = b12energyeff * 1.067; // estimate from MC
 const double li8eff_energy_e = 0.02;
 
-const double li9eff_energy = b12energyeff * 1.078; // BS! XXX
+const double li9eff_energy = b12energyeff * 1.02; // BS! XXX
 const double li9eff_energy_e = 0.02;
 
 // time until end of run
 const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
+// Subsequent muon veto efficiency (an efficiency on the isotope decay,
+// NOT on the muon), for the hard cut imposed on events in order to get
+// into the ntuples of 0.5ms.
+const double sub_muon_eff = 0.981;
+
 const double mich_eff = 0.9996;
 
-const double b12eff = mich_eff * eor_eff * b12energyeff;
+const double b12eff = mich_eff * eor_eff * sub_muon_eff * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
-const double b13eff = mich_eff * eor_eff * b13energyeff;
+const double b13eff = mich_eff * eor_eff * sub_muon_eff * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff = mich_eff * eor_eff * li8eff_energy;
+const double li8eff = mich_eff * eor_eff * sub_muon_eff * li8eff_energy;
 
-const double li9eff = mich_eff * eor_eff * li9eff_energy;
+const double li9eff = mich_eff * eor_eff * sub_muon_eff * li9eff_energy;
 
 // Constant 1% absolute error assumed on neutron efficiency.
 // Not a very rigourous model, but it's something.
@@ -244,6 +250,10 @@ bool isibd(const int in_run, const int in_trig)
     for(int i = 0; i < ibd.GetEntries(); i++){
       ibd.GetEntry(i);
       ibds.push_back(pair<int,int>(int(run), int(trig)));
+
+      // Get the delayed event too.  ROUGH, since there could be 
+      // an intervening event
+      ibds.push_back(pair<int,int>(int(run), int(trig+1)));
     }
   }
 
@@ -268,19 +278,24 @@ const double n_li9, const double n_li9n, const double li9t,
 const double n_b13, const double b13t,
 const double n_n16, const double n16t)
 {
+  // Be really careful. Can get zero neutrons from a real zero-neutron
+  // event without an accidental or from a real one-neutron event with
+  // an inefficiency and without an accidental. (Does ROOT optimize
+  // these? No idea.)
+  static double unpaccn = 1-paccn; // always the same
+  double uneffunpaccn = (1-neff)*unpaccn; // function of pars
   return acc +
-    // Be really careful. Can get zero neutrons from a real zero-neutron
-    // event without an accidental or from a real one-neutron event with
-    // an inefficiency and without an accidental
-    ((1-paccn)*n_b12 + (1-neff)*(1-paccn)*n_b12n)/b12t*exp(mt/b12t) +
-    ((1-paccn)*n_li8 + (1-neff)*(1-paccn)*n_li8n)/li8t*exp(mt/li8t) +
-    ((1-paccn)*n_li9 + (1-neff)*(1-paccn)*n_li9n)/li9t*exp(mt/li9t) +
+    (unpaccn*n_b12 + uneffunpaccn*n_b12n)/b12t*exp(mt/b12t) +
     // For B-13 and N-16, there are no real one-neutron events, so it
     // is easier. (Ok, N-16 might come from O-17, but it is only a
     // nuisance parameter here...)
-    (1-paccn)*n_b13/b13t*exp(mt/b13t)
+    unpaccn*n_b13/b13t*exp(mt/b13t)
+#ifndef DISABLELI
+  + (unpaccn*n_li8 + uneffunpaccn*n_li8n)/li8t*exp(mt/li8t) +
+    (unpaccn*n_li9 + uneffunpaccn*n_li9n)/li9t*exp(mt/li9t)
+#endif
 #ifndef DISABLEN16
-    + (1-paccn)*n_n16/n16t*exp(mt/n16t)
+  + unpaccn*n_n16/n16t*exp(mt/n16t)
 #endif
     ;
 }
@@ -299,11 +314,13 @@ const double n_n16, const double n16t)
   // have an accidental, or from a real zero-neutron event that is
   // inefficient.
   ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n+paccn*n_b12)/b12t*exp(mt/b12t)+
-  ((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)+
-  ((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)+
   // Can only get B-13 with a neutron from an inefficiency, assuming
   // there's no O-16(mu,ppn)B-13 to speak of.
   paccn*n_b13/b13t*exp(mt/b13t)
+#ifndef DISABLELI
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)
+#endif
 #ifndef DISABLEN16
   + paccn*n_n16/n16t*exp(mt/n16t)
 #endif
@@ -322,8 +339,11 @@ const double n_li9n, const double li9t)
   // case for the above normalization component of the likelihood to be
   // correct.
   neff*paccn*(n_b12n/b12t*exp(mt/b12t)
+#ifndef DISABLELI
             + n_li8n/li8t*exp(mt/li8t)
-            + n_li9n/li9t*exp(mt/li9t));
+            + n_li9n/li9t*exp(mt/li9t)
+#endif
+  );
 }
 
 #define DECODEPARS \
@@ -345,11 +365,11 @@ const double n_li9n, const double li9t)
                acc   = par[8], \
                accn  = par[9], \
                accn2 = par[10], \
-               b12t  = par[11]*nom_b12life, \
-               b13t  = par[12]*nom_b13life, \
-               li8t  = par[13]*nom_li8life, \
-               li9t  = par[14]*nom_li9life, \
-               n16t  = par[15]*nom_n16life, \
+               b12t  = par[11]*b12life_err + nom_b12life, \
+               b13t  = par[12]*b13life_err + nom_b13life, \
+               li8t  = par[13]*li8life_err + nom_li8life, \
+               li9t  = par[14]*li9life_err + nom_li9life, \
+               n16t  = par[15]*n16life_err + nom_n16life, \
                neffdelta = par[16];
 
 double priorerf(const double sig)
@@ -381,8 +401,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   const double norm =
       (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
+#ifndef DISABLELI
     + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
     + (n_li9 + n_li9n)*(exp(-lowtime/li9t) - exp(-hightime/li9t))
+#endif
     +      n_b13      *(exp(-lowtime/b13t) - exp(-hightime/b13t))
 #ifndef DISABLEN16
     +      n_n16      *(exp(-lowtime/n16t) - exp(-hightime/n16t))
@@ -426,8 +448,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // pull terms for lifetimes
   like += pow((b12t - nom_b12life)/b12life_err, 2)
         + pow((b13t - nom_b13life)/b13life_err, 2)
+#ifndef DISABLELI
         + pow((li8t - nom_li8life)/li8life_err, 2)
         + pow((li9t - nom_li9life)/li9life_err, 2)
+#endif
 #ifndef DISABLEN16
         + pow((n16t - nom_n16life)/n16life_err, 2)
 #endif
@@ -444,6 +468,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // if x>1 (I believe it approaches this asymptotically), but it is
   // gentler near 1.
   if(unitarity) like += unit_penalty(p_b12n + p_b13 + p_li8n + p_li9);
+
+  static const double likeoffset = 252637;
+  
+  like += likeoffset;
 }
 
 double dispf0(double * x, double * par)
@@ -512,7 +540,7 @@ void results(const char * const iname, const int mni,
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
-  printtwice("\n%s, eff corrected, percent per mu- stop\n"
+  printtwice("\n%s, eff corrected, percent per C mu- stop\n"
     "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), +%f %f(total)\n",
     prec1, iname, like_central, staterrup, staterrlo, muerr, err,
     toterrup, toterrlo);
@@ -533,7 +561,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nOr percent per mu- capture\n"
+  printtwice("\nOr percent per C-N mu- capture\n"
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total)\n", prec2, 
          like_central_percap, staterr_percapup, staterr_percaplo,
@@ -566,22 +594,83 @@ void results(const char * const iname, const int mni,
 
 void printc12b12results()
 {
-  results("C-12 -> B-12", 0, 1-f13, b12eff, b12ferr_energy, capprob12,
-    errcapprob12, lifetime_c12, lifetime_c12_err, c12nuc_cap, 3, 2, 2);
+  results("C-12 -> B-12", 0, 1-f13, b12eff, b12ferr_energy,
+    capprob12*c_atomic_capture_prob, errcapprob12, lifetime_c12,
+    lifetime_c12_err, c12nuc_cap, 3, 2, 2);
 }
 
 void printc13b12nresults()
 {
-  results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy, capprob13,
-    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 2, 1, 1);
+  results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy,
+    capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
+    lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
 
 void printc13b13results()
 {
-  results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy, capprob13,
-    errcapprob13, lifetime_c13, lifetime_c13_err, c13nuc_cap, 2, 1, 1);
+  results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy,
+    capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
+    lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
 
+void mncommand()
+{
+  string command;
+  while(true){
+    printf("MINUIT> ");
+    if(!getline(cin, command)) break;
+    if(command == "exit") break;
+    mn->Command(command.c_str());
+  }
+}
+
+double b13limit()
+{
+  const double scan = 0;
+  double sump = 0;
+
+  unsigned int smallcount = 0;
+  const double increment = 0.01;
+  const int N = 70;
+  double ps[N];
+
+  const double bestchi2 = mn->fAmin;
+
+  mn->Command("fix 3");
+  for(int i = 0; i < N; i++){
+    const double prob = i*increment;
+    mn->Command(Form("set par 3 %f", prob));
+    mn->Command("Migrad");
+    const double p = exp(bestchi2-mn->fAmin);
+    printf("\t%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
+    for(int j = 0; j < p*10 - 1; j++) printf("#");
+    if     (p*10 - int(p*10) > 0.67) printf("+");
+    else if(p*10 - int(p*10) > 0.33) printf("|");
+    printf("\n");
+    sump += p;
+    ps[i] = p;
+    if(p < 1e-9 && ++smallcount > 3) break;
+  }
+  
+  printf("Norm: %f\n", sump);
+
+  double sump2 = 0;
+  double answer = 0;
+  for(int i = 0; i < N; i++){
+    const double prob = i*increment;
+    sump2 += ps[i]/sump;
+    if(sump2 > 0.9){
+       answer = prob-increment/2;
+       printf("Bays limit = %f\n", answer);
+       break;
+    }
+  }
+
+  if(smallcount <= 3)
+    printf("Not sure you integrated out far enough\n");
+
+  return answer;
+}
 
 void fullb12finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
@@ -617,17 +706,32 @@ void fullb12finalfit(const char * const cut =
   mn->mnparm(8, "acc",   1,    0.01, 0, 100, err);
   mn->mnparm(9, "accn",  0.1,  0.001, 0, 10, err);
   mn->mnparm(10, "accn2", 0.01, 0.001, 0, 1, err);
-  mn->mnparm(11, "b12t", 1,  b12life_err/nom_b12life, 0, 0, err);
-  mn->mnparm(12, "b13t", 1,  b13life_err/nom_b13life, 0, 0, err);
-  mn->mnparm(13, "li8t", 1,  li8life_err/nom_li8life, 0, 0, err);
-  mn->mnparm(14, "li9t", 1,  li9life_err/nom_li9life, 0, 0, err);
-  mn->mnparm(15, "n16t", 1,  n16life_err/nom_n16life, 0, 0, err);
+
+  // Sometimes the B-12 lifetime spins out of control.  Not sure why,
+  // but constrain it to be somewhat reasonable.
+  mn->mnparm(11, "b12t", 0,  b12life_err/nom_b12life, -5, +5, err);
+  mn->mnparm(12, "b13t", 0,  b13life_err/nom_b13life, -5, +5, err);
+  mn->mnparm(13, "li8t", 0,  li8life_err/nom_li8life, -5, +5, err);
+  mn->mnparm(14, "li9t", 0,  li9life_err/nom_li9life, -5, +5, err);
+  mn->mnparm(15, "n16t", 0,  n16life_err/nom_n16life, -5, +5, err);
   mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
 
 #ifdef DISABLEN16
   mn->Command("SET PAR 8 0");
   mn->Command("FIX 8");
   mn->Command("FIX 16");
+#endif
+#ifdef DISABLELI
+  mn->Command("SET PAR 4 0");
+  mn->Command("SET PAR 5 0");
+  mn->Command("SET PAR 6 0");
+  mn->Command("SET PAR 7 0");
+  mn->Command("FIX 4");
+  mn->Command("FIX 5");
+  mn->Command("FIX 6");
+  mn->Command("FIX 7");
+  mn->Command("FIX 14");
+  mn->Command("FIX 15");
 #endif
 
   // XXX fix all lifetimes and the neutron efficiency
@@ -679,25 +783,22 @@ void fullb12finalfit(const char * const cut =
   // SIMPLEX in the first place to save a little time and get it to
   // converge. I think SIMPLEX is needed because the way I implement the
   // unitarity constraint is really harsh on MIGRAD.
-  printf("\nSIMPLEX");
-  mn->Command("SIMPLEX");
-  puts(""); mn->Command("show par");
+  const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
+  for(int i = 0; i < 3; i++){
+    printf("\n%s", commands[i]);
+    mn->Command(commands[i]);
+    puts(""); mn->Command("show par");
+  }
 
-  printf("\nMIGRAD");
-  mn->Command("MIGRAD");
-  puts(""); mn->Command("show par");
-
-  mn->SetPrintLevel(2);
-  mn->Command("MINOS 2000");
-  mn->SetPrintLevel(-1);
+/*
+  mn->SetPrintLevel(0);
+  mn->Command("MINOS 2000 1 2 3");
   puts("");
   mn->Command("show min");
 
   printc12b12results();
   printc13b12nresults();
   printc13b13results();
-
-  mn->SetPrintLevel(0);
 
   zero= new TF1("zero",dispf0, 0, 100e3, npar);
   one = new TF1("one", dispf1, 0, 100e3, npar);
@@ -708,5 +809,6 @@ void fullb12finalfit(const char * const cut =
     one ->SetParameter(i, getpar(i));
     two ->SetParameter(i, getpar(i));
   }
+*/
 
 }
