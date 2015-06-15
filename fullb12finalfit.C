@@ -642,7 +642,7 @@ double b13limit()
     mn->Command(Form("set par 3 %f", prob));
     mn->Command("Migrad");
     const double p = exp(bestchi2-mn->fAmin);
-    printf("\t%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
+    printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");
     if     (p*10 - int(p*10) > 0.67) printf("+");
     else if(p*10 - int(p*10) > 0.33) printf("|");
@@ -790,7 +790,6 @@ void fullb12finalfit(const char * const cut =
     puts(""); mn->Command("show par");
   }
 
-/*
   mn->SetPrintLevel(0);
   mn->Command("MINOS 2000 1 2 3");
   puts("");
@@ -809,6 +808,6 @@ void fullb12finalfit(const char * const cut =
     one ->SetParameter(i, getpar(i));
     two ->SetParameter(i, getpar(i));
   }
-*/
 
+  b13limit();
 }
