@@ -2,8 +2,6 @@
 #include "TROOT.h"
 #include "consts.h"
 
-#include "b12spectrum.C" // <-- C inclusion :-(
-
 /* Spectrum from DOGS MC */
 void fill_li8(TH1D * h, const double N)
 {
@@ -44,46 +42,45 @@ void fill_li8(TH1D * h, const double N)
 
 void mc()
 {
-  TH1D *b12spec = new TH1D("b12spec","",40,0,20);
-  fillit(b12spec, nb12b, b12branchp, b12branchbe, b12branchge,b12brancha, b12branch_aw, 1030e4,1.053); // fudge!
-  fillit(b12spec, nb13b, b13branchp, b13branchbe, b13branchge,b13brancha, b13branch_aw,   10e4,1.000);
-  fill_li8(b12spec, 4e8);
+  TH1D *li8spec = new TH1D("li8spec","",40,0,20);
+  fill_li8(li8spec, 1);
 
-  TH1D * b12bgsubed = (TH1D*) gROOT->FindObject("b12bgsubed");
-  if(b12bgsubed)
-    b12spec->Scale(b12bgsubed->Integral(2, 40)/b12spec->Integral(2,40));
+  TH1D * li8bgsubed = (TH1D*) gROOT->FindObject("li8bgsubed");
+  if(li8bgsubed)
+    li8spec->Scale(li8bgsubed->Integral(9, 40)/li8spec->Integral(9,40));
 
-  b12spec->Draw("samehist");
-  b12spec->SetLineColor(kRed);
+  li8spec->Draw("samehist");
+  li8spec->SetLineColor(kRed);
 
-  b12bgsubed->SetBinContent(1, b12spec->GetBinContent(1));
-  b12bgsubed->SetBinError(1, b12spec->GetBinContent(1)/4.);
-  printf("MC Efficiency %.2f %%\n", 100*b12spec->Integral(9,40)/b12spec->Integral(1,40));
+  for(int i = 1; i < 8; i++){
+    li8bgsubed->SetBinContent(i, li8spec->GetBinContent(i));
+    li8bgsubed->SetBinError(i, li8spec->GetBinContent(i)/4.);
+  }
+  printf("MC Efficiency %.2f %%\n", 100*li8spec->Integral(9,40)/li8spec->Integral(1,40));
 }
 
-void b12cutefficiency_finalfit()
+void li8cutefficiency_finalfit()
 {
-  norm();
   TFile *_file0 = TFile::Open(rootfile0up, "Read");
   TH1D * offtime = new TH1D("offtime", "", 40, 0, 20);
   offtime->SetLineColor(kGreen+2);
-  TH1D * b12e    = new TH1D("b12e",    "", 40, 0, 20);
+  TH1D * li8e    = new TH1D("li8e",    "", 40, 0, 20);
   TTree * t = (TTree *)_file0->Get("t");
-  t->Draw("e >>    b12e", "       dt > 2 && dt <102 && dist < 200 && miche < 5 && e > 0 && timeleft > 10e3", "hist");
-  t->Draw("e >> offtime", "0.05*(abs(dt-8000) <1000 && dist < 200 && miche < 5 && e > 0 && timeleft > 10e3)", "histsame");
+  t->Draw("e >>    li8e", "      dt > 300 && dt < 1100 && dist < 125 && miche < 2 && e > 0 && timeleft > 10.2e3", "hist");
+  t->Draw("e >> offtime", "(1/8.)*(abs(dt-7000) < 3200 && dist < 125 && miche < 2 && e > 0 && timeleft > 10.2e3)", "histsame");
   offtime->Sumw2();
-  b12e->Sumw2();
+  li8e->Sumw2();
 
-  TH1F * b12bgsubed = (TH1F *)b12e->Clone("b12bgsubed");
-  b12bgsubed->Sumw2();
-  b12bgsubed->Add(offtime, -1);
+  TH1F * li8bgsubed = (TH1F *)li8e->Clone("li8bgsubed");
+  li8bgsubed->Sumw2();
+  li8bgsubed->Add(offtime, -1);
   mc();
-  b12bgsubed->Draw("samee");
+  li8bgsubed->Draw("samee");
 
   const double cutlow = 4, cuthigh = 15;
 
   double bb[4] = {0, cutlow, cuthigh, 16};
-  TH1D * cuth = (TH1D *)b12bgsubed->Rebin(3, "cut", bb);
+  TH1D * cuth = (TH1D *)li8bgsubed->Rebin(3, "cut", bb);
   const double eff = cuth->GetBinContent(2)/cuth->Integral(1,3);
   const double error =
     sqrt(pow(cuth->GetBinContent(2)*cuth->GetBinError(2)/(
@@ -94,7 +91,7 @@ void b12cutefficiency_finalfit()
             pow(cuth->Integral(1,3), 2)
             ), 2)
         );
-  printf("Data Efficiency for %.1f-%.1f MeV cut for B-12+B-13: %.2f +- %.2f %%\n",
+  printf("Data Efficiency for %.1f-%.1f MeV cut for Li-8: %.2f +- %.2f %%\n",
          cutlow, cuthigh, eff*100, error*100);
 
 };

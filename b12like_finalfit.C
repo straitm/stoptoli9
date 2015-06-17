@@ -132,9 +132,14 @@ static const double energyeff_e = 0.0063;
 // time until end of run
 static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
+// Subsequent muon veto efficiency (an efficiency on the isotope decay,
+// NOT on the muon), for the hard cut imposed on events in order to get
+// into the ntuples of 0.5ms.
+const double sub_muon_eff = 0.981;
+
 static const double mich_eff = 0.9996;
 
-static const double eff = mich_eff * eor_eff * energyeff;
+static const double eff = mich_eff * eor_eff * sub_muon_eff * energyeff;
 static const double ferr_energy = energyeff_e/energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
@@ -161,7 +166,7 @@ static double getpar(TMinuit * mn, int i)
   return answer;
 }
 
-void b12finalfit(const char * const cut =
+void b12like_finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "

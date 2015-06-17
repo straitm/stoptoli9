@@ -12,8 +12,8 @@
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
-#define DISABLEN16
-#define DISABLELI
+//#define DISABLEN16
+//#define DISABLELI
 
 using std::vector;
 
@@ -141,14 +141,14 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-const double b12energyeff = 0.8494;  // B-12 energy cut
-const double b12energyeff_e = 0.0063;
+const double b12energyeff = 0.8504;  // B-12 energy cut
+const double b12energyeff_e = 0.0065;
 
-const double b13energyeff = b12energyeff * 1.014; // estimate from MC
+const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
-const double li8eff_energy = b12energyeff * 1.067; // estimate from MC
-const double li8eff_energy_e = 0.02;
+const double li8eff_energy = 0.8437; // estimate from DOGS MC
+const double li8eff_energy_e = 0.02; // made up!
 
 const double li9eff_energy = b12energyeff * 1.02; // BS! XXX
 const double li9eff_energy_e = 0.02;
@@ -467,7 +467,16 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // from the central value, this looks a lot like adding a quadratic
   // if x>1 (I believe it approaches this asymptotically), but it is
   // gentler near 1.
-  if(unitarity) like += unit_penalty(p_b12n + p_b13 + p_li8n + p_li9);
+  //
+  // Do *not* inclue li-8 and li-9 in the unitarity penalty, because the
+  // fit really likes adding lots of them in and being really sure about
+  // it, which forces B-13 to a very low value. I don't think this is
+  // physical. I suspect the presence of some other isotope that doesn't
+  // come from C-13.  With this hypothesis, it makes sense to allow 
+  // them to float freely in the fit, since they are representing some 
+  // unknown background.  Could they be spallation reactions farther
+  // up the muon track, here admitted since I don't use a distance cut?
+  if(unitarity) like += unit_penalty(p_b12n +p_b13 /* +p_li8n +p_li9*/);
 
   static const double likeoffset = 252637;
   
@@ -809,5 +818,7 @@ void fullb12finalfit(const char * const cut =
     two ->SetParameter(i, getpar(i));
   }
 
+  mn->SetPrintLevel(-1);
   b13limit();
+  mn->SetPrintLevel(0);
 }

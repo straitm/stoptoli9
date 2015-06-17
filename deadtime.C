@@ -5,16 +5,21 @@ double eff(const float fidoqid, const double x, const double y,
            const double z, const bool early = false, const bool reallyearlyh = true)
 {
 // With the logisitic function as deadtime cutoff
-   efffitg->SetParameter(0,1.28922);
-   efffitg->SetParameter(1,348.103);
-   efffitg->SetParameter(2,0.0757327);
-   efffitg->SetParameter(3,194.879);
-   efffitg->SetParameter(4,22.29);
-   efffith->SetParameter(0,1.00176);
-   efffith->SetParameter(1,2419.96);
-   efffith->SetParameter(2,0.0121678);
-   efffith->SetParameter(3,195.013);
-   efffith->SetParameter(4,15.0475);
+   static bool firsttime = true;
+   if(firsttime){
+     firsttime = false;
+     efffitg->SetParameter(0,1.28922);
+     efffitg->SetParameter(1,348.103);
+     efffitg->SetParameter(2,0.0757327);
+     efffitg->SetParameter(3,194.879);
+     efffitg->SetParameter(4,22.29);
+
+     efffith->SetParameter(0,1.00176);
+     efffith->SetParameter(1,2419.96);
+     efffith->SetParameter(2,0.0121678);
+     efffith->SetParameter(3,195.013);
+     efffith->SetParameter(4,15.0475);
+   }
 
 // With the error function as deadtime cutoff
 /*
@@ -30,14 +35,16 @@ double eff(const float fidoqid, const double x, const double y,
    efffitg->SetParameter(4,23.1781);
 */
 
+  const double r2 = x*x + y*y;
+  const double r = sqrt(r2);
 
   return
     // In the target
-    fabs(z) < 1229 + 0.03*(1150-sqrt(x*x+y*y)) && x*x+y*y < 1150*1150? 
+    fabs(z) < 1229 + 0.03*(1150-r) && r < 1150? 
     efffitg->Eval(fidoqid/8300) + early*0.0726:
 
     // In the target acrylic -- 0.5449 chance of capturing in the target
-    fabs(z) < 1237 + 0.03*(1158-sqrt(x*x+y*y)) && x*x+y*y < 1158*1158? 
+    fabs(z) < 1237 + 0.03*(1158-r) && r < 1158? 
     (efffith->Eval(fidoqid/8300) + reallyearlyh*early*(1-exp(-5.5/179)))*
       (1-0.5449)+
     (efffitg->Eval(fidoqid/8300) + early*0.0726*(0.84+reallyearlyh*0.16))*

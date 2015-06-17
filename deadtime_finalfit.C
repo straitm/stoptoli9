@@ -61,6 +61,10 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
     "(abs(mz) < 740 && mx**2+my**2 < 740**2)");
   printf("%.2f%s\n", h->GetMean()*100, CLR);
 
+  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen),
+    "(mz > -1175 && mx**2+my**2 < 1050**2 && chi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
+  printf("%sHigh-purity cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
+
 /*  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen), "fq < 1.8e6");
   printf("%sEfficiency when fq < 1.8e6: %.2f%s\n", RED, h->GetMean()*100, CLR); */
 

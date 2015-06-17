@@ -354,7 +354,6 @@ ve li8finalfit(const int nn, const bool excludeibd = false,
 
   const double eff = 1
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
     * wholedet_dist400eff // delta r
     * 0.9709 // 100s from end of run
     * 0.71 // energy
