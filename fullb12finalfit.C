@@ -134,7 +134,7 @@ const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
 // light from B-12, 12ns. Doesn't make a real difference.
 const double offset = 2.040e-3;
 
-TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 50, 1-offset, 5001-offset);
+TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 50, 1-offset, 501-offset);
 
 
 const double lowtime = 1.0 - offset;
