@@ -1,21 +1,28 @@
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR     = "\033[m"    ; // clear
 
-const double livetime = 489.509, n_c12cap = 349.385779, n_c13cap=3.582669;
-const double n_c12cap_err = 15.817610, n_c13cap_err = 0.265438;
-const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
-const double rrmmurates[3]   = { 5.238001, 144.768195, 199.515966 };
+const char * const rootfile3up =
+  "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root";
+const char * const rootfile0up =
+  "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
 
-const double n_o16cap_beta  = 9.629; // after acrylic efficiencies - central value
-const double n_o16cap_betan = 8.879; // after acrylic efficiencies - central value
-const double mass_o16targ = 20.865041, mass_o16targves = 138.24*85./(85.+58.),
-             mass_o16targbits = 138.24*58./(85.+58.), mass_o16gc = 3.235824,
-             mass_o16gcves_effective = 200.727 * 0.4 * 0.8 * 0.45;
-const double n_n14cap = (0.306+0.185)/2;
+const double livetime = 489.509;
+const double n_c12cap =   358.8, n_c13cap =     3.75;
+const double n_c12cap_err = 6.5, n_c13cap_err = 0.19;
+const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
+
+const double n_o16cap_beta  = 9.8; // after acrylic eff - central value
+const double n_o16cap_betan = 9.0; // after acrylic eff - central value
+
+const double n_n14cap = (0.19+0.31)/2;
+const double n_c12captarget = 131.8504;
+
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
-const double n_c12captarget = 128.660022;
-const char * const rootfile3up = "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root";
-const char * const rootfile0up = "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
+const double mass_o16targ = 20.865041,
+             mass_o16targves = 138.24*85./(85.+58.),
+             mass_o16targbits = 138.24*58./(85.+58.),
+             mass_o16gc = 3.235824,
+             mass_o16gcves_effective = 200.727 * 0.4 * 0.8 * 0.45;
 
 const double gd_fraction = 0.851;
 

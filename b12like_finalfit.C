@@ -55,6 +55,26 @@ struct ev{
   }
 };
 
+int reactorpowerbin(const int run)
+{
+  bool inited = false;
+  vector<int> on_off, off_off;
+  if(!inited){
+    inited = true;
+    // From doc-5095-v2. I see that most are included in the on-off
+    ifstream offofffile("offoff.h");
+    // From doc-5341
+    ifstream onofffile ("onoff.h");
+    int r;
+    while(offofffile >> r) off_off.push_back(r);
+    while(onofffile  >> r) on_off.push_back(r);
+  }
+
+  if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
+  if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
+  return 2;
+}
+
 TMinuit * mn = NULL;
 TTree * selt = NULL;
 
@@ -126,8 +146,8 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-static const double energyeff = 0.8494;  // B-12 energy cut
-static const double energyeff_e = 0.0063;
+static const double energyeff = 0.8504;  // B-12 energy cut
+static const double energyeff_e = 0.0065;
 
 // time until end of run
 static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
