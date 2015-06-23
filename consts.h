@@ -7,14 +7,24 @@ const char * const rootfile0up =
   "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
 
 const double livetime = 489.509;
+const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
+
 const double n_c12cap =   358.8, n_c13cap =     3.75;
 const double n_c12cap_err = 6.5, n_c13cap_err = 0.19;
-const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
+
+const double n_c12cap_hp =   111.1, n_c13cap_hp =     1.6;
+const double n_c12cap_hp_err = 1.161, n_c13cap_hp_err = 0.059;
 
 const double n_o16cap_beta  = 9.8; // after acrylic eff - central value
 const double n_o16cap_betan = 9.0; // after acrylic eff - central value
 
+const double n_o16cap_beta_hp  = 5.0;
+const double n_o16cap_betan_hp = 5.0; // yes, the same as beta
+
 const double n_n14cap = (0.19+0.31)/2;
+
+const double n_n14cap_hp = (0.11+0.18)/2;
+
 const double n_c12captarget = 131.8504;
 
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
