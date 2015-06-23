@@ -147,11 +147,15 @@ const double b12energyeff_e = 0.0065;
 const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
-const double li8eff_energy = 0.8437; // estimate from DOGS MC
-const double li8eff_energy_e = 0.02; // made up!
+const double li8eff_energy = 0.6927; // estimate from DOGS MC
+const double li8eff_energy_e = 0.02; // made up! (and not used)
 
-const double li9eff_energy = b12energyeff * 1.02; // BS! XXX
-const double li9eff_energy_e = 0.02;
+const double li9eff_energy = 0.8069+0.05; // DOGS, with ad hoc
+                                          // correction for the beta
+                                          // branches being the
+                                          // relevant ones rather
+                                          // than the betan branches
+const double li9eff_energy_e = 0.05; // made up!
 
 // time until end of run
 const double eor_eff = 1-(1-0.9709)*hightime/100e3;
@@ -457,6 +461,16 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 #endif
           // and the neutron efficiency
         + pow(neffdelta/neff_err, 2);
+
+
+  // pull terms for Li-9 from the betan analysis. Assume zero production
+  // with a neutron so as not to double count. Since IBD candidates are
+  // cut, this is only the non-betan rate. The multiper is to account
+  // for the uncertainty in the Li-9 energy cut.
+  static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
+  like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
+        + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
+  
   
   // Pull term to impose unitarity bound on products of C-13. Width is
   // determined by the error on the number of captures The concept here
@@ -550,9 +564,13 @@ void results(const char * const iname, const int mni,
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
   printtwice("\n%s, eff corrected, percent per C mu- stop\n"
-    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), +%f %f(total)\n",
+    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff),\n"
+    "+%f %f(total),  +%f -%f (non-fit)\n",
     prec1, iname, like_central, staterrup, staterrlo, muerr, err,
-    toterrup, toterrlo);
+    toterrup, toterrlo,
+    sqrt(pow(toterrup,2) - pow(staterrup,2)),
+    sqrt(pow(toterrlo,2) - pow(staterrlo,2))
+  );
 
   const double like_central_percap = like_central/thiscapprob;
   const double staterr_percapup = staterrup/thiscapprob;
@@ -570,12 +588,16 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nOr percent per C-N mu- capture\n"
-         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
-         "+%f %f(total)\n", prec2, 
+  printtwice("\nOr percent per nuclear mu- capture on this isotope\n"
+         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
+         "+%f %f(total),  +%f -%f (non-fit)\n",
+         prec2, 
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
-         toterr_percapup, toterr_percaplo);
+         toterr_percapup, toterr_percaplo,
+         sqrt(pow(toterr_percapup,2) - pow(staterr_percapup,2)),
+         sqrt(pow(toterr_percaplo,2) - pow(staterr_percaplo,2))
+         );
 
   const double like_central_rate = like_central/lifetime/100;
   const double staterr_rateup = staterrup/lifetime/100;
@@ -593,11 +615,16 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff),\n"
-         "+-%f(lifetime) +%f %f(total)\n", prec3,
+  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+         "+-%f(lifetime)\n"
+         "+%f %f(total)  +%f -%f\n",
+         prec3,
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
-         toterr_ratelo);
+         toterr_ratelo,
+         sqrt(pow(toterr_rateup, 2) - pow(staterr_rateup,2)),
+         sqrt(pow(toterr_ratelo, 2) - pow(staterr_ratelo,2))
+         );
   puts("");
 }
 

@@ -1,434 +1,811 @@
-#include <iostream>
 #include <fstream>
-#include <algorithm>
 #include "consts.h"
-
-#include "TCanvas.h"
-#include "TColor.h"
-#include "TF1.h"
 #include "TFile.h"
-#include "TGaxis.h"
-#include "TGraph.h"
-#include "TH1.h"
-#include "TLatex.h"
-#include "TMarker.h"
-#include "TMath.h"
 #include "TMinuit.h"
-#include "TROOT.h"
 #include "TTree.h"
-#include "TRandom3.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TH2.h"
+#include "TROOT.h"
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
+#include "deadtime.C" // <-- note inclusion of source
 
-TCanvas * c1 = new TCanvas("c1", "", 0, 0, 800, 600);
+#define HP
 
-static TRandom3 superrand;
+using std::vector;
 
-struct parres{
-  double val, ep, en;
-  bool fix;
+bool unitarity = true;
 
-  // !!! parameters are assumed to never have limits set !!!
-  parres(double _val, double _ep, double _en, bool _fix)
-  {
-    if(!_fix && (_ep == -54321 || _ep==0))
-      fprintf(stderr, "Can't handle lack of positive errors!\n");
+const double nom_b12life = 20.20/log(2.);
+const double b12life_err = 0.02/log(2.);
 
-    if(!_fix && (_en == -54321 || _en==0)){
-      fprintf(stderr, "Faking it given lack of negative errors\n");
-      _en = _val;
-    }
+const double nom_n16life = 7130./log(2.);
+const double n16life_err = 20./log(2.);
 
-    val = _val; ep = fabs(_ep), en = fabs(_en),
-    fix = _fix;
-  }
+const double nom_b13life = 17.33/log(2.); 
+const double b13life_err = 0.17/log(2.);
 
-  double rand() const
-  {
-    if(fix) return val;
-    if(superrand.Rndm() < 0.5) return val+superrand.Rndm()*ep*1.01;
-    else                       return val-superrand.Rndm()*en*1.01;
-  }
+// This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
+// 82, 027309
+const double nom_li8life = 839.9/log(2.);
+const double li8life_err = 0.9/log(2.);
 
-  double min() const
-  {
-    if(fix) return val;
-    return val-en;
-  }
+const double nom_li9life = 178.3/log(2.);
+const double li9life_err = 0.4/log(2.);
 
-  double max() const
-  {
-    if(fix) return val;
-    return val+ep;
+struct ev{
+  double t; // time
+  int n; // number of neutrons
+  double e; // nominal neutron efficiency
+  bool i; // is IBD?
+  ev(double t_, int n_, double e_, bool i_){
+    t = t_;
+    n = n_;
+    e = e_;
+    i = i_;
   }
 };
 
-static double getpar(int i)
+TMinuit * mn = NULL;
+TTree * selt = NULL;
+TF1 * zero= NULL;
+TF1 * one = NULL;
+TF1 * two = NULL;
+
+vector<ev> events;
+
+// Mean neutron efficiency for events that actually have
+// zero, one or two neutrons;
+double meaneff[3] = {0};
+int eventc[3] = {0}; // number of events with each n count
+
+void printfr(const char * const msg, ...)
+{
+  va_list ap;
+  va_start(ap, msg);
+  printf(RED);
+  vprintf(msg, ap);
+  printf(CLR);
+}
+
+int reactorpowerbin(const int run)
+{
+  bool inited = false;
+  vector<int> on_off, off_off;
+  if(!inited){
+    inited = true;
+    // From doc-5095-v2. I see that most are included in the on-off
+    ifstream offofffile("offoff.h");
+    // From doc-5341
+    ifstream onofffile ("onoff.h");
+    int r;
+    while(offofffile >> r) off_off.push_back(r);
+    while(onofffile  >> r) on_off.push_back(r);
+  }
+
+  if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
+  if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
+  return 2;
+}
+
+// Weighted average of T and GC measurements for the HP region
+const double f13 = 0.010921;
+
+const double mulife = 2196.9811e-6;
+
+const double c_atomic_capture_prob = 0.998;
+const double c_atomic_capture_prob_err = 0.001;
+
+const double lifetime_c12 = 2028.e-6;
+const double lifetime_c13 = 2037.e-6;
+const double lifetime_c12_err = 2.e-6;
+const double lifetime_c13_err = 8.e-6;
+
+const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
+const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
+                                  +pow(lifetime_c13_err*   f13 ,2));
+
+const double capprob12 = 1-lifetime_c12/mulife;
+const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
+                           -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
+
+const double capprob13 = 1-lifetime_c13/mulife;
+const double errcapprob13 = (1-(lifetime_c13+lifetime_c13_err)/mulife)/2
+                           -(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
+
+const double capprob = c_atomic_capture_prob *
+                      (capprob12*(1-f13) + capprob13*f13);
+
+const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
+                              + pow(errcapprob13,2)*f13 +
+  pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
+
+
+#ifdef HP
+const double mum_count =   7.16322e5;
+const double mum_count_e = 0.05388e5;
+const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
+const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
+#else
+const double mum_count =   2.309e6;
+const double mum_count_e = 0.032e6;
+const double c12nuc_cap = n_c12cap*livetime;
+const double c13nuc_cap = n_c13cap*livetime;
+#endif
+
+
+// Will subtract mean muon lifetime, 2028ns, and mean transit time for
+// light from B-12, 12ns. Doesn't make a real difference.
+const double offset = 2.040e-3;
+
+TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 40, 100, 20101);
+
+
+const double lowtime = 1.0 - offset;
+const double hightime = 100e3;
+const double totaltime = hightime - lowtime;
+
+const double li8eff_energy = 0.5888; // estimate from DOGS MC -- good 
+const double li8eff_energy_e = 0.02; // made up!
+const double li8ferr_energy = li8eff_energy_e/li8eff_energy; // made up!
+
+const double b12energyeff = 0.7484;  // B-12 energy cut for 5MeV
+const double b12energyeff_e = 0.0056;
+
+const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
+const double b13energyeff_e = 0.02; // BS
+
+const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
+                                            // spectrum but bumped
+                                            // up since I only see
+                                            // non-betan decays here.
+const double li9eff_energy_e = 0.05;
+
+// time until end of run
+const double eor_eff = 1-(1-0.9709)*hightime/100e3;
+
+// Subsequent muon veto efficiency (an efficiency on the isotope decay,
+// NOT on the muon), for the hard cut imposed on events in order to get
+// into the ntuples of 0.5ms.
+const double sub_muon_eff = 0.981;
+
+const double mich_eff = 0.9996;
+
+const double b12eff =
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b12energyeff;
+const double b12ferr_energy = b12energyeff_e/b12energyeff;
+
+const double b13eff =
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b13energyeff;
+const double b13ferr_energy = b13energyeff_e/b13energyeff;
+
+const double li8eff =
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li8eff_energy;
+
+const double li9eff =
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li9eff_energy;
+
+// Constant 1% absolute error assumed on neutron efficiency.
+// Not a very rigourous model, but it's something.
+const double neff_err = 0.01;
+
+// Measured probablity of getting one accidental neutron.  These
+// are *detected* muons, so don't apply efficiency to them.
+const double paccn = 1.1e-4;
+
+/*
+ * Prints the message once with the requested floating point precision
+ * and in RED, then again with all digits in the default color, starting
+ * with the first floating point number.
+ */
+void printtwice(const char * const msg, const int digits, ...)
+{
+  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  
+  // Just for fun...
+  char * pmp = pmsg;
+  char * bmp = bmsg;
+  bool gotone = false;
+  for(unsigned int i = 0; i <= strlen(msg); i++){
+    switch(msg[i]){
+      case '\0':
+        *pmp++ = '\0';
+        *bmp++ = '\0';
+        break;
+      case '%':
+        switch(msg[i+1]){
+          case 'e': case 'E': case 'f': case 'F':
+          case 'g': case 'G': case 'a': case 'A': 
+            gotone = true;
+            *pmp++ = '%';
+            *bmp++ = '%';
+            *pmp++ = '.';
+            *pmp++ = digits+'0';
+            break;
+          default:
+            *pmp++ = msg[i];
+            if(gotone) *bmp++ = msg[i];
+        }
+        break;
+      default:
+        *pmp++ = msg[i];
+        if(gotone) *bmp++ = msg[i];
+        break;
+    }
+  }
+  
+  va_list ap;
+  va_start(ap, digits);
+  printf(RED);
+  vprintf(pmsg, ap);
+  printf(CLR);
+
+  va_start(ap, digits);
+  vprintf(bmsg, ap);
+}
+
+
+bool isibd(const int in_run, const int in_trig)
+{
+  static bool firsttime = true;
+  static vector< pair<int,int> > ibds;
+
+  if(firsttime){
+    TTree ibd;
+    firsttime = false;
+    ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", "run:trig");
+    ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
+    float run, trig; // Yes, float
+    ibd.SetBranchAddress("run", &run);
+    ibd.SetBranchAddress("trig", &trig);
+    for(int i = 0; i < ibd.GetEntries(); i++){
+      ibd.GetEntry(i);
+      ibds.push_back(pair<int,int>(int(run), int(trig)));
+
+      // Get the delayed event too.  ROUGH, since there could be 
+      // an intervening event
+      ibds.push_back(pair<int,int>(int(run), int(trig+1)));
+    }
+  }
+
+  // Really stupid linear search, but not quite as stupid
+  // as asking the TTree how many matches it has.
+  for(unsigned int i = 0; i < ibds.size(); i++)
+    if(ibds[i] == pair<int,int>(in_run, in_trig))
+      return true;
+  return false;
+}
+
+double clamp(double x, double lo, double hi)
+{
+  return x < lo? lo: x > hi? hi: x;
+}
+
+double zeron_f(
+const double mt, const double acc,const double paccn, const double neff,
+const double n_b12, const double n_b12n, const double b12t,
+const double n_li8, const double n_li8n, const double li8t,
+const double n_li9, const double n_li9n, const double li9t,
+const double n_b13, const double b13t,
+const double n_n16, const double n16t)
+{
+  // Be really careful. Can get zero neutrons from a real zero-neutron
+  // event without an accidental or from a real one-neutron event with
+  // an inefficiency and without an accidental. (Does ROOT optimize
+  // these? No idea.)
+  static double unpaccn = 1-paccn; // always the same
+  double uneffunpaccn = (1-neff)*unpaccn; // function of pars
+  return acc +
+    (unpaccn*n_b12 + uneffunpaccn*n_b12n)/b12t*exp(mt/b12t) +
+    // For B-13 and N-16, there are no real one-neutron events, so it
+    // is easier. (Ok, N-16 might come from O-17, but it is only a
+    // nuisance parameter here...)
+    unpaccn*n_b13/b13t*exp(mt/b13t)
+  + (unpaccn*n_li8 + uneffunpaccn*n_li8n)/li8t*exp(mt/li8t) +
+    (unpaccn*n_li9 + uneffunpaccn*n_li9n)/li9t*exp(mt/li9t)
+  + unpaccn*n_n16/n16t*exp(mt/n16t)
+    ;
+}
+
+double onen_f(
+const double mt,const double accn,const double paccn, const double neff,
+const double n_b12, const double n_b12n, const double b12t,
+const double n_li8, const double n_li8n, const double li8t,
+const double n_li9, const double n_li9n, const double li9t,
+const double n_b13, const double b13t,
+const double n_n16, const double n16t)
+{
+  return accn +
+  // Can get one neutron from a real one-neutron event that is efficient
+  // and doesn't have an accidental, or that is inefficient and does
+  // have an accidental, or from a real zero-neutron event that is
+  // inefficient.
+  ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n+paccn*n_b12)/b12t*exp(mt/b12t)+
+  // Can only get B-13 with a neutron from an inefficiency, assuming
+  // there's no O-16(mu,ppn)B-13 to speak of.
+  paccn*n_b13/b13t*exp(mt/b13t)
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)
+  + paccn*n_n16/n16t*exp(mt/n16t)
+  ;
+}
+
+double twon_f(
+const double mt,const double accn2,const double neff,const double paccn,
+const double n_b12n, const double b12t,
+const double n_li8n, const double li8t,
+const double n_li9n, const double li9t)
+{
+  return accn2 +
+  // Can get two neutrons from a real one-neutron event that is
+  // efficient and has an accidental. Note that we *must* handle this
+  // case for the above normalization component of the likelihood to be
+  // correct.
+  neff*paccn*(n_b12n/b12t*exp(mt/b12t)
+            + n_li8n/li8t*exp(mt/li8t)
+            + n_li9n/li9t*exp(mt/li9t)
+  );
+}
+
+#define DECODEPARS \
+  const double p_b12 = par[0], \
+               p_b12n= par[1], \
+               p_b13 = par[2], \
+               p_li8 = par[3], \
+               p_li8n= par[4], \
+               p_li9 = par[5], \
+               p_li9n= par[6]; \
+  const double n_b12 = p_b12 *c12nuc_cap*b12eff, \
+               n_b12n= p_b12n*c13nuc_cap*b12eff, \
+               n_b13 = p_b13 *c13nuc_cap*b13eff, \
+               n_li8 = p_li8 *c12nuc_cap*li8eff, \
+               n_li8n= p_li8n*c13nuc_cap*li8eff, \
+               n_li9 = p_li9 *c13nuc_cap*li9eff, \
+               n_li9n= p_li9n*c12nuc_cap*li9eff, \
+               n_n16 = par[7], \
+               acc   = par[8], \
+               accn  = par[9], \
+               accn2 = par[10], \
+               b12t  = par[11]*b12life_err + nom_b12life, \
+               b13t  = par[12]*b13life_err + nom_b13life, \
+               li8t  = par[13]*li8life_err + nom_li8life, \
+               li9t  = par[14]*li9life_err + nom_li9life, \
+               n16t  = par[15]*n16life_err + nom_n16life, \
+               neffdelta = par[16];
+
+double priorerf(const double sig)
+{
+  return 0.5*(1 + erf(-sig/sqrt(2)));
+}
+
+double unit_penalty(const double x)
+{
+  static double unitwidth =
+    sqrt(pow(errcapprob13/capprob13,2)+pow(mum_count_e/mum_count,2));
+
+  const double sig = (x-1)/unitwidth;
+
+  // When erf gets very close to 0, bad things happen, so switch to 
+  // an approximation past 5 sigma out. There may well be a better 
+  // way to handle this.
+  static const double sigcut = 5;
+  static const double corr = -2*log(priorerf(sigcut)) - pow(sigcut,2);
+  const double mlogprior =
+    sig < sigcut? -2*log(priorerf(sig)) : corr + pow(sig, 2);
+  
+  return mlogprior;
+}
+
+void fcn(int & npar, double * gin, double & like, double *par, int flag)
+{
+  DECODEPARS;
+
+  const double norm =
+      (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
+    + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
+    + (n_li9 + n_li9n)*(exp(-lowtime/li9t) - exp(-hightime/li9t))
+    +      n_b13      *(exp(-lowtime/b13t) - exp(-hightime/b13t))
+    +      n_n16      *(exp(-lowtime/n16t) - exp(-hightime/n16t))
+    + totaltime*(acc+accn+accn2);
+
+  like = norm;
+
+  {
+    static int dotcount = 0;
+    if(mn->fCfrom != "CONtour   " && dotcount++%100 == 0){
+      printf(".");  fflush(stdout); }
+  }
+
+  for(unsigned int i = 0; i < events.size(); i++){
+    const double mt = -events[i].t;
+    const double neff = clamp(events[i].e + neffdelta, 0.00, 1.00);
+
+    double f = 0;
+    switch(events[i].n){
+      case 0:
+        f = zeron_f(mt, acc, paccn, neff, n_b12, n_b12n, b12t,
+                    n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+        break;
+      case 1:
+        f = onen_f(mt, accn, paccn, neff, n_b12, n_b12n, b12t,
+                   n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+        break;
+      case 2:
+        f = twon_f(mt, accn2, neff, paccn, n_b12n, b12t, n_li8n, li8t, n_li9n, li9t);
+        break;
+      default:
+        printf("NOT REACHED with %d neutrons\n", events[i].n);
+        break;
+    }
+    if(f > 0) like -= log(f);
+  }
+
+  like *= 2; // Convert to "chi2"
+
+  // pull terms for lifetimes
+  like += pow((b12t - nom_b12life)/b12life_err, 2)
+        + pow((b13t - nom_b13life)/b13life_err, 2)
+        + pow((li8t - nom_li8life)/li8life_err, 2)
+        + pow((li9t - nom_li9life)/li9life_err, 2)
+        + pow((n16t - nom_n16life)/n16life_err, 2)
+          // and the neutron efficiency
+        + pow(neffdelta/neff_err, 2);
+
+  // pull terms for Li-9 from the betan analysis. Assume zero production
+  // with a neutron so as not to double count. Since IBD candidates are
+  // cut, this is only the non-betan rate. The multiper is to account
+  // for the uncertainty in the Li-9 energy cut.
+  static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
+  like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
+        + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
+  
+  // Pull term to impose unitarity bound on products of C-13. Width is
+  // determined by the error on the number of captures The concept here
+  // is that there is a prior for the total number of captures with the
+  // central value normalized to one, normally distributed. Therefore,
+  // the prior for the sum of some isotopes is flat until it gets near
+  // the total, and then drops off like the error function. Far away
+  // from the central value, this looks a lot like adding a quadratic
+  // if x>1 (I believe it approaches this asymptotically), but it is
+  // gentler near 1.
+  //
+  // Do *not* inclue li-8 and li-9 in the unitarity penalty, because the
+  // fit really likes adding lots of them in and being really sure about
+  // it, which forces B-13 to a very low value. I don't think this is
+  // physical. I suspect the presence of some other isotope that doesn't
+  // come from C-13.  With this hypothesis, it makes sense to allow 
+  // them to float freely in the fit, since they are representing some 
+  // unknown background.  Could they be spallation reactions farther
+  // up the muon track, here admitted since I don't use a distance cut?
+  if(unitarity) like += unit_penalty(p_b12n +p_b13 /* +p_li8n +p_li9*/);
+
+  static const double likeoffset = 252637;
+  
+  like += likeoffset;
+}
+
+double dispf0(double * x, double * par)
+{
+  DECODEPARS;
+  return hdisp->GetYaxis()->GetBinWidth(1)*
+    zeron_f(-x[0], acc, paccn, meaneff[0]+neffdelta, n_b12, n_b12n,
+            b12t, n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+}
+
+double dispf1(double * x, double * par)
+{
+  DECODEPARS;
+  return hdisp->GetYaxis()->GetBinWidth(1)*
+    onen_f(-x[0], accn, paccn, meaneff[1]+neffdelta, n_b12, n_b12n,
+           b12t, n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+}
+
+double dispf2(double * x, double * par)
+{
+  DECODEPARS;
+  return hdisp->GetYaxis()->GetBinWidth(1)*
+    twon_f(-x[0], accn2, paccn, meaneff[2]+neffdelta, n_b12, b12t,
+           n_li8, li8t, n_li9, li9t);
+}
+
+double getpar(int i)
 {
   double answer, dum;
-  gMinuit->GetParameter(i, answer, dum);
+  mn->GetParameter(i, answer, dum);
   return answer;
 }
 
-void fixat(int i, float v)
+double sani_minos(const double in)
 {
-  gMinuit->Command(Form("REL %d", i));
-  gMinuit->Command(Form("SET PAR %d %f", i, v));
-  gMinuit->Command(Form("FIX %d", i));
+  if(in == -54321) return 0;
+  return in;
 }
 
-static void envelope(const double mult)
+void results(const char * const iname, const int mni,
+             const double ifrac, const double eff,
+             const double ferr_energy, const double thiscapprob,
+             const double thiscapprob_err, const double lifetime,
+             const double lifetime_err, const double nuc_cap,
+             const int prec1, const int prec2, const int prec3)
 {
-  std::vector<parres> bestpar;
-  int par = 5;
+  // I did the fit in terms of probability per capture so that it was
+  // straightforward to impose a unitarity bound, but this was only
+  // a constant factor shift, now shift back to doing it in terms of
+  // counts so I can step through the uncertainties.
+  const double fit = nuc_cap*eff*getpar(mni);
+  const double ferrorfitup = sani_minos(mn->fErp[mni])/getpar(mni);
+  const double ferrorfitlo = sani_minos(mn->fErn[mni])/getpar(mni);
 
-  for(int i = 0; i < par; i++)
-    bestpar.push_back(parres(getpar(i), gMinuit->fErp[i - (i >= 3)],
-      gMinuit->fErn[i - (i >= 3)], i == 2));
+  printtwice("\n%s raw %f +%f %f\n", 0, iname,
+    fit, ferrorfitup*fit, ferrorfitlo*fit);
 
-  double bestlike;
+  const double like_central = fit/eff/mum_count * 100/ifrac;
+  const double staterrup = ferrorfitup*like_central;
+  const double staterrlo = ferrorfitlo*like_central;
+  const double muerr = mum_count_e/mum_count*like_central;
+  const double err = ferr_energy*like_central;
+  const double toterrup = sqrt(pow(ferrorfitup,2) +
+                               pow(mum_count_e/mum_count,2) +
+                               pow(ferr_energy, 2))*like_central;
+  const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
+                               pow(mum_count_e/mum_count,2) +
+                               pow(ferr_energy, 2))*like_central;
+  printtwice("\n%s, eff corrected, percent per C mu- stop\n"
+    "%f +%f %f(fit) +-%f(mu count) +-%f(Li-8 eff),\n"
+    "+%f %f(total),  +%f -%f (non-fit)\n",
+    prec1, iname, like_central, staterrup, staterrlo, muerr, err,
+    toterrup, toterrlo,
+    sqrt(pow(toterrup,2) - pow(staterrup,2)),
+    sqrt(pow(toterrlo,2) - pow(staterrlo,2))
+  );
 
-  {
-    double pars[par];
-    for(int i = 0; i < par; i++) pars[i] = bestpar[i].val;
-    gMinuit->Eval(par, NULL, bestlike, pars, 0);
-  }
+  const double like_central_percap = like_central/thiscapprob;
+  const double staterr_percapup = staterrup/thiscapprob;
+  const double staterr_percaplo = staterrlo/thiscapprob;
+  const double muerr_percap = muerr/thiscapprob;
+  const double err_percap = err/thiscapprob;
+  const double capfracerr_percap =
+    like_central_percap * thiscapprob_err/thiscapprob;
+  const double toterr_percapup = sqrt(pow(staterr_percapup,2)+
+                                    pow(muerr_percap,2)+
+                                    pow(err_percap,2)+
+                                    pow(capfracerr_percap,2));
+  const double toterr_percaplo = -sqrt(pow(staterr_percaplo,2)+
+                                    pow(muerr_percap,2)+
+                                    pow(err_percap,2)+
+                                    pow(capfracerr_percap,2));
 
-  vector<TF1 *> bounds;
+  printtwice("\nOr percent per nuclear mu- capture on this isotope\n"
+         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
+         "+%f %f(total),  +%f -%f (non-fit)\n",
+         prec2, 
+         like_central_percap, staterr_percapup, staterr_percaplo,
+         muerr_percap, err_percap, capfracerr_percap,
+         toterr_percapup, toterr_percaplo,
+         sqrt(pow(toterr_percapup,2) - pow(staterr_percapup,2)),
+         sqrt(pow(toterr_percaplo,2) - pow(staterr_percaplo,2))
+         );
 
-  int tomult[4] = { 0, 1, 3, 4};
+  const double like_central_rate = like_central/lifetime/100;
+  const double staterr_rateup = staterrup/lifetime/100;
+  const double staterr_ratelo = staterrlo/lifetime/100;
+  const double muerr_rate = muerr/lifetime/100;
+  const double err_rate = err/lifetime/100;
+  const double lifetimeerr_rate = like_central_rate
+    * lifetime_err/lifetime;
+  const double toterr_rateup = sqrt(pow(staterr_rateup,2)+
+                                  pow(muerr_rate,2)+
+                                  pow(err_rate,2)+
+                                  pow(lifetimeerr_rate,2));
+  const double toterr_ratelo = -sqrt(pow(staterr_ratelo,2)+
+                                  pow(muerr_rate,2)+
+                                  pow(err_rate,2)+
+                                  pow(lifetimeerr_rate,2));
 
-  for(int t = 0; t < par*2; t++){
-    const bool lo = t%2;
-    const int par1 = t/2;
-    if(bestpar[par1].fix) continue;
-    if(lo) printf("%d min/max\n", par1);
-    for(int X = 0; X < par; X++){
-      gMinuit->Command(Form("REL %d\n", X+1));
-      gMinuit->Command(Form("SET PAR %d %f",X+1,bestpar[X].val));
-    }
-    fixat(3, bestpar[2].val);
-    fixat(par1+1, lo?bestpar[par1].min():bestpar[par1].max());
-    
-    for(int y = 0; y < 2; y++) gMinuit->Command("MIGRAD"); 
-    const double dchi2 = gMinuit->fAmin-bestlike; 
-    if(dchi2 > 0.5 + 0.01 || dchi2 < -1e-5){ 
-      printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
-    }else{ 
-      printf("OK!\n"); 
-      double ppar[par];
-      for(int V = 0; V < par; V++) ppar[V] = getpar(V);  
-      TF1 * f = new TF1(Form("g%d", t), "[0]*exp(-x*log(2)/0.0202) + "
-                             "[1]*exp(-x*log(2)/[2]) + "
-                             "[3]*exp(-x*log(2)/7.13) + "
-                             "[4]", 0, 100);
-      for(int i = 0; i < f->GetNpar(); i++)
-        f->SetParameter(i, ppar[i]);
-      for(int i = 0; i < 4; i++)
-        f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult);
-      bounds.push_back(f);
-      bounds[bounds.size()-1]->SetLineColor(kRed);
-      bounds[bounds.size()-1]->SetLineWidth(1);
-      bounds[bounds.size()-1]->Draw("same");
-      c1->Modified(); c1->Update();
-    }
-  }
-
-
-  for(int t = 0; t < par*(par-1)/2; t++){
-    int npar1 = 1, npar2 = 2; 
-    for(int moose = 0; moose < t; moose++){
-      npar2++;
-      if(npar2 > par){
-        npar1++;
-        npar2 = npar1+1;
-      }    
-    }    
-    if(bestpar[npar1-1].fix || bestpar[npar2-1].fix) continue;
-
-    for(int X = 0; X < par; X++){
-      gMinuit->Command(Form("REL %d\n", X+1));
-      gMinuit->Command(Form("SET PAR %d %f",X+1,bestpar[X].val));
-    }
-    fixat(3, bestpar[2].val);
-
-    printf("%d %d contour\n", npar1, npar2);
-    gMinuit->Command("MIGRAD");
-    gMinuit->Command("Set print 0");
-    gMinuit->fGraphicsMode = false;
-    gMinuit->Command(Form("MNCONT %d %d 20", npar1, npar2));
-    gMinuit->fGraphicsMode = true;
-    gMinuit->Command(Form("MNCONT %d %d 20", npar1, npar2));
-    TGraph * gr = gMinuit->GetPlot()?(TGraph*)
-                  ((TGraph*)gMinuit->GetPlot())->Clone():NULL;
-    if(!gr){
-      printf("Could not get contour!\n"); continue;
-    }    
-    gMinuit->Command("Set print -1");
-    for(int squirrel = 0; squirrel < gr->GetN(); squirrel++){
-      printf("  contour point %d: %f %f\n", squirrel,
-             gMinuit->fXpt[squirrel], gMinuit->fYpt[squirrel]);
-      fixat(npar1, gr->GetX()[squirrel]);
-      fixat(npar2, gr->GetY()[squirrel]);
-
-      for(int y = 0; y < 2; y++) gMinuit->Command("MIGRAD"); 
-      const double dchi2 = gMinuit->fAmin - bestlike; 
-      if(dchi2 > 0.5 + 0.01 || dchi2 < -1e-5){ 
-        printf("MIGRAD gave a delta of %g :-(\n", dchi2); 
-      }else{ 
-        printf("OK!\n"); 
-        double ppar[par];
-        for(int V = 0; V < par; V++) ppar[V] = getpar(V);  
-        TF1 * f = new TF1(Form("g%d", t), "[0]*exp(-x*log(2)/0.0202) + "
-                               "[1]*exp(-x*log(2)/[2]) + "
-                               "[3]*exp(-x*log(2)/7.13) + "
-                               "[4]", 0, 100);
-        for(int i = 0; i < f->GetNpar(); i++)
-          f->SetParameter(i, ppar[i]);
-        for(int i = 0; i < 4; i++)
-          f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult);
-
-        bounds.push_back(f);
-        bounds[bounds.size()-1]->SetLineColor(kBlack);
-        bounds[bounds.size()-1]->SetLineWidth(1);
-        bounds[bounds.size()-1]->Draw("same");
-        c1->Modified(); c1->Update();
-      }    
-    }    
-    delete gr;
-  }
-
-  const int nrand = 1000;
-  for(int curve = 0; curve < nrand; curve++){
-    TF1 * f = new TF1(Form("f%d", curve), "[0]*exp(-x*log(2)/0.0202) + "
-                           "[1]*exp(-x*log(2)/[2]) + "
-                           "[3]*exp(-x*log(2)/7.13) + "
-                           "[4]", 0, 100);
-    double like, pars[par];
-    do{
-      for(int i = 0; i < f->GetNpar(); i++) pars[i] = bestpar[i].rand();
-      gMinuit->Eval(par, NULL, like, pars, 0);
-    }while(fabs(like - bestlike - 0.5) > 0.01);
-
-    if(curve%10 == 0) printf("%d/%d\n", curve, nrand);
-
-    for(int i = 0; i < f->GetNpar(); i++) f->SetParameter(i, pars[i]);
-
-    for(int i = 0; i < 4; i++)
-      f->SetParameter(tomult[i], f->GetParameter(tomult[i])*mult);
-    bounds.push_back(f);
-    bounds[bounds.size()-1]->SetLineColor(kGreen+2);
-    bounds[bounds.size()-1]->SetLineWidth(1);
-    bounds[bounds.size()-1]->Draw("same");
-    c1->Modified(); c1->Update();
-  }
-
-  const double low = 0.1, high = 20;
-
-  TGraph ghigh, glow;
-  const int xpoints = 100;
-  const double llow = low?low:0.001;
-  for(int ix = -1; ix <= xpoints; ix++){
-    const double x = ix == -1?0:
-       exp(log(llow) + double(ix)*(log(high)-log(llow))/xpoints);
-    double lowest = 1e50, highest = -1e50;
-    int besttl = -1, bestth = -1;
-    for(unsigned int t = 0; t < bounds.size(); t++){
-      const double y = bounds[t]->Eval(x);
-      if(y < lowest) besttl=t, lowest = y;
-      if(y > highest)bestth=t, highest= y;
-    }
-
-    ghigh.SetPoint(ghigh.GetN(), x, highest);
-    glow .SetPoint( glow.GetN(), x,  lowest);
-  }
-
-  TGraph * gall = new TGraph();
-  for(int p = glow.GetN()-1; p >= 0; p--)
-    gall->SetPoint(gall->GetN(),  glow.GetX()[p],  glow.GetY()[p]);
-  for(int p = 0; p < ghigh.GetN(); p++)
-    gall->SetPoint(gall->GetN(), ghigh.GetX()[p], ghigh.GetY()[p]);
-
-  gall->SetFillColor(TColor::GetColor("#ccccff"));
-  gall->SetFillStyle(1001);
-  gall->Draw("f");
-  gall->SavePrimitive(cout);
+  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+         "+-%f(lifetime)\n"
+         "+%f %f(total)  +%f -%f\n",
+         prec3,
+         like_central_rate, staterr_rateup, staterr_ratelo,
+         muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
+         toterr_ratelo,
+         sqrt(pow(toterr_rateup, 2) - pow(staterr_rateup,2)),
+         sqrt(pow(toterr_ratelo, 2) - pow(staterr_ratelo,2))
+         );
+  puts("");
 }
 
-TTree ibd;
-
-bool isibd(const int run, const int prompttrig)
+void printli8results()
 {
-  return ibd.GetEntries(Form("run==%d && trig==%d", run, prompttrig));
+  results("C-12 -> Li-8", 3, 1-f13, li8eff, li8ferr_energy,
+    capprob12*c_atomic_capture_prob, errcapprob12, lifetime_c12,
+    lifetime_c12_err, c12nuc_cap, 3, 2, 2);
 }
 
-struct ve{
-  double val, eup, elo;
-  ve(const double val_, const double eup_, const double elo_)
-  {
-    val = val_, eup = eup_, elo = elo_;
-  }
-};
-
-ve li8finalfit(const int nn, const bool excludeibd = false,
-               const bool quiet = false)
+void printli8nresults()
 {
-  static int stacklevel = 0;
-  stacklevel++;
-  TFile * fiel = new TFile(rootfile3up, "read");
-  TTree * t = (TTree *) fiel->Get("t");
+  results("C-13 -> Li-8+n", 4, f13, li8eff, li8ferr_energy,
+    capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
+    lifetime_c13_err, c13nuc_cap, 2, 1, 1);
+}
 
-  ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", "run:trig");
-  ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
+void mncommand()
+{
+  string command;
+  while(true){
+    printf("MINUIT> ");
+    if(!getline(cin, command)) break;
+    if(command == "exit") break;
+    mn->Command(command.c_str());
+  }
+}
 
-  char cut[1000];
-  snprintf(cut, 999, "!earlymich && miche<12 && dist<400 %s "
-           "&& e>5 && e<14 && timeleft>1e5 && b12like < 0.02 %s",
-    nn == 1? "&& latennear==1": nn == -1?  "": "&& latennear==0",
-    excludeibd?"&& !isibd(run, trig)":"");
+double b13limit()
+{
+  const double scan = 0;
+  double sump = 0;
 
-  TH1D * hfit = new TH1D(Form("hfit%d", nn), "", 10000, 0.001, 100);
+  unsigned int smallcount = 0;
+  const double increment = 0.01;
+  const int N = 70;
+  double ps[N];
 
-  t->Draw(Form("dt/1000 >> hfit%d", nn), cut);
+  const double bestchi2 = mn->fAmin;
 
-  TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
-               "[1]*exp(-x*log(2)/[2]) + "
-               "[3]*exp(-x*log(2)/7.13) + "
-               "[4]", 0, 100);
-
-  ee->SetParameters(1, 1, 0.8399, 1, 1);
-  ee->SetParLimits(3, 0, 1);
-  ee->FixParameter(2, 0.8399);
-  hfit->Fit("ee", "lq");
-  ee->ReleaseParameter(2);
-  hfit->Fit("ee", "leq");
-  if(!quiet) gMinuit->Command("show min");
-
-  if(!quiet) printf("%sli8 lifetime: %f +%f %f%s\n", RED,
-         ee->GetParameter(2), gMinuit->fErp[2], gMinuit->fErn[2], CLR);
-
-  ee->FixParameter(2, 0.8399);
-
-  hfit->Fit("ee", "leq");
-  if(!quiet) gMinuit->Command("show min");
+  mn->Command("fix 3");
+  for(int i = 0; i < N; i++){
+    const double prob = i*increment;
+    mn->Command(Form("set par 3 %f", prob));
+    mn->Command("Migrad");
+    const double p = exp(bestchi2-mn->fAmin);
+    printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
+    for(int j = 0; j < p*10 - 1; j++) printf("#");
+    if     (p*10 - int(p*10) > 0.67) printf("+");
+    else if(p*10 - int(p*10) > 0.33) printf("|");
+    printf("\n");
+    sump += p;
+    ps[i] = p;
+    if(p < 1e-9 && ++smallcount > 3) break;
+  }
   
-  if(!quiet){
-    TH1D * hdisp = new TH1D(Form("hdisp%d", nn), "", 40, 0.1, 20.1);
-    t->Draw(Form("dt/1000 >> hdisp%d", nn), cut, "e");
+  printf("Norm: %f\n", sump);
 
-    TF1 * eedisp = (TF1 *)ee->Clone("eedisp");
-    eedisp->SetNpx(400);
-    eedisp->SetLineColor(kBlack);
-    eedisp->SetLineStyle(kDashed);
-
-    int tomult[4] = { 0, 1, 3, 4};
-    const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
-    for(int i = 0; i < 4; i++)
-      eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
-
-    //envelope(mult);
-    eedisp->Draw("same");
-
-    TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-    TF1 * li8 = new TF1("li8", "[0]*exp(-x*log(2)/0.8399)", 0, 100);
-    TF1 * n16 = new TF1("n16", "[0]*exp(-x*log(2)/7.13)"  , 0, 100);
-    TF1 * acc = new TF1("acc", "[0]", 0, 100);
-
-    b12->SetNpx(400);
-
-    TF1 * parts[4] = { b12, li8, n16, acc };
-
-
-    b12->SetParameter(0, eedisp->GetParameter(0));
-    li8->SetParameter(0, eedisp->GetParameter(1));
-    n16->SetParameter(0, eedisp->GetParameter(3));
-    acc->SetParameter(0, eedisp->GetParameter(4));
-
-    hdisp->GetYaxis()->SetRangeUser(acc->GetParameter(0)/50,
-                                    acc->GetParameter(0)*10);
-
-    for(int i = 0; i < 4; i++){
-      parts[i]->SetLineStyle(7);
-      parts[i]->SetLineWidth(2);
-      parts[i]->Draw("Same");
-    } 
+  double sump2 = 0;
+  double answer = 0;
+  for(int i = 0; i < N; i++){
+    const double prob = i*increment;
+    sump2 += ps[i]/sump;
+    if(sump2 > 0.9){
+       answer = prob-increment/2;
+       printf("Bays limit = %f\n", answer);
+       break;
+    }
   }
 
-  const double eff = 1
-    * 0.981 // subsequent muons
-    * wholedet_dist400eff // delta r
-    * 0.9709 // 100s from end of run
-    * 0.71 // energy
-    * (nn == 1?neff_dr_800_avg*neff_dt_avg:1) // neutron, terrible code
-    * 0.906 // b12likelihood
-  ;
+  if(smallcount <= 3)
+    printf("Not sure you integrated out far enough\n");
 
-  const ve Nfound_uncorr(
-    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1),
-    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1) *
-      gMinuit->fErp[1]/ee->GetParameter(1),
-    ee->GetParameter(1)*0.8399/log(2)/hfit->GetBinWidth(1) *
-      gMinuit->fErn[1]/ee->GetParameter(1));
+  return answer;
+}
 
-  if(!quiet){
-    printf("%sN found, before efficiency: %.3f +%.3f %.3f%s\n",
-      RED, Nfound_uncorr.val, Nfound_uncorr.eup, Nfound_uncorr.elo, CLR);
-    printf("Efficiency: %.4f\n", eff);
+void li8finalfit(const char * const cut =
+#ifdef HP
+  "mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+#endif
+"b12like < 0.02 && timeleft > %f && miche < 12 && !earlymich && "
+"e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2")
+{
+  printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
+  printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
+  printtwice("Li-8 selection efficiency is %f%%\n", 2, li8eff*100);
+  printtwice("Li-9 selection efficiency is %f%%\n", 2, li9eff*100);
+  printtwice("Number of C-12 captures %g\n", 2, c12nuc_cap);
+  printtwice("Number of C-13 captures %g\n", 2, c13nuc_cap);
+
+  TFile *_file0 = TFile::Open(rootfile3up);
+  TTree * t = (TTree *)_file0->Get("t");
+ 
+  const int npar = 17;
+  mn = new TMinuit(npar);
+  mn->SetPrintLevel(-1);
+  mn->fGraphicsMode = false;
+  mn->Command("SET STRATEGY 2");
+  mn->SetFCN(fcn);
+  int err;
+  mn->mnparm(0, "p_b12", 0.2,  0.001, 0, 2, err);
+  mn->mnparm(1, "p_b12n",0.5,  0.01,  0, 2, err);
+  mn->mnparm(2, "p_b13", 0.2,  0.01,  0, 2, err);
+  mn->mnparm(3, "p_li8", 0.005,  0.001, 0, 2, err);
+  mn->mnparm(4, "p_li8n",0.05,  0.01, 0, 2, err);
+  mn->mnparm(5, "p_li9", 0.00,  0.01, 0, 2, err);
+  mn->mnparm(6, "p_li9n",0.024,  0.01, 0, 2, err);
+  mn->mnparm(7, "n_n16",   1,  1, 0, 1e3, err);
+  mn->mnparm(8, "acc",   1,    0.01, 0, 100, err);
+  mn->mnparm(9, "accn",  0.1,  0.001, 0, 10, err);
+  mn->mnparm(10, "accn2", 0.01, 0.001, 0, 1, err);
+
+  // Sometimes the B-12 lifetime spins out of control.  Not sure why,
+  // but constrain it to be somewhat reasonable.
+  mn->mnparm(11, "b12t", 0,  b12life_err/nom_b12life, -5, +5, err);
+  mn->mnparm(12, "b13t", 0,  b13life_err/nom_b13life, -5, +5, err);
+  mn->mnparm(13, "li8t", 0,  li8life_err/nom_li8life, -5, +5, err);
+  mn->mnparm(14, "li9t", 0,  li9life_err/nom_li9life, -5, +5, err);
+  mn->mnparm(15, "n16t", 0,  n16life_err/nom_n16life, -5, +5, err);
+  mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
+
+  printf("Making cuts...\n");
+  TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
+  selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  selt->Write();
+  events.clear();
+
+  float dt, mx, my, mz, fq;
+  int nn, run, trig;
+  selt->SetBranchAddress("dt", &dt);
+  selt->SetBranchAddress("latennear", &nn);
+  selt->SetBranchAddress("mx", &mx);
+  selt->SetBranchAddress("my", &my);
+  selt->SetBranchAddress("mz", &mz);
+  selt->SetBranchAddress("fq", &fq);
+  selt->SetBranchAddress("run", &run);
+  selt->SetBranchAddress("trig", &trig);
+
+  printf("Filling in data array...");
+  for(int i = 0; i < selt->GetEntries(); i++){
+    selt->GetEntry(i);
+    if(isibd(run, trig)) continue;
+    events.push_back(ev(dt-offset, nn,
+      neff_dr_800_avg*eff(fq, mx, my, mz), isibd(run, trig)));
+    hdisp->Fill(nn, dt-offset);
+    if(i%10000 == 9999){ printf("."); fflush(stdout); }
+  }
+  puts("");
+
+  {
+    double emean = 0;
+    for(unsigned int i = 0; i < events.size(); i++){
+      emean += events[i].e/events.size();
+      meaneff[events[i].n] += events[i].e;
+      eventc[events[i].n]++;
+    }
+    for(unsigned int i = 0; i < 3; i++){
+      if(eventc[i]) meaneff[i] /= eventc[i];
+      printf("Mean neutron eff when there were %d neutrons: %f\n",
+             i, meaneff[i]);
+    }
+    printf("Mean neutron efficiency: %f\n", emean);
   }
 
-  const double captures = livetime*
-    (nn == 0?n_c12cap:nn==-1?  n_c12cap+n_c13cap:n_c13cap);
-
-  ve Nfound_corr1(0, 0, 0);
-  if(nn == 0){
-    for(int i = 0; i < stacklevel; i++) printf(" ");
-    printf("Finding correction for 1-neutron events with inefficiency...\n");
-    ve correction = li8finalfit(1, excludeibd, true);
-    correction.val *= (1 - neff_dr_800_avg*neff_dt_avg);
-    correction.eup *= (1 - neff_dr_800_avg*neff_dt_avg);
-    correction.elo *= (1 - neff_dr_800_avg*neff_dt_avg);
-    for(int i = 0; i < stacklevel; i++) printf(" ");
-    printf("Subtracting %.3g events for 1-neutron events\n", correction.val);
-    Nfound_corr1.val = Nfound_uncorr.val - correction.val;
-    Nfound_corr1.elo = sqrt(pow(Nfound_uncorr.elo, 2) - pow(correction.elo, 2));
-    Nfound_corr1.eup = sqrt(pow(Nfound_uncorr.eup, 2) - pow(correction.eup, 2));
-  }
-  else{
-    Nfound_corr1 = Nfound_uncorr;
+  // I know that MIGRAD often fails, so instead of doing MINIMIZE, do
+  // SIMPLEX in the first place to save a little time and get it to
+  // converge. I think SIMPLEX is needed because the way I implement the
+  // unitarity constraint is really harsh on MIGRAD.
+  const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
+  for(int i = 0; i < 3; i++){
+    printf("\n%s", commands[i]);
+    mn->Command(commands[i]);
+    puts(""); mn->Command("show par");
   }
 
-  ve Nfound_corr2(0, 0, 0);
-  if(!excludeibd){
-    for(int i = 0; i < stacklevel; i++) printf(" ");
-    printf("Finding correction for IBD events...\n");
-    ve correction = li8finalfit(nn, true, true);
-    
-    correction.val = Nfound_corr1.val - correction.val;
+  mn->SetPrintLevel(0);
+  mn->Command("MINOS 2000 4 5");
+  puts("");
+  mn->Command("show min");
 
-    // zero-neutron assumed to be all Li-9, one-neutron N-17
-    const double bn_prob = nn == 0? 0.492: 0.951;
-    correction.val /= bn_prob;
+  zero= new TF1("zero",dispf0, 0, 100e3, npar);
+  one = new TF1("one", dispf1, 0, 100e3, npar);
+  two = new TF1("two", dispf2, 0, 100e3, npar);
 
-    for(int i = 0; i < stacklevel; i++) printf(" ");
-    printf("Subtracting %.3g events for IBD events\n", correction.val);
-    Nfound_corr2.val = Nfound_uncorr.val - correction.val;
-    Nfound_corr2.elo = Nfound_corr1.elo; // neglect error on correction
-    Nfound_corr2.eup = Nfound_corr1.eup;
+  printli8results();
+  printli8nresults();
+
+  for(int i = 0; i < npar; i++){
+    zero->SetParameter(i, getpar(i));
+    one ->SetParameter(i, getpar(i));
+    two ->SetParameter(i, getpar(i));
   }
-  else{
-    Nfound_corr2 = Nfound_corr1;
-  }
-
-  const double toprob = 1./captures/eff;
-
-  if(!quiet){
-    printf("neutron Efficiency: %.2f%%\n",  (nn == 1?neff_dr_800_avg*neff_dt_avg:1)*100);
-    printf("Total Efficiency: %.2f%%\n", eff*100);
-    printf("%sProb per C-%s: %.3g +%.3g %.3g%s\n", 
-        RED, nn==1?"13":nn==-1?"nat":"12", toprob*Nfound_corr2.val,
-        toprob*Nfound_corr2.eup, toprob*Nfound_corr2.elo, CLR);
-    printf("%sSystematic error: %.3g%s\n", RED,
-      (nn==1?n_c13cap_err/n_c13cap:n_c12cap_err/n_c12cap)*toprob*Nfound_corr2.val, CLR);
-  }
-
-  stacklevel--;
-  return Nfound_corr2;
 }
