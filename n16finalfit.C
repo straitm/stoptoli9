@@ -14,8 +14,24 @@
 #include "consts.h"
 #include <string>
 
-const double Ccaptures = n_c12cap*livetime;
-const double Ocaptures = n_o16cap_beta*livetime;
+// High-purity sample
+//#define HP
+
+// Low-purity sample, i.e. the Loose sample minus the HP sample
+//#define LP
+
+// Without either of the above #defines, you get the Loose sample.
+
+#if defined(HP)
+  const double Ccaptures = n_c12cap_hp*livetime;
+  const double Ocaptures = n_o16cap_beta_hp*livetime;
+#elif defined(LP)
+  const double Ccaptures = (n_c12cap-n_c12cap_hp)*livetime;
+  const double Ocaptures = (n_o16cap_beta-n_o16cap_beta_hp)*livetime;
+#else
+  const double Ccaptures = n_c12cap*livetime;
+  const double Ocaptures = n_o16cap_beta*livetime;
+#endif
  
 static const int nbins = 10000;
 static double lowtime = 0.001;
@@ -36,7 +52,7 @@ static const double n16eff = 1
   * 0.9709 // 100s from end of run
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.959 // b12
+  * 0.906 // b12
 ;
 
 static const double be11eff = 1
@@ -46,7 +62,7 @@ static const double be11eff = 1
   * 0.9709 // 100s from end of run
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.959 // b12
+  * 0.906 // b12
 ;
 
 static const double c15eff = 1
@@ -56,7 +72,7 @@ static const double c15eff = 1
   * 0.9709 // 100s from end of run
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.959 // b12
+  * 0.906 // b12
 ;
 
 static int dopull;
@@ -139,17 +155,25 @@ void n16finalfit()
   TFile * fiel= new TFile(rootfile3up,"read");
   TTree * t = (TTree *) fiel->Get("t");
 
-  TCanvas * c = new TCanvas("c1", "c1", 1000, 1000);
+  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 160, 160);
 
   const char * const RED = "\033[31;1m"; // bold red
   const char * const CLR = "\033[m"    ; // clear
 
-  const char * const scutwoe = "!earlymich && latennear == 0 && miche < 12 "
-    "&& dist < 200 && ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 ";
+  const char * const scutwoe =
+#ifdef LP
+  "!"
+#endif
+#if defined(LP) || defined(HP)
+  "(mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2) && "
+#endif
+    "!earlymich && latennear == 0 && miche < 12 && dist < 200 && "
+    "ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 ";
 
   const char * const cute = "e > 4 && e < 10";
 
-  const char * const cutb12 = "b12like < 0.06";
+  const char * const cutb12 = "b12like < 0.02";
 
   const string scut = Form("%s && %s && %s", scutwoe, cutb12, cute);
 
@@ -170,11 +194,11 @@ void n16finalfit()
   mn->SetPrintLevel(-1);
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(1 -1, "acc",   10, 0.01, 0, 100, err);
-  mn->mnparm(2 -1, "b12",     4e5, 1, 0, 1e6, err);
-  mn->mnparm(3 -1, "li8",   200, 0.1, 0, 1000, err);
+  mn->mnparm(1 -1, "acc",  10, 0.01, 0, 100, err);
+  mn->mnparm(2 -1, "b12", 4e5,    1, 0, 1e6, err);
+  mn->mnparm(3 -1, "li8", 200,  0.1, 0, 1000, err);
   mn->mnparm(4 -1, "c15",   1, 0.01, 0, 1000, err);
-  mn->mnparm(5 -1, "n16",   1, 0.01, 0, 0, err);
+  mn->mnparm(5 -1, "n16",   5, 0.01, 0, 100, err);
   mn->mnparm(6 -1, "be11",  1, 0.01, 0, 1000, err);
 
   command(mn, "SET PAR 6 0");
@@ -314,6 +338,8 @@ void n16finalfit()
   //c15->Draw("same");
   n16->Draw("same");
   //be11->Draw("same");
+  c1->Modified();
+  c1->Update();
 
   const double n16found = n16->Integral(0, 200)/ n16eff / hdisp->GetBinWidth(1);
   const double n16founderrup = n16found / val[4] * mn->fErp[4];
@@ -326,6 +352,7 @@ void n16finalfit()
   scalemarker(best);
 
   mn->fUp = 2.296; // 68% contour in 2D
+  mn->Command("set strategy 2");
   command(mn, "mncont 4 6 400");
   TGraph * onesigma_2d = getplot(mn); 
   onesigma_2d->SetNameTitle("onesigma", "onesigma");
