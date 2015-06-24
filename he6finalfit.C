@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include "consts.h"
 
+// Turn on to use the high-purity muon sample.  I found that this 
+// gave similar, but slightly worse, results
+//#define HP
+
 double bamacorrz(const double z, const double e)
 {
   // Romain's thesis's correction (eq. 7.24):
@@ -50,12 +54,22 @@ const double disteff[nrbins] = {
 0.4606  // +-0.40e-2
 };
 
+// The number of stopping muons in each region, from the inside out,
+// with an arbitrary overall normalization
 const double mus[nrbins] = {
+#ifdef HP
+2.201618962,
+1.960695653,
+1.882183636,
+2.580928391,
+1.139839258
+#else
 0.36808601,
 0.34753130,
 0.31973898,
 0.27913184,
 2.25442232
+#endif
 };
 
 
@@ -138,16 +152,23 @@ void he6finalfit(const int nreq_ = 0,
 
   const double distcut = 200;
 
+#define BASICMUONCUT "miche < 12 && !earlymich && timeleft > 100e3 && "
+
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
-    "miche < 12 && dist < %f && timeleft > 100e3 && "
-    "b12like < 0.4 && !earlymich && ttlastvalid > 0.1 && ttlastmuon>1"
+#ifdef HP
+  "mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+#endif
+    BASICMUONCUT
+    "dist < %f && b12like < 0.4 && ttlastvalid > 0.1 && ttlastmuon>1"
     , distcut);
   char cut[1000];
   snprintf(cut, 999, "latennear == %d && %s", nreq, distcut, cutnoncut);
 
 
-  const double bglow = 7.13*3, bghigh = 100, siglow = 0.3, sighigh = 0.801*2;
+  const double bglow = 7.13*3, bghigh = 100,
+              siglow = 0.3,   sighigh = 0.801*2;
 
   // delta r cut is by region below
   const double eff = 1
@@ -204,7 +225,14 @@ void he6finalfit(const int nreq_ = 0,
 
   TH2D tmp("tmp", "", 2, 0, 2, nrbins, 0, nrbins);
   t->Draw(Form("classi(dx, dy, dz):latennear==%d >> tmp", nreq),
-          "ndecay == 0 && miche < 12 && !earlymich && timeleft > 100e3");
+        // This has to be the same cuts as used for the decay, 
+        // except that it can't make any mention of decays
+        #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+        #endif
+        BASICMUONCUT
+        "ndecay == 0");
   for(int i = 0; i < nrbins; i++){
     double muonswithn = tmp.GetBinContent(2, i+1);
     double allmuons   = tmp.GetBinContent(1, i+1) + muonswithn;
@@ -219,7 +247,8 @@ void he6finalfit(const int nreq_ = 0,
     fprintf(stderr, "regenerating ehistbg\n");
    
     ehistbg->Sumw2();
-    t->Draw("e:classi(dx, dy, dz) >> ehistbg ", Form("%s && dt > %f", cutnoncut, bglow*1e3));
+    t->Draw("e:classi(dx, dy, dz) >> ehistbg ",
+            Form("%s && dt > %f", cutnoncut, bglow*1e3));
 
     ehistbg->Scale((sighigh-siglow)/(bghigh-bglow));
 
@@ -239,7 +268,23 @@ void he6finalfit(const int nreq_ = 0,
   if(!ehistsig){ 
     ehistsig = new TH2D("ehistsig", "", 5, 0, 5, 120, 0, 15);
     fprintf(stderr, "regenerating ehistsig\n");
-    t->Draw("e:classi(dx, dy, dz) >> ehistsig", Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
+    t->Draw("e:classi(dx, dy, dz) >> ehistsig",
+      Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
+  }
+
+#ifdef HP
+  const double captures = livetime * n_c12cap_hp;
+#else
+  const double captures = livetime * n_c12cap;
+#endif
+
+  if(ehistsig->Integral(4, 32) == 0){
+    printf("NO signal events.  Assuming zero background, \n"
+           "limit is roughly < %f\n", 2.3/captures/teff[1]);
+    return;
+  }
+  else{
+    printf("%f signal events\n", ehistsig->Integral(1,32));
   }
   
   for(int j = 0; j < 5; j++){
@@ -372,8 +417,6 @@ void he6finalfit(const int nreq_ = 0,
   he6normerrup = mn->fErp[iforhe];
   he6normerrlo = mn->fErn[iforhe];
 
-  const double captures = livetime * n_c12cap;
-
   double raw_nhe6 = 0, raw_signhe6up = 0, raw_signhe6lo = 0;
   double cooked_nhe6 = 0, cooked_signhe6up = 0, cooked_signhe6lo = 0;
   for(int i = 0; i < nrbins; i++){
@@ -472,11 +515,15 @@ void he6finalfit(const int nreq_ = 0,
 
   const char * const name = "";
 
-  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.pdf", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.pdf", name, nreq,
+             rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.C", name, nreq,
+             rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 
-  ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d%d%d%d%d.C", name, nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d%d%d%d%d.C", name,
+    nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
+  ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d%d%d%d%d.C", name,
+    nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 
 
   // conversion between the parameter value and production prob 
