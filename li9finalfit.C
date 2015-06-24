@@ -113,7 +113,7 @@ const double li9ebn = 0.5080,
              he8ebn = 0.1600,
              c16ebn = 0.99  * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
              n17ebn = 0.951 * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
-             b13ebn = 0.0029 * n_c13cap/n_c12cap,
+             b13ebn = 0.00286 * n_c13cap/n_c12cap,
              li11ebn = 0.789 * n_c13cap/n_c12cap;
              
 const double distcuteffgc = 0.7487,
@@ -205,11 +205,23 @@ int reactorpowerbin(const int run)
     inited = true;
     // From doc-5095-v2. I see that most are included in the on-off
     ifstream offofffile("offoff.h");
+    if(!offofffile.is_open()){
+      fprintf(stderr, "Could not open offoff.h\n");
+      exit(1);
+    }
     // From doc-5341
     ifstream onofffile ("onoff.h");
+    if(!onofffile.is_open()){
+      fprintf(stderr, "Could not open onoff.h\n");
+      exit(1);
+    }
     int r;
     while(offofffile >> r) off_off.push_back(r);
     while(onofffile  >> r) on_off.push_back(r);
+    if(off_off.empty() || on_off.empty()){
+      fprintf(stderr, "Off-off has %d runs, on-off has %d: Bad(?)\n",
+              off_off.size(), on_off.size());
+    }
   }
 
   if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
@@ -223,34 +235,51 @@ static float fcnstopat = 0;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
+  const double rrmbg0 = fabs(par[0]),
+               gdfracacc = fabs(par[1]),
+               par_li9 = fabs(par[2]),
+               par_he8 = fabs(par[3]),
+               par_n17 = fabs(par[4]),
+               oxygen_gd_frac = fabs(par[5]),
+               par_c16 = fabs(par[6]),
+               par_b13 = fabs(par[7]),
+               par_li11= fabs(par[8]),
+               carbon_gd_frac = fabs(par[9]),
+               rrmbg1 = fabs(par[10]),
+               rrmbg2 = fabs(par[11]);
+
+  const double carbon_h_frac = 1-carbon_gd_frac,
+               oxygen_h_frac = 1-oxygen_gd_frac,
+               hfracacc = 1-gdfracacc;
+
   like = 2*(denominator*Heff*(
-           li9ebn*par[2]*(1-par[9])*exp(-1/li9t)+// H Li-9
-           he8ebn*par[3]*(1-par[9])*exp(-1/he8t)+// H He-8
-           n17ebn*par[4]*(1-par[5])*exp(-1/n17t)+// H N-17
-           c16ebn*par[6]*(1-par[5])*exp(-1/c16t)+// H C-16
-           b13ebn*par[7]*(1-par[9])*exp(-1/b13t)+// H B-13
-          li11ebn*par[8]*(1-par[9])*exp(-1/li11t)+// H Li-11
-           99.999*(par[0]+par[10]+par[11])*(1-par[1])) + // H bg
+           li9ebn*par_li9*carbon_h_frac*exp(-1e-3/li9t)+// H Li-9
+           he8ebn*par_he8*carbon_h_frac*exp(-1e-3/he8t)+// H He-8
+           n17ebn*par_n17*carbon_h_frac*exp(-1e-3/n17t)+// H N-17
+           c16ebn*par_c16*carbon_h_frac*exp(-1e-3/c16t)+// H C-16
+           b13ebn*par_b13*carbon_h_frac*exp(-1e-3/b13t)+// H B-13
+          li11ebn*par_li11*carbon_h_frac*exp(-1e-3/li11t)+// H Li-11
+           99.999*(rrmbg0+rrmbg1+rrmbg2)*hfracacc) + // H bg
          denominator*Geff*(
-           li9ebn*par[2]*par[9]*exp(-1/li9t)+ // Gd Li-9
-           he8ebn*par[3]*par[9]*exp(-1/he8t)+ // Gd He-8
-           n17ebn*par[4]*par[5]*exp(-1/n17t)+ // Gd N-17
-           c16ebn*par[6]*par[5]*exp(-1/c16t)+ // Gd C-16
-           b13ebn*par[7]*par[9]*exp(-1/b13t)+ // Gd B-13
-          li11ebn*par[8]*par[9]*exp(-1/li11t)+ // Gd Li-11
-           99.999*(par[0]+par[10]+par[11])*par[1]));     // Gd bg
+           li9ebn*par_li9*carbon_gd_frac*exp(-1e-3/li9t)+ // Gd Li-9
+           he8ebn*par_he8*carbon_gd_frac*exp(-1e-3/he8t)+ // Gd He-8
+           n17ebn*par_n17*carbon_gd_frac*exp(-1e-3/n17t)+ // Gd N-17
+           c16ebn*par_c16*carbon_gd_frac*exp(-1e-3/c16t)+ // Gd C-16
+           b13ebn*par_b13*carbon_gd_frac*exp(-1e-3/b13t)+ // Gd B-13
+          li11ebn*par_li11*carbon_gd_frac*exp(-1e-3/li11t)+ // Gd Li-11
+           99.999*(rrmbg0+rrmbg1+rrmbg2)*gdfracacc));     // Gd bg
 
   // pull terms
   if(dopull){
-    like += pow((par[4]-0.5)/0.5, 2); // 50%+-70% for N-17
-    like += pow((par[6]-0.05)/0.05, 2); // 5%+-10%  for C-16
+    like += pow((par_n17-0.5)/0.5, 2); // 50%+-70% for N-17
+    like += pow((par_c16-0.05)/0.05, 2); // 5%+-10%  for C-16
     
     // Good approximation for the chi2 surface of B-13 from 
     // plain beta decays, an independent measurement.
     // 
     // Probably best to only use this when specifically looking at B-13
     //
-    // like += 1.59456 * par[7] +  0.434626 * par[7]*par[7];
+    // like += 1.59456 * par_b13 +  0.434626 * par_b13*par_b13;
   }
 
   if(fcnearlystop && like > fcnstopat) return;
@@ -262,24 +291,20 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
                       b13ebn_t =  b13ebn/ b13t,
                      li11ebn_t = li11ebn/li11t;
 
-  const double carbon_gd_frac = par[9];
-  const double oxygen_gd_frac = par[5];
-  const double carbon_h_frac = 1-par[9];
-  const double oxygen_h_frac = 1-par[5];
 
-  const double li9_ebn_tp_gd =  li9ebn_t*par[2]*carbon_gd_frac,
-               he8_ebn_tp_gd =  he8ebn_t*par[3]*carbon_gd_frac,
-               n17_ebn_tp_gd =  n17ebn_t*par[4]*oxygen_gd_frac,
-               c16_ebn_tp_gd =  c16ebn_t*par[6]*oxygen_gd_frac,
-               b13_ebn_tp_gd =  b13ebn_t*par[7]*carbon_gd_frac,
-              li11_ebn_tp_gd = li11ebn_t*par[8]*carbon_gd_frac;
+  const double li9_ebn_tp_gd =  li9ebn_t*par_li9*carbon_gd_frac,
+               he8_ebn_tp_gd =  he8ebn_t*par_he8*carbon_gd_frac,
+               n17_ebn_tp_gd =  n17ebn_t*par_n17*oxygen_gd_frac,
+               c16_ebn_tp_gd =  c16ebn_t*par_c16*oxygen_gd_frac,
+               b13_ebn_tp_gd =  b13ebn_t*par_b13*carbon_gd_frac,
+              li11_ebn_tp_gd = li11ebn_t*par_li11*carbon_gd_frac;
 
-  const double li9_ebn_tp_h =  li9ebn_t*par[2]*carbon_h_frac,
-               he8_ebn_tp_h =  he8ebn_t*par[3]*carbon_h_frac,
-               n17_ebn_tp_h =  n17ebn_t*par[4]*oxygen_h_frac,
-               c16_ebn_tp_h =  c16ebn_t*par[6]*oxygen_h_frac,
-               b13_ebn_tp_h =  b13ebn_t*par[7]*carbon_h_frac,
-              li11_ebn_tp_h = li11ebn_t*par[8]*carbon_h_frac;
+  const double li9_ebn_tp_h =  li9ebn_t*par_li9*carbon_h_frac,
+               he8_ebn_tp_h =  he8ebn_t*par_he8*carbon_h_frac,
+               n17_ebn_tp_h =  n17ebn_t*par_n17*oxygen_h_frac,
+               c16_ebn_tp_h =  c16ebn_t*par_c16*oxygen_h_frac,
+               b13_ebn_tp_h =  b13ebn_t*par_b13*carbon_h_frac,
+              li11_ebn_tp_h = li11ebn_t*par_li11*carbon_h_frac;
 
   static const double eff_gd_livefrac[3] = {
     rrmlivetimes[0]/rrmlivetime*Geff,
@@ -291,12 +316,12 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
     rrmlivetimes[1]/rrmlivetime*Heff,
     rrmlivetimes[2]/rrmlivetime*Heff };
 
-  const double eff_h_bg [3]={ par[0]*Heff*(1-par[1]),
-                              par[10]*Heff*(1-par[1]),
-                              par[11]*Heff*(1-par[1]) };
-  const double eff_gd_bg[3]={ par[0]*Geff*par[1],
-                              par[10]*Geff*par[1],
-                              par[11]*Geff*par[1] };
+  const double eff_h_bg [3]={ rrmbg0*Heff*hfracacc,
+                              rrmbg1*Heff*hfracacc,
+                              rrmbg2*Heff*hfracacc };
+  const double eff_gd_bg[3]={ rrmbg0*Geff*gdfracacc,
+                              rrmbg1*Geff*gdfracacc,
+                              rrmbg2*Geff*gdfracacc };
 
   for(unsigned int i = 0; i < events.size(); i++){
     ev * e = &(events[i]);
@@ -324,32 +349,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   }
 }
 
-static TMinuit * make_a_tminuit()
-{
-  TMinuit * mn = new TMinuit(npar);
-  mn->SetPrintLevel(-1);
-  mn->Command("SET STRATEGY 2");
-  mn->SetFCN(fcn);
-  int err;
-  mn->mnparm(1 -1, "bgrrm0", 1e-7,  1e-7, 0, 0, err);
-  mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
-  mn->mnparm(3 -1, "Li-9",   1e-4,  1e-6, 0, 0, err); // n: yes
-  mn->mnparm(4 -1, "He-8",   1e-4,  1e-3, 0, 0, err); // n: yes
-  mn->mnparm(5 -1, "N-17",    0.5,   0.5, 0, 0, err); // n: yes
-  mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
-  mn->mnparm(7 -1, "C-16",   0.05,   0.5, 0, 0, err); // n: yes
-  mn->mnparm(8 -1, "B-13",   0.1,     1, 0, 0, err); // n: no
-  mn->mnparm(9 -1, "Li-11",  0.1,  3e-3, 0, 0, err); // n: no
-  mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
-  mn->mnparm(11-1, "bgrrm1", 3e-5,  1e-6, 0, 0, err);
-  mn->mnparm(12-1, "bgrrm2", 6e-5,  1e-6, 0, 0, err);
-
-  return mn;
-}
-
 void setupmn(TMinuit * mn, const double expectedgdfrac)
 {
   mn->SetPrintLevel(-1);
+  mn->fGraphicsMode = false;
   dopull = true;
   for(int i = 0; i < npar; i++) mn->Command(Form("REL %d", i+1));
   mn->Command("SET LIM  1 0 1e-4");
@@ -376,6 +379,30 @@ void setupmn(TMinuit * mn, const double expectedgdfrac)
   mn->Command("Set LIM 10 0 0.5");
 }
 
+static TMinuit * make_a_tminuit()
+{
+  TMinuit * mn = new TMinuit(npar);
+  mn->SetPrintLevel(-1);
+  mn->Command("SET STRATEGY 2");
+  mn->SetFCN(fcn);
+  int err;
+  mn->mnparm(1 -1, "bgrrm0", 1e-7,  1e-7, 0, 0, err);
+  mn->mnparm(2 -1, "gdfracacc",0.38,0.01, 0, 0, err);
+  mn->mnparm(3 -1, "Li-9",   1e-4,  1e-6, 0, 0, err); // n: yes
+  mn->mnparm(4 -1, "He-8",   1e-4,  1e-3, 0, 0, err); // n: yes
+  mn->mnparm(5 -1, "N-17",    0.5,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(6 -1,"ocapgdfrac",0.01,1e-2, 0, 0, err);
+  mn->mnparm(7 -1, "C-16",   0.05,   0.5, 0, 0, err); // n: yes
+  mn->mnparm(8 -1, "B-13",   0.1,     1, 0, 0, err); // n: no
+  mn->mnparm(9 -1, "Li-11",  0.1,  3e-3, 0, 0, err); // n: no
+  mn->mnparm(10-1, "gdfracsig",0.38, 0.01,0, 0, err);
+  mn->mnparm(11-1, "bgrrm1", 3e-5,  1e-6, 0, 0, err);
+  mn->mnparm(12-1, "bgrrm2", 6e-5,  1e-6, 0, 0, err);
+
+  setupmn(mn, expectedgdfrac);
+  return mn;
+}
+
 
 TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t,
                       double * eedisppar, char * functionstring,
@@ -397,6 +424,18 @@ TF1 * make_bounds_tf1(int i, int whichh, int runperiod, int t,
     f->SetParameter(j, eedisppar[j]);
 
   return f;
+}
+
+void mncommand()
+{
+  string command;
+  TMinuit * mn = make_a_tminuit();
+  while(true){
+    printf("MINUIT> ");
+    if(!getline(cin, command)) break;
+    if(command == "exit") break;
+    mn->Command(command.c_str());
+  }
 }
 
 int whichh = 0;
@@ -494,13 +533,12 @@ void drawhist(TTree * tgsel, TTree * thsel,
 
     const int xpoints = 100;
     const double llow = low?low:0.001;
-#if 0
+#ifdef BAND
     for(int t = 0; t < npar*2; t++){
       const bool lo = t%2;
       const int par = t/2;
       if(lo) printf("%d min/max\n", par);
       TMinuit * mn = make_a_tminuit();
-      setupmn(mn, expectedgdfrac);
       fixat(mn, par+1,
             lo?parsave[par].min():parsave[par].max());
       
@@ -533,7 +571,6 @@ void drawhist(TTree * tgsel, TTree * thsel,
       if(parsave[npar1-1].fix || parsave[npar2-1].fix) continue;
 
       TMinuit * mn = make_a_tminuit();
-      setupmn(mn, expectedgdfrac);
 
       for(int X = 0; X < npar; X++){
         mn->Command(Form("SET PAR %d %g",X+1,parsave[X].val));
@@ -629,7 +666,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
     gbest->SetLineColor(kBlack);
     gbest->SetLineWidth(3);
     gbest->SetLineStyle(kDashed);
-#if 0
+#ifdef BAND
 
     printf("Making combined graph\n");
     TGraph * gall = new TGraph();
@@ -647,7 +684,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
     gbest->SetNameTitle("bestfit", "bestfit");
     gbest->SavePrimitive(cout);
     gbest->Draw("l");
-#if 0
+#ifdef BAND
 
     for(unsigned int soup = 0; soup < bounds.size(); soup++){
       if(resulttype[soup] == 1 || resulttype[soup] == 2) {
@@ -681,6 +718,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
              const char * const nintyname = "ninty",
              const char * const sigmaname = "sigma")
 {
+  mn->fGraphicsMode = true;
   whichc++;
   TCanvas * c = new TCanvas(Form("c%d_%d%d", whichc, par1, par2),
                             Form("c%d_%d%d", whichc, par1, par2),
@@ -755,6 +793,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
   }
 
   mn->Command(Form("set print %d", oldprintlevel));
+  mn->fGraphicsMode = false;
 }
 
 
@@ -859,7 +898,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   vector< vector<parres> > parsaves;
   {
-    setupmn(mn, expectedgdfrac);
     const unsigned int nfix = 8;
     const int fix[nfix] = { 3, 4, 5, 6, 7, 8, 9, 10 };
     for(unsigned int i = 0; i < nfix; i++) fixatzero(mn, fix[i]);
@@ -1112,7 +1150,6 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
            RED, assumedli9prob, lratsig(mn->fAmin, chi2_all), CLR);
   }
   
-return;
   //////////////////////////////////////////////////////////////////////
   //drawhist(tgsel, thsel, parsaves[0], 48, 1, 97);
   if(neutrons == -1)  drawhist(tgsel, thsel, parsaves[0], 15, 0,  3,10, 100);
