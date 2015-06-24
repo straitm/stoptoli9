@@ -369,15 +369,6 @@ void he6finalfit(const int nreq_ = 0,
     }
   }
 
-  if(nreq > 2){ // no n16, no li8
-    for(int i = nrbins+2+1; i < nrbins+2+1+4; i++){
-      mn->Command(Form("SET PAR %d 0", li8fpn+i));
-      mn->Command(Form("FIX %d", li8fpn+i));
-      mn->Command(Form("SET PAR %d 0", n16fpn+i));
-      mn->Command(Form("FIX %d", n16fpn+i));
-    }
-  }
-
   mn->Command(Form("SET PAR %d 0", he6fpn));
   mn->Command(Form("FIX %d", he6fpn));
   mn->Command("MIGRAD");
@@ -472,10 +463,8 @@ void he6finalfit(const int nreq_ = 0,
 
     ehistbg_p->Draw("samehist");
 
-    if(nreq < 3){
-      n16spec_p->SetLineColor(kOrange);
-      n16spec_p->Draw("samehist");
-    }
+    n16spec_p->SetLineColor(kOrange);
+    n16spec_p->Draw("samehist");
 
     TH1D * bg_plus_li8 = (TH1D*)ehistbg_p->Clone(Form("bg_plus_li8_%d", j));
     bg_plus_li8->Add(li8spec_p);
@@ -485,7 +474,7 @@ void he6finalfit(const int nreq_ = 0,
     TH1D * bg_plus_li8_n16 = (TH1D*)bg_plus_li8->Clone(Form("bg_plus_li8_n16_%d", j));
     bg_plus_li8_n16->Add(n16spec_p);
     bg_plus_li8_n16->SetLineColor(kViolet);
-    if(nreq < 3) bg_plus_li8_n16->Draw("samehist");
+    bg_plus_li8_n16->Draw("samehist");
 
     TH1D * bg_plus_li8_n16_he6 = (TH1D*)bg_plus_li8_n16->Clone(Form("bg_plus_li8_n16_he6_%d", j));
     bg_plus_li8_n16_he6->Add(he6spec_p);
