@@ -11,7 +11,8 @@ void b14finalfit()
     * 0.977 // previous muons
     * wholedet_dist400eff // delta r
     * 0.99709 // 10s from end of run
-    * 0.146 // energy
+    * 0.387 // energy from my toy MC, probably a bit conservative
+            // since when I try to evaluate B-12 it is low
     * 0.96 // b12like
   ;
 
@@ -82,7 +83,7 @@ void b14finalfit()
       parts[i]->SetLineStyle(7);
       parts[i]->SetLineWidth(2);
       parts[i]->Draw("Same");
-    } 
+    }
 
     const double Nfound = b14->Integral(0, 20)/hdisp->GetBinWidth(1);
     const double Nerrup = Nfound * gMinuit.fErp[1]/ee->GetParameter(1);
@@ -90,7 +91,7 @@ void b14finalfit()
 
     printf("%sN found: %f +%f %f%s\n", RED, Nfound, Nerrup, Nerrlo, CLR);
 
-    printf("%sEff: %f\nProb: %g +%g %g%s\n", 
+    printf("%sEff: %f\nProb: %g +%g %g%s\n",
         RED, eff, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
   }
   else{

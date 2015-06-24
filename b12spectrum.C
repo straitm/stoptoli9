@@ -7,6 +7,7 @@ TRandom3 r(0); // 0 -> UUID seed
 
 TH1D * b12spec = new TH1D("b12spec", "", 200, 0, 20);
 TH1D * b13spec = new TH1D("b13spec", "", 200, 0, 20);
+TH1D * b14spec = new TH1D("b14spec", "", 300, 0, 30);
 TH1D * li8spec = new TH1D("li8spec", "", 200, 0, 20);
 
 const int nb12b = 4;
@@ -31,6 +32,14 @@ double li8branchge[nli8b] = { 0 };
 double li8branchp[nli8b] = { 1 };
 bool   li8brancha[nli8b] = { 1 };
 double li8branch_aw[nli8b] = { 0 };
+
+const int nb14b = 4;
+const double b14q = 20.644;
+double b14branchbe[nb14b] = { b14q, b14q - 6.09, b14q - 6.73, b14q - 8.1764 };
+double b14branchge[nb14b] = { 0,           6.09,        6.73,          0    };
+double b14branchp[nb14b] = { 0.014,        0.79,       0.082,        0.061  };
+bool   b14brancha[nb14b] = { 0,               0,           0,          0    }; // not sure
+double b14branch_aw[nb14b] = { 0,             0,           0,          0    }; // no idea
 
 static double max(const double a, const double b)
 {
@@ -109,6 +118,10 @@ void fillb12(const double escale)
 
 void norm()
 {
+  static bool didit = false;
+  if(didit) return;
+  didit = true;
+
   {
     double sum = 0;
     for(int i = 0; i < nb12b; i++) sum += b12branchp[i];
@@ -122,10 +135,23 @@ void norm()
     for(int i = 0; i < nb13b; i++) b13branchp[i] /= sum;
     for(int i = 1; i < nb13b; i++) b13branchp[i] += b13branchp[i-1];
   }
+
+  {
+    double sum = 0;
+    for(int i = 0; i < nb14b; i++) sum += b14branchp[i];
+    for(int i = 0; i < nb14b; i++) b14branchp[i] /= sum;
+    for(int i = 1; i < nb14b; i++) b14branchp[i] += b14branchp[i-1];
+  }
 }
 
 void b12spectrum()
 {
   norm();
-  fillit(b12spec, nli8b, li8branchp, li8branchbe, li8branchge,li8brancha, li8branch_aw, 1e6,1);
+  fillit(b12spec, nb12b, b12branchp, b12branchbe, b12branchge,b12brancha, b12branch_aw, 1e6,1);
+}
+
+void b14spectrum()
+{
+  norm();
+  fillit(b14spec, nb14b, b14branchp, b14branchbe, b14branchge,b14brancha, b14branch_aw, 1e6,1);
 }
