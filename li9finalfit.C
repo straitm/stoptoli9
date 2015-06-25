@@ -975,20 +975,17 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
            tree, tsels[tree]->GetEntries());
     tsels[tree]->SetBranchAddress("dt", &tim);
     tsels[tree]->SetBranchAddress("run", &run);
+#ifdef HP
     tsels[tree]->SetBranchAddress("mutrig", &mutrig);
+#endif
     for(int i = 0; i < tsels[tree]->GetEntries(); i++){
-      fprintf(stderr, " %d", i);
       tsels[tree]->GetEntry(i);
-      fprintf(stderr, ",");
-
 #ifdef HP
       if(getredchi2(int(run), int(mutrig)) >= 2){
         printf("dropping bad mu fit\n");
         continue;
       }
 #endif
-
-      fprintf(stderr, ":");
       const int rpb = reactorpowerbin(int(run));
       events.push_back(ev(tree == 1, (tim - 0.002)/1000, rpb));
     }
