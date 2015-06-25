@@ -16,7 +16,10 @@
 #include "TMinuit.h"
 #include "TROOT.h"
 #include "TTree.h"
+#include "TFile.h"
 #include "TRandom3.h"
+
+//#define HP
 
 static const double li9t = 0.257233,
                     he8t = 0.171825,
@@ -108,21 +111,33 @@ const int npar = 12;
 
 const float dist = 300;
 
+#ifdef HP
+  const double No16cap_betan = n_o16cap_betan_hp;
+  const double Nc12captarget = n_c12captarget_hp;
+  const double Nc12cap       = n_c12cap_hp;
+  const double Nc13cap       = n_c13cap_hp;
+#else
+  const double No16cap_betan = n_o16cap_betan;
+  const double Nc12captarget = n_c12captarget;
+  const double Nc12cap       = n_c12cap;
+  const double Nc13cap       = n_c13cap;
+#endif
+
 // bn decay probability multiplied by the number of captures relative
 // to C-12
 const double li9ebn = 0.5080,
              he8ebn = 0.1600,
-             c16ebn = 0.99  * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
-             n17ebn = 0.951 * 88.0/102.5*0.00243*n_o16cap_betan/n_c12cap,
-             b13ebn = 0.00286 * n_c13cap/n_c12cap,
-             li11ebn = 0.789 * n_c13cap/n_c12cap;
+             c16ebn = 0.99  * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
+             n17ebn = 0.951 * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
+             b13ebn = 0.00286 * Nc13cap/Nc12cap,
+             li11ebn = 0.789 * Nc13cap/Nc12cap;
              
 const double distcuteffgc = 0.7487,
              distcutefftarg = 0.9202;
 
 // 100s begin-of-run requirement taken into account here
 const double rrmlivetime=rrmlivetimes[0]+rrmlivetimes[1]+rrmlivetimes[2];
-const double denominator = 0.9709*rrmlivetime*n_c12cap;
+const double denominator = 0.9709*rrmlivetime*Nc12cap;
 
 /* DC3rdPub product of muon, light noise, OV, multiplicity,
    neutron (E, t, R), FV and IV efficiencies */
@@ -138,10 +153,10 @@ const double Geff_sans_prompt_or_mun =
 
 const double Heff_sans_prompt_or_mun =
   (
-  (n_c12cap - n_c12captarget)      * distcuteffgc
-+ n_c12captarget * (1-gd_fraction) * distcutefftarg
+  (Nc12cap - Nc12captarget)      * distcuteffgc
++ Nc12captarget * (1-gd_fraction) * distcutefftarg
   )/  
-  (n_c12cap - gd_fraction*n_c12captarget)* 
+  (Nc12cap - gd_fraction*Nc12captarget)* 
        (1-1.25*4.49/100.)* // muon - ok, straightforwards scaling
        (1-0.01/100.)* // ? LN - same cut, but not obviously same eff
                       // however, *very* small for Gd, so...
@@ -155,7 +170,7 @@ const double Heff_sans_prompt_or_mun =
 
 
 // But not the actual gd fraction because of geometrical effects
-const double expectedgdfrac = gd_fraction*n_c12captarget/n_c12cap;
+const double expectedgdfrac = gd_fraction*Nc12captarget/Nc12cap;
 
 
 double getlimlo(TMinuit * mn, int i)
@@ -827,6 +842,50 @@ double lratsig(const double l1, const double l2)
   return TMath::NormQuantile(1-1/(2*rat));
 }
 
+float getredchi2(const int run, const int trig)
+{
+  static TTree * fidot = NULL;
+  static TFile * fidof = NULL;
+  static int lastrun = 0;
+  static TBranch * br[3];
+  static float ids_chi2;
+  static int nidtubes, nivtubes;
+  TDirectory * old = gDirectory;
+  if(lastrun != run){
+    if(fidot) delete fidot;
+    if(fidof) delete fidof;
+    fidof = new
+      TFile(Form("/cp/s4/strait/fido_seq010/fido.%07d.root",run),"read");
+    if(!fidof || fidof->IsZombie()) {
+      lastrun = 0, fidot = NULL, fidof = NULL;
+      return 0;
+    }
+    fidot = (TTree *) fidof->Get("RecoMuonFIDOInfoTree"); 
+    if(!fidot){
+      lastrun = 0, fidot = NULL, fidof = NULL;
+      return 0;
+    }
+    fidot->SetMakeClass(1);
+    fidot->SetBranchAddress("ids_chi2", &ids_chi2);
+    fidot->SetBranchAddress("nidtubes", &nidtubes);
+    fidot->SetBranchAddress("nivtubes", &nivtubes);
+    fprintf(stderr, ".");
+    br[0] = fidot->GetBranch("ids_chi2");
+    br[1] = fidot->GetBranch("nidtubes");
+    br[2] = fidot->GetBranch("nivtubes");
+  }
+
+  for(int i = 0; i < 3; i++) br[i]->GetEntry(trig);
+  fidot->GetEntry(trig);
+
+  lastrun = run;
+
+  old->cd();
+
+  if(nidtubes + nivtubes - 6 < 0) return 0;
+  return ids_chi2/(nidtubes + nivtubes - 6);
+}
+
 void li9finalfit(int neutrons = -1, int contourmask = 0)
 {
   if(neutrons < -1) return;
@@ -845,6 +904,11 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
  
   char nodistcut[1000];
   snprintf(nodistcut, 999,
+#ifdef HP
+  "mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(dedxslant - 8847.2) < 1000 && " // cut on reduced chi2 below
+                                       // since it isn't in the files
+#endif
     "%smiche < 12 && !earlymich && prompttime > 100e9 && dt < 100e3",
            neutrons >= 0?Form("nlate==%d&&", neutrons):"");
   char cut[1000];
@@ -853,6 +917,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
       rrmlivetimes[1]==0?"&& reactorpowerbin(run) != 1":"",
       rrmlivetimes[2]==0?"&& reactorpowerbin(run) != 2":"");
 
+  printf("Cut is: %s\n", cut);
   ////////////////////////////////////////////////////////////////////
 
   TTree tg("t", "t");
@@ -862,11 +927,14 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   TTree * tgsel = tg.CopyTree(cut);
   TTree * thsel = th.CopyTree(cut);
-
-
-  const double plotsigtime = 0.4;
+  if(!tgsel || !thsel){
+    fprintf(stderr, "Failed to make cut trees\n");
+    return;
+  }
 
 /*
+  const double plotsigtime = 0.4;
+
   TCanvas * dxy = new TCanvas("dxy", "dxy", 200, 200);
   th.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".");
   tg.Draw("my-dy:mx-dx", Form("%s && dt/1000 > 5  ", cut), ".same");
@@ -897,22 +965,33 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   th.Draw("dedxslant >> muqivsig(25, 0, 12000)", Form("%s && dt/1000 < 0.4", cut),"same");
   tg.Draw("dedxslant >> +muqivsig", Form("%s && dt/1000 < 0.4", cut),"same");
 */
-  float tim;
-  float run;
-  tgsel->SetBranchAddress("dt", &tim);
-  thsel->SetBranchAddress("dt", &tim);
-  tgsel->SetBranchAddress("run", &run);
-  thsel->SetBranchAddress("run", &run);
 
-  for(int i = 0; i < tgsel->GetEntries(); i++){
-    tgsel->GetEntry(i);
-    const int rpb = reactorpowerbin(int(run));
-    events.push_back(ev(false, (tim - 0.002)/1000, rpb));
-  }
-  for(int i = 0; i < thsel->GetEntries(); i++){
-    thsel->GetEntry(i);
-    const int rpb = reactorpowerbin(int(run));
-    events.push_back(ev(true, (tim - 0.002)/1000, rpb));
+  float tim, run, mutrig; // yes, all of them are floats
+
+  TTree * tsels[2] = { tgsel, thsel };
+
+  for(int tree = 0; tree < 2; tree++){
+    printf("Reading cut tree %d with %d entries\n",
+           tree, tsels[tree]->GetEntries());
+    tsels[tree]->SetBranchAddress("dt", &tim);
+    tsels[tree]->SetBranchAddress("run", &run);
+    tsels[tree]->SetBranchAddress("mutrig", &mutrig);
+    for(int i = 0; i < tsels[tree]->GetEntries(); i++){
+      fprintf(stderr, " %d", i);
+      tsels[tree]->GetEntry(i);
+      fprintf(stderr, ",");
+
+#ifdef HP
+      if(getredchi2(int(run), int(mutrig)) >= 2){
+        printf("dropping bad mu fit\n");
+        continue;
+      }
+#endif
+
+      fprintf(stderr, ":");
+      const int rpb = reactorpowerbin(int(run));
+      events.push_back(ev(tree == 1, (tim - 0.002)/1000, rpb));
+    }
   }
 
   //////////////////
@@ -1054,14 +1133,14 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
     printf("%sLi-9 prob/C-13 capture with everything except "
            "He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/n_c13cap,
-           mn->fErn[2]*n_c12cap/n_c13cap, mn->fErp[2]*n_c12cap/n_c13cap,
+           RED, mn->fAmin, getpar(mn, 2)*Nc12cap/Nc13cap,
+           mn->fErn[2]*Nc12cap/Nc13cap, mn->fErp[2]*Nc12cap/Nc13cap,
            CLR);
     printf("%sLi-9 prob/C-nat capture with everything except "
            "He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*n_c12cap/(n_c12cap+n_c13cap),
-           mn->fErn[2]*n_c12cap/(n_c12cap+n_c13cap),
-           mn->fErp[2]*n_c12cap/(n_c12cap+n_c13cap),
+           RED, mn->fAmin, getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap),
+           mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap),
+           mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap),
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
