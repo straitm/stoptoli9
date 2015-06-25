@@ -16,7 +16,6 @@ void b8finalfit(const int nn = 4)
 
   const double eff = 1
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
     * wholedet_dist400eff // delta r
     * 0.9709 // 100s from end of run
     * 0.969 // energy

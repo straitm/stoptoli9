@@ -173,7 +173,6 @@ void he6finalfit(const int nreq_ = 0,
   // delta r cut is by region below
   const double eff = 1
     * 0.962 // subsequent muons with 1ms veto
-    * 0.977 // previous muons
     * 0.9709 // 100s from end of run
     * 0.986 // ttlastvalid
     * 0.994 // b12like
@@ -210,7 +209,6 @@ void he6finalfit(const int nreq_ = 0,
 /*
   const double li8eff = 1
     * 0.962 // subsequent muons with 1ms veto
-    * 0.977 // previous muons
     * 0.9709 // 100s from end of run
     * 0.986 // ttlastvalid
     * 0.9994 // b12like

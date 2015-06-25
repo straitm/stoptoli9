@@ -35,7 +35,6 @@ void n12finalfit()
     * exp(-1.*log(2)/11.00) // n12 half-life and 1ms veto
     * (1 - exp(-100.*log(2)/11.00)) // 100ms window
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
     * 0.897 // delta r
     * 0.99709 // 10s from end of run
     * 0.969 // energy

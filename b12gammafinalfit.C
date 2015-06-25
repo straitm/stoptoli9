@@ -31,7 +31,6 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
   // Relative to B-12 selection
   const double eff = 1
     // shared with B-12 * 0.962 // subsequent muons with 1ms veto
-    // shared with B-12 * 0.977 // previous muons
     * 0.9999418/0.9709 // 200ms from end of run, better than B-12 selection
     // shared with B-12 * 0.82 // B-12 beta decay energy cut, eval'd for short tracks
     // shared with B-12 * 0.9177 // dist cut for B-12 beta decay

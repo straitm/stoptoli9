@@ -8,7 +8,6 @@ void b14finalfit()
   const double eff = 1
     * exp(-1.*log(2)/12.5) // 1ms veto and B-14 half-life
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
     * wholedet_dist400eff // delta r
     * 0.99709 // 10s from end of run
     * 0.387 // energy from my toy MC, probably a bit conservative

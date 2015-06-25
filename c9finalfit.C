@@ -41,7 +41,6 @@ void c9finalfit(const char elem = 'o')
     * exp(-1.*log(2)/127.00) // half-life and 1ms veto
     * (1-exp(-1000.*log(2)/127.00)) // up to 1s
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
     * (elem=='o'?0.897:0.9405) // delta r
     * 0.99709 // 100s from end of run
     * 0.969 // energy
