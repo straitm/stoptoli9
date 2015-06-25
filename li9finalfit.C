@@ -102,6 +102,7 @@ vector<ev> events;
 double Geff, Heff;
 
 bool dopull = true;  // bad global variable modified as we go
+bool ifdopulldob13pull = true;
 
 const int npar = 12;
 
@@ -233,7 +234,7 @@ int reactorpowerbin(const int run)
 static bool fcnearlystop = false;
 static float fcnstopat = 0;
 
-void fcn(int & npar, double * gin, double & like, double *par, int flag)
+void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
 {
   const double rrmbg0 = fabs(par[0]),
                gdfracacc = fabs(par[1]),
@@ -252,7 +253,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
                oxygen_h_frac = 1-oxygen_gd_frac,
                hfracacc = 1-gdfracacc;
 
-  like = 2*(denominator*Heff*(
+  chi2 = 2*(denominator*Heff*(
            li9ebn*par_li9*carbon_h_frac*exp(-1e-3/li9t)+// H Li-9
            he8ebn*par_he8*carbon_h_frac*exp(-1e-3/he8t)+// H He-8
            n17ebn*par_n17*carbon_h_frac*exp(-1e-3/n17t)+// H N-17
@@ -271,18 +272,39 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   // pull terms
   if(dopull){
-    like += pow((par_n17-0.5)/0.5, 2); // 50%+-70% for N-17
-    like += pow((par_c16-0.05)/0.05, 2); // 5%+-10%  for C-16
+    chi2 += pow((par_n17-0.5)/0.5, 2); // 50%+-70% for N-17
+    chi2 += pow((par_c16-0.05)/0.05, 2); // 5%+-10%  for C-16
     
-    // Good approximation for the chi2 surface of B-13 from 
-    // plain beta decays, an independent measurement.
-    // 
-    // Probably best to only use this when specifically looking at B-13
-    //
-    // like += 1.59456 * par_b13 +  0.434626 * par_b13*par_b13;
+    // Approximation for the chi2 surface of B-13 from plain beta
+    // decays, an independent measurement. Probably best to only use
+    // this when specifically looking at B-13. Note also that this is
+    // valid up to about 500% probability of B-13, and turns over at
+    // about 800%, so you will have fit failures if you push it too
+    // hard.
+    if(ifdopulldob13pull){
+      const double b13p = par_b13 < 0.6?
+                       // portion mostly controlled by the data
+                       9.12889e-05
+                           +1.3982*par_b13
+                          +15.7956*pow(par_b13, 2)
+                          -246.523*pow(par_b13, 3)
+                          +1732.19*pow(par_b13, 4)
+                          -5859.71*pow(par_b13, 5)
+                          +9179.73*pow(par_b13, 6)
+                          -5134.55*pow(par_b13, 7)
+                                       :
+                       // portion mostly controlled by unitarity
+                           41.7936-4.12173965962690403e-01
+                          -150.075*par_b13
+                          +118.477*pow(par_b13, 2)
+                          +62.4278*pow(par_b13, 3)
+                          -6.17429*pow(par_b13, 4)
+                                       ;
+      chi2 += b13p;
+    }
   }
 
-  if(fcnearlystop && like > fcnstopat) return;
+  if(fcnearlystop && chi2 > fcnstopat) return;
 
   static const double li9ebn_t =  li9ebn/ li9t,
                       he8ebn_t =  he8ebn/ he8t,
@@ -343,8 +365,8 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
          eff_gd_bg[per]; // Gd bg
 
     if(f > 0){
-      like -= 2*log(f);
-      if(fcnearlystop && like > fcnstopat) return;
+      chi2 -= 2*log(f);
+      if(fcnearlystop && chi2 > fcnstopat) return;
     }
   }
 }
@@ -430,12 +452,13 @@ void mncommand()
 {
   string command;
   TMinuit * mn = make_a_tminuit();
-  while(true){
-    printf("MINUIT> ");
-    if(!getline(cin, command)) break;
-    if(command == "exit") break;
-    mn->Command(command.c_str());
-  }
+  prompt:
+  printf("MINUIT> ");
+  if(!getline(cin, command) || command == "exit") goto exit;
+  mn->Command(command.c_str());
+  goto prompt;
+  exit:
+  printf("MINUIT exiting on %s\n", command == "exit"?"request":"EOF");
 }
 
 int whichh = 0;
