@@ -3,22 +3,18 @@
 void be12finalfit()
 {
   const double be12eff = 
-      8.777e-01 // Energy over 3MeV
-   // * 9.86682700835552096e-01 // Delta r 800mm
-    * 0.9148 // Delta r 400mm
+      0.894 // Energy over 3MeV
+    * wholedet_dist400eff 
     * (exp(-1*log(2)/21.3) - exp(-100*log(2)/21.3)) // 1-100ms
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
   ;
 
 
   const double b12eff = 
-      9.10839129894209787e-01 // Energy over 3 MeV
-    //* 9.86682700835552096e-01 // Delta r 800mm
-    * 0.9148 // Delta r 400mm
+      0.9251 // Energy over 3 MeV
+    * wholedet_dist400eff
     * exp(-1*log(2)/20.2)  // After 1ms
     * 0.981 // subsequent muons
-    * 0.977 // previous muons
    ;
 
   printf("%sBe-12 eff: %.1f%%\nB-12 eff:  %.1f%%\nTotal eff: %.1f%%%s\n",
