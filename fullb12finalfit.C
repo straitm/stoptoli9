@@ -25,7 +25,7 @@ const double b12life_err = 0.02/log(2.);
 const double nom_n16life = 7130./log(2.);
 const double n16life_err = 20./log(2.);
 
-const double nom_b13life = 17.33/log(2.); 
+const double nom_b13life = 17.33/log(2.);
 const double b13life_err = 0.17/log(2.);
 
 // This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
@@ -194,7 +194,7 @@ void printtwice(const char * const msg, const int digits, ...)
 {
   char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
   char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
-  
+
   // Just for fun...
   char * pmp = pmsg;
   char * bmp = bmsg;
@@ -208,7 +208,7 @@ void printtwice(const char * const msg, const int digits, ...)
       case '%':
         switch(msg[i+1]){
           case 'e': case 'E': case 'f': case 'F':
-          case 'g': case 'G': case 'a': case 'A': 
+          case 'g': case 'G': case 'a': case 'A':
             gotone = true;
             *pmp++ = '%';
             *bmp++ = '%';
@@ -226,7 +226,7 @@ void printtwice(const char * const msg, const int digits, ...)
         break;
     }
   }
-  
+
   va_list ap;
   va_start(ap, digits);
   printf(RED);
@@ -255,7 +255,7 @@ bool isibd(const int in_run, const int in_trig)
       ibd.GetEntry(i);
       ibds.push_back(pair<int,int>(int(run), int(trig)));
 
-      // Get the delayed event too.  ROUGH, since there could be 
+      // Get the delayed event too.  ROUGH, since there could be
       // an intervening event
       ibds.push_back(pair<int,int>(int(run), int(trig+1)));
     }
@@ -388,14 +388,14 @@ double unit_penalty(const double x)
 
   const double sig = (x-1)/unitwidth;
 
-  // When erf gets very close to 0, bad things happen, so switch to 
-  // an approximation past 5 sigma out. There may well be a better 
+  // When erf gets very close to 0, bad things happen, so switch to
+  // an approximation past 5 sigma out. There may well be a better
   // way to handle this.
   static const double sigcut = 5;
   static const double corr = -2*log(priorerf(sigcut)) - pow(sigcut,2);
   const double mlogprior =
     sig < sigcut? -2*log(priorerf(sig)) : corr + pow(sig, 2);
-  
+
   return mlogprior;
 }
 
@@ -470,8 +470,8 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
   like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
         + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
-  
-  
+
+
   // Pull term to impose unitarity bound on products of C-13. Width is
   // determined by the error on the number of captures The concept here
   // is that there is a prior for the total number of captures with the
@@ -486,14 +486,14 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // fit really likes adding lots of them in and being really sure about
   // it, which forces B-13 to a very low value. I don't think this is
   // physical. I suspect the presence of some other isotope that doesn't
-  // come from C-13.  With this hypothesis, it makes sense to allow 
-  // them to float freely in the fit, since they are representing some 
+  // come from C-13.  With this hypothesis, it makes sense to allow
+  // them to float freely in the fit, since they are representing some
   // unknown background.  Could they be spallation reactions farther
   // up the muon track, here admitted since I don't use a distance cut?
   if(unitarity) like += unit_penalty(p_b12n +p_b13 /* +p_li8n +p_li9*/);
 
   static const double likeoffset = 252637;
-  
+
   like += likeoffset;
 }
 
@@ -591,7 +591,7 @@ void results(const char * const iname, const int mni,
   printtwice("\nOr percent per nuclear mu- capture on this isotope\n"
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
          "+%f %f(total),  +%f -%f (non-fit)\n",
-         prec2, 
+         prec2,
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -687,7 +687,7 @@ double b13limit()
     ps[i] = p;
     if(p < 1e-9 && ++smallcount > 3) break;
   }
-  
+
   printf("Norm: %f\n", sump);
 
   double sump2 = 0;
@@ -723,7 +723,7 @@ void fullb12finalfit(const char * const cut =
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
- 
+
   const int npar = 17;
   mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
