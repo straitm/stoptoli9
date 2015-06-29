@@ -135,6 +135,22 @@ void print_results(const double eff, const double energy,
   puts("");
 }
 
+/* Print the TFormula-style expression for a Gaussian, arranged so that
+ * one of the parameters gives the integral, another the mean, and
+ * the rest take care of the energy scale and resolution as is useful
+ * for this fit. */
+string gaus(const string integral, const string mean)
+{
+  const string INT  = "[" + integral + "]";
+  const string MEAN = "[" + mean     + "]";
+
+  const string width =
+    "sqrt([23]**2* " + MEAN + "+([24]*" + MEAN + ")**2+[25]**2)";
+
+  return INT + "/" + width +
+    "*exp(-(((x-" + MEAN + "*[1])/" + width + ")**2)/2)";
+}
+
 void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 {
   const double lowt   = region == 0? 4500 :region == 1?  lowt1: 2750;
@@ -325,23 +341,18 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
   corrbg->Fit("corrbgfit", "li");
   corrbgfit->SetNpx(300);
 
-  TF1 *gg = new TF1("gg",
+  TF1 *gg = new TF1("gg", (
   "[0] +"
-  " [3]/sqrt([23]^2*[4]+([24]*[4])**2+[25]**2)*"
-   "exp(-(((x- [4]*[1])/sqrt([23]^2*[4]+([24]*[4])**2+[25]**2))**2)/2)+"
-  " [5]/sqrt([23]^2*[6]+([24]*[6])**2+[25]**2)*"
-   "exp(-(((x- [6]*[1])/sqrt([23]^2*[6]+([24]*[6])**2+[25]**2))**2)/2)+"
-  " [7]/sqrt([23]^2*[8]+([24]*[8])**2+[25]**2)*"
-   "exp(-(((x- [8]*[1])/sqrt([23]^2*[8]+([24]*[8])**2+[25]**2))**2)/2)+"
-  " [9]/sqrt([23]^2*[10]+([24]*[10])**2+[25]**2)*"
-   "exp(-(((x-[10]*[1])/sqrt([23]^2*[10]+([24]*[10])**2+[25]**2))**2)/2)+"
-  "[11]/sqrt([23]^2*[12]+([24]*[12])**2+[25]**2)*"
-   "exp(-(((x-[12]*[1])/sqrt([23]^2*[12]+([24]*[12])**2+[25]**2))**2)/2)+"
-  "[13]/sqrt([23]^2*[14]+([24]*[14])**2+[25]**2)*"
-   "exp(-(((x-[14]*[1])/sqrt([23]^2*[14]+([24]*[14])**2+[25]**2))**2)/2)+"
+  // Six gaussians in which one of the fit parameters is the integral,
+  // with a parameter for the energy scale, in for which the width is
+  // set by the energy and three resolution parameters, all of which are
+  // the same for all gaussians.
+  + gaus( "3",  "4") + "+" + gaus( "5",  "6") + "+"
+  + gaus( "7",  "8") + "+" + gaus( "9", "10") + "+"
+  + gaus("11", "12") + "+" + gaus("13", "14") + "+"
  // bg
    "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
-   "gaus(26) + gaus(29)"
+   "gaus(26) + gaus(29)").c_str()
     , 0,15);
 
   const char * ggpars[32] = { "accidentals", "energyscale", "unused",
