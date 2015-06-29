@@ -10,6 +10,8 @@
 #include "TROOT.h"
 #include <stdio.h>
 
+//#define HP
+
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
 
@@ -116,12 +118,21 @@ void print_results(const double eff, const double energy,
              100*nelo_ec/Nc12cap,
              100*neup_ec/Nc12cap);
 
+  const double p_b12_from_c12 = 0.1735;
+
+  printtwice("\n%.0fkeV per bound B-12 production: "
+             "(%f %f +%f)%%\n", 2, energy,
+             100*n_ec   /Nc12cap/p_b12_from_c12,
+             100*nelo_ec/Nc12cap/p_b12_from_c12,
+             100*neup_ec/Nc12cap/p_b12_from_c12);
+
   const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
 
-  printtwice("%.0fkeV rate: %f %f +%f e-3\n", 3, energy,
+  printtwice("\n%.0fkeV rate: %f %f +%f e-3\n", 3, energy,
              n_ec*ratemult,
              nelo_ec*ratemult,
              neup_ec*ratemult);
+  puts("");
 }
 
 void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
@@ -186,7 +197,12 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 
   t->Draw(Form("corrmiche(miche, fq/%f, micht) >> ehist",
                fq_per_mev),
-         Form("!earlymich && "
+         Form(
+         #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+         #endif
+         "!earlymich && "
          "latennear==0 && "
          "ndecay == 0 && "
          "e > %f && e < 15 && "
@@ -200,7 +216,12 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
       , "e");
 
   t->Draw("corrmiche(miche, fq/8300, micht) >> bg",
-         Form("!earlymich && "
+         Form(
+         #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+         #endif
+         "!earlymich && "
          "latennear==0 && "
          //"ndecay == 0 && " how to handle this? Really need the first
          //event in lots of windows, which isn't convenient -- I think
@@ -221,7 +242,12 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 
   t->Draw(Form("corrmiche(miche, fq/%f, micht) >> corrbg",
                fq_per_mev),
-         Form("!earlymich && "
+         Form(
+         #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+         #endif
+         "!earlymich && "
          "latennear==0 && "
          "e> %f && e < 15 && "
          "dt > %f && dt < %f && "
