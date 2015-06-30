@@ -5,6 +5,8 @@ const char * const rootfile3up =
   "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root";
 const char * const rootfile0up =
   "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
+const char * const rootfilethru =
+  "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
