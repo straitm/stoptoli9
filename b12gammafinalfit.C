@@ -15,6 +15,8 @@
 
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
+const double gn_e1 = 7.937; // Gd-157
+const double gn_e2 = 8.536; // Gd-155
 
 const double mulife = 2196.9811;
 const double muClife_err = 2.;
@@ -51,7 +53,7 @@ const double eff_eor_acc = 1-(1-eff_eor_100s)*acchight/100e3;
 
 const double fq_per_mev = 8300;
 
-const double b12ecutlow = 3;
+const double b12ecutlow = 4;
 
 const double distcut = 400;
 
@@ -125,6 +127,21 @@ double corrmiche(const double e, const double me, const double mt)
   return early + (late - early) * (mt - 3625.)/1250.;
 }
 
+// Returns a pretty darn good approximation to the plot in 
+// doc5608-v4, figure 5, giving the time of Gd captures
+TF1 * gdtime()
+{
+  static TF1 *f = new TF1("f",
+   "[0]*exp(-x/[1])/(1+exp(-(x-[2])/[3]))/(1+exp(-(x-[4])/[5]))",0,600);
+  f->SetParameter(0,1194.59);
+  f->SetParameter(1,26.117);
+  f->SetParameter(2,3.66788);
+  f->SetParameter(3,2.99152);
+  f->SetParameter(4,1.62591);
+  f->SetParameter(5,0.678265);
+  return f;
+}
+
 void print_results(const double eff, const double energy,
                    const double n, const double nelo, const double neup)
 {
@@ -175,7 +192,7 @@ string gaus(const string integral, const string mean)
     "*exp(-(((x-" + MEAN + "*[1])/" + width + ")**2)/2)";
 }
 
-void drawpeak(TF1 * gg, const int peak)
+TF1 * drawpeak(TF1 * gg, const char * const peak)
 {
   const double a = gg->GetParameter("er_a");
   const double b = gg->GetParameter("er_b");
@@ -189,14 +206,15 @@ void drawpeak(TF1 * gg, const int peak)
   mypeak->SetNpx(400);
 
   mypeak->SetParameter(0, gg->GetParameter(1));
-  const double E = gg->GetParameter(Form("e%d", peak));
+  const double E = gg->GetParameter(Form("e%s", peak));
   mypeak->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
 
   for(int i = 2; i < 4; i++)
     mypeak->SetParameter(i,
-      gg->GetParameter(i+gg->GetParNumber(Form("n%d", peak))-2));
+      gg->GetParameter(i+gg->GetParNumber(Form("n%s", peak))-2));
 
   mypeak->Draw("same");
+  return mypeak;
 }
 
 void b12gammafinalfit(const int region = 1)
@@ -222,7 +240,9 @@ void b12gammafinalfit(const int region = 1)
   const double b12eff = 1
     * 0.981  // Subsequent muon veto efficiency 
     * eff_eor_b12 // timeleft cut
-    * (b12ecutlow == 3?0.9251:(exit(1),1)) // B-12 energy cut
+    * (b12ecutlow == 3?0.9251:
+       b12ecutlow == 4?0.8504:
+       (exit(1),1)) // B-12 energy cut
     * (distcut == 400?wholedet_dist400eff:(exit(1),1))
     * (exp(-b12lowt *log(2)/b12hl)
       -exp(-b12hight*log(2)/b12hl)) // B-12 beta decay time
@@ -235,18 +255,23 @@ void b12gammafinalfit(const int region = 1)
 
   printtwice("Efficiency: %f%%\n", 1, 100*eff);
 
-  TFile * f = new TFile(rootfile3up, "read");
+  TFile * f = /*new TFile(Form("b12gamma.sel%d.root", region), "read");
+  if(!f || f->IsZombie()) f =*/ new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
   TCanvas * c2 = new TCanvas;
 
-  TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
   TH1D * bg     = new TH1D("bg"    , "", 600, 0.7, 60.7);
   TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
-/*
+  TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
+  bg->Sumw2();
+  corrbg->Sumw2();
+  ehist->Sumw2();
+
   TFile * tempfile = new
     TFile(Form("/tmp/b12gammafit.%d.root", getpid()), "recreate");
 
+  printf("Pre-selecting...\n");
   TTree * seltree = t->CopyTree(Form(
          #ifdef HP
           "mx**2+my**2 < 1050**2 && mz > -1175 && "
@@ -255,95 +280,54 @@ void b12gammafinalfit(const int region = 1)
          "!earlymich && "
          "latennear==0 && "
          "e > %f && e < 15 && "
-         "dt >%f && dt < %f && "
          "dist < %f && "
          "fq < %f && "
          "micht >= %f && micht < %f"
-         , b12ecutlow, b12lowt, b12hight, distcut,
-         fq_per_mev*highfq, lowt, hight));
-  tempfile->cd();
+         , b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
   seltree->Write();
-
 
   printf("%d events in t, %d in seltree\n",
          t->GetEntries(), seltree->GetEntries());
-  delete t;
   if(seltree->GetEntries() == 0){ printf("No events in seltree\n"); exit(1);}
-*/
-  printf("Drawing signal...\n");
-  t->Draw(Form("corrmiche(miche, fq/%f, micht) >> ehist",
-               fq_per_mev),
-         Form(
-         #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
-         #endif
-         "!earlymich && "
-         "latennear==0 && "
-         "ndecay == 0 && "
-         "e > %f && e < 15 && "
-         "dt >%f && dt < %f && "
-         "timeleft>%f && "
-         "dist < %f && "
-         "fq < %f && "
-         "micht >= %f && micht < %f"
-         , b12ecutlow, b12lowt, b12hight, b12hight, distcut,
-         fq_per_mev*highfq, lowt, hight)
-      , "e");
 
-  if(ehist->Integral()   == 0){ printf("No i signal events\n"); exit(1); }
-  if(ehist->GetEntries() == 0){ printf("No g signal events\n"); exit(1); }
+  int ndecay;
+  float dt, timeleft, miche, micht, fq; // yes, all floats
+  #define SBA(x) seltree->SetBranchAddress(#x, &x);
+  SBA(ndecay); 
+  SBA(dt); 
+  SBA(timeleft); 
+  SBA(miche); 
+  SBA(micht); 
+  SBA(fq); 
 
-  printf("Drawing accidental background...\n");
-  t->Draw("corrmiche(miche, fq/8300, micht) >> bg",
-         Form(
-         #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
-         #endif
-         "!earlymich && "
-         "latennear==0 && "
-         //"ndecay == 0 && " how to handle this? Really need the first
-         //event in lots of windows, which isn't convenient -- I think
-         //this is close enough
-         "e > %f && e < 15 && "
-         "dt > %f && dt < %f && "
-         "timeleft>%f && "
-         "dist < %f && "
-         "fq < %f && "
-         "micht >= %f && micht < %f "
-         , b12ecutlow, acclowt, acchight, acchight, distcut,
-         fq_per_mev*highfq, lowt, hight)
-      , "e");
+  printf("Drawing...\n");
+  for(int i = 0; i < seltree->GetEntries(); i++){
+    seltree->GetEntry(i);
 
+    if(timeleft > b12hight && dt > b12lowt && dt < b12hight && ndecay == 0)
+      ehist ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
 
-  printf("Drawing correlated background...\n");
-  t->Draw(Form("corrmiche(miche, fq/%f, micht) >> corrbg",
-               fq_per_mev),
-         Form(
-         #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
-         #endif
-         "!earlymich && "
-         "latennear==0 && "
-         "e > %f && e < 15 && "
-         "dt > %f && dt < %f && "
-         "timeleft>%f && "
-         "dist < %f && "
-         "fq < %f && "
-         "micht >= %f && micht < %f "
-         , b12ecutlow, li8lowt, li8hight, li8hight, distcut,
-         fq_per_mev*highfq, lowt, hight)
-      , "e");
+    // "ndecay == 0" how to handle this? Really need the first event in
+    // lots of windows, which isn't convenient -- I think this is close
+    // enough
+    if(timeleft > acchight && dt > acclowt && dt < acchight)
+      bg    ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
 
-  ehist->Draw("e");
+    if(timeleft > li8hight && dt > li8lowt && dt < li8hight && ndecay == 0)
+      corrbg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+  }
+
+  if(ehist->GetEntries() == 0){ printf("No signal events\n"); exit(1); }
+
   bg->SetLineColor(kRed);
   bg->SetMarkerColor(kRed);
   corrbg->SetLineColor(kViolet);
   corrbg->SetMarkerColor(kViolet);
-  bg->Scale((b12hight - b12lowt)/(acchight-acclowt)/eff_eor_acc);
-  bg->Draw("histsame");
+  const double bgscaleb12 = (b12hight - b12lowt)/(acchight-acclowt)
+           *eff_eor_b12/eff_eor_acc;
+  const double bgscaleli8 = (li8hight - li8lowt)/(acchight-acclowt)
+           *eff_eor_li8/eff_eor_acc;
+  bg->Scale(bgscaleb12);
 
   TF1 *bggg = new TF1("bggg",
     //                Simple Michel spectrum, stretched a little to
@@ -378,19 +362,17 @@ void b12gammafinalfit(const int region = 1)
 
   bggg->SetParLimits(7,0,1);
 
-  printf("Fitting...\n");
+  printf("Fitting accidental background...\n");
   bg->Fit("bggg", "li", "", 0.7, 40);
 
   // corrbg has accidentals in it too
-  corrbg->Add(bggg, -(li8hight-li8lowt)/(b12hight-b12lowt));
+  corrbg->Add(bggg, -bgscaleli8/bgscaleb12);
 
   // And scale the accidental-substracted version to the
   // expected amount in the signal window
-  corrbg->Scale(
+  const double corrbgscale =
     (exp(-b12lowt/li8life) - exp(-b12hight/li8life))/
-    (exp(-li8lowt/li8life) - exp(-li8hight/li8life))/eff_eor_li8);
-
-  corrbg->Draw("histsame");
+    (exp(-li8lowt/li8life) - exp(-li8hight/li8life))/eff_eor_li8;
 
   TF1 * corrbgfit = new TF1("corrbgfit", "gaus(0)", 0.7, 2);
   corrbgfit->SetLineColor(kViolet);
@@ -401,7 +383,13 @@ void b12gammafinalfit(const int region = 1)
   corrbgfit->FixParameter(2, sqrt(pow(0.077, 2)*li8gamma +
                                   pow(0.018*li8gamma, 2) +
                                   pow(0.167, 2)));
-  corrbg->Fit("corrbgfit", "li");
+  for(int i = 1; i <= corrbg->GetNbinsX(); i++)
+    if(corrbg->GetBinContent(i) < 0)
+      corrbg->SetBinError(i, 1);
+  corrbg->Scale(corrbgscale);
+
+  printf("Fitting correlated background...\n");
+  corrbg->Fit("corrbgfit", "i");
   corrbgfit->SetNpx(300);
 
   TF1 *gg = new TF1("gg", (
@@ -415,10 +403,12 @@ void b12gammafinalfit(const int region = 1)
   + gaus("11", "12") + "+" + gaus("13", "14") + "+"
  // bg
    "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
-   "gaus(26) + gaus(29)").c_str()
+  + gaus("26", "27") + "+" + gaus("28", "29") + "+"
+  + gaus("30", "31") + "+" + gaus("32", "33")
+   ).c_str()
     , 0,15);
 
-  const char * ggpars[32] = { "accidentals", "energyscale", "unused",
+  const char * ggpars[34] = { "accidentals", "energyscale", "unused",
   "n1", "e1",
   "n2", "e2",
   "n3", "e3",
@@ -432,8 +422,12 @@ void b12gammafinalfit(const int region = 1)
   "bggaus2norm",
   "bggaus2mean",
   "bggaus2sig",
-  "bgmich", "er_a", "er_b", "er_c", "li8n", "li8m", "li8s",
-  "hn_n", "hn_m", "hn_s"
+  "bgmich",
+  "er_a", "er_b", "er_c",
+  "li8n", "li8m",
+  "n_hn", "e_hn",
+  "n_gn1", "e_gn1",
+  "n_gn2", "e_gn2"
   };
 
   for(int i = 0; i < gg->GetNpar(); i++) gg->SetParName(i, ggpars[i]);
@@ -468,15 +462,14 @@ void b12gammafinalfit(const int region = 1)
 
   // contamination by Hn events.
   {
-    const double a = gg->GetParameter("er_a");
-    const double b = gg->GetParameter("er_b");
-    const double c = gg->GetParameter("er_c");
-    const double hn_t = 179., gn_t = 28.;
+    const double hn_t = 179.;
 
-    const double Pb12n = 0.516; // from my own measurements
-    const double ntrueb12n = Nc13cap*Pb12n;
+    // from my own measurements of B-12n and Li-8n from C-13
+    const double Pn = 0.516 + 0.054 * b12hl/li8life;
+    const double ntrueb12n = Nc13cap*Pn;
     const double nobsb12n = ntrueb12n*b12eff;
 
+    printf("Getting muon stop positions...\n");
     const double targfrac = 
       double(t->GetEntries(Form(
           "mx**2+my**2 < 1154**2 && "
@@ -493,33 +486,57 @@ void b12gammafinalfit(const int region = 1)
         #endif
          "ndecay == 0 && fq < %f", fq_per_mev*highfq));
 
-    const double gdfracintarget_nominal = 0.85;
-    // Gd capture doesn't get efficient until the neutron is fully
-    // thermalized.  From doc-5608-v4, figure 5, it seems that the
-    // rate is about half nominal in the relevant time window.
-    const double early_gd_fudge = 0.5;
+    // Rough number for early Gd-h from my own study.
+    // Will be less earlier and approach 0.875 (?) later.
+    const double gdfrac = 0.78;
 
-    const double gdfrac=gdfracintarget_nominal*targfrac*early_gd_fudge;
-
-    const double n_hn = (1-gdfrac) * nobsb12n *
+    // Hn in the GC, easy.  It's just the total times the probability
+    // of an exponential during the time window
+    const double n_hn_gc = (1-targfrac) * nobsb12n *
       (exp(-lowt/1000./hn_t)-exp(-hight/1000./hn_t));
 
-    const double n_gn = gdfrac * nobsb12n *
-      (exp(-lowt/1000./gn_t)-exp(-hight/1000./gn_t));
+    // Gd-n [in the Target].  Complicated, so integral a function
+    // to get the probability.
+    const double inwindowgdprob =
+      gdtime()->Integral(lowt/1000, hight/1000)/gdtime()->Integral(0,600);
+    const double n_gn = gdfrac * targfrac * nobsb12n *
+      inwindowgdprob;
+    printf("In-window Gd probability: %.3f\n", inwindowgdprob);
 
-    printf("Number of Hn = %.1f, Gdn = %.1f\n", n_hn, n_gn);
 
-    const double nomEerr = sqrt(a*a*hn_e + b*b*hn_e*hn_e + c*c);
-    gg->FixParameter(29, n_hn/nomEerr/sqrt(2*M_PI));
-    gg->FixParameter(30, hn_e);
-    gg->FixParameter(31, nomEerr);
+    // H-n in the Target.  It is obviously proportional to the Gd-n
+    // by the fraction defined above.
+    const double n_hn_targ = (1 - gdfrac)/gdfrac * n_gn;
+
+    const double n_hn = n_hn_gc + n_hn_targ;
+
+    printf("Fraction of muon stops in the target: %.3f\n", targfrac);
+    printf("Number of Hn = %.1f (T %.3f, GC %.1f), Gdn = %.3f\n",
+           n_hn, n_hn_targ, n_hn_gc, n_gn);
+
+    gg->FixParameter(28, n_hn*ehist->GetBinWidth(1));
+    gg->FixParameter(29, hn_e);
+
+    // fraction of Gd captures that are Gd-157
+    const double frac157 = 0.815;
+
+    gg->FixParameter(30, frac157*n_gn*ehist->GetBinWidth(1));
+    gg->FixParameter(31, gn_e1);
+
+    gg->FixParameter(32, (1 - frac157)*n_gn*ehist->GetBinWidth(1));
+    gg->FixParameter(33, gn_e2);
   }
 
+  printf("Fitting signal, step 1/2...\n");
   ehist->Fit("gg", "lq", "", 0.7, 15);
   gg->ReleaseParameter(25);
   gg->SetParLimits(25, 0, 1.92530e-01 + 1.81760e-02);
+  printf("Fitting signal, step 2/2...\n");
   ehist->Fit("gg", "limq", "", 0.7, 15);
 
+  ehist->Draw("e");
+  bg->Draw("histsame");
+  corrbg->Draw("samee");
   bggg->Draw("same");
   corrbgfit->Draw("same");
 
@@ -541,9 +558,12 @@ void b12gammafinalfit(const int region = 1)
   const double b = gg->GetParameter("er_b");
   const double c = gg->GetParameter("er_c");
 
+  TF1 * nh_peak = drawpeak(gg, "_hn");
+  nh_peak->SetLineStyle(7);
+
   if(region == 0) {
     {
-      drawpeak(gg, 1);
+      drawpeak(gg, "1");
 
       // The number of events in the peak, corrected for efficiency.
       const double nev = gg->GetParameter("n1")/ehist->GetBinWidth(1);
@@ -553,7 +573,7 @@ void b12gammafinalfit(const int region = 1)
       print_results(eff, 953, nev, nevelo, neveup);
     }
     {
-      drawpeak(gg, 2);
+      drawpeak(gg, "2");
 
       const double nev = gg->GetParameter("n2")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[1]/gg->GetParameter("n2")*nev;
@@ -564,7 +584,7 @@ void b12gammafinalfit(const int region = 1)
   }
   else if(region == 1){
     {
-      drawpeak(gg, 3);
+      drawpeak(gg, "3");
 
       const double nev = gg->GetParameter("n3")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[2]/gg->GetParameter("n3")*nev;
@@ -573,7 +593,7 @@ void b12gammafinalfit(const int region = 1)
       print_results(eff, 2621, nev, nevelo, neveup);
     }
     {
-      drawpeak(gg, 5);
+      drawpeak(gg, "5");
 
       const double nev = gg->GetParameter("n5")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[3]/gg->GetParameter("n5")*nev;
@@ -583,7 +603,7 @@ void b12gammafinalfit(const int region = 1)
     }
   }
   else if(region == 2){
-    drawpeak(gg, 6);
+    drawpeak(gg, "6");
 
     const double nev = gg->GetParameter("n6")/ehist->GetBinWidth(1);
     const double neveup = gMinuit->fErp[4]/gg->GetParameter("n6")*nev;
