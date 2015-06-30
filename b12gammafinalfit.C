@@ -1,3 +1,4 @@
+#include "unistd.h"
 #include "consts.h"
 #include "math.h"
 #include "TFile.h"
@@ -32,6 +33,27 @@ const double errcapprob12 = (1-(muClife+muClife_err)/mulife)/2
   const double Nc12cap       = n_c12cap*livetime;
   const double Nc13cap       = n_c13cap*livetime;
 #endif
+
+const double li8life = 839.9;
+
+// Possible background from li-8 gammas, particularly at 980.8keV
+const double li8lowt = 300, li8hight = 5*li8life;
+
+const double b12hl = 20.20; // b12 half life, ms
+
+const double b12lowt = 2, b12hight = 60;
+const double acclowt = 10e3, acchight = 100e3;
+
+const double eff_eor_100s  = 0.9709;
+const double eff_eor_b12 = 1-(1-eff_eor_100s)*b12hight/100e3;
+const double eff_eor_li8 = 1-(1-eff_eor_100s)*li8hight/100e3;
+const double eff_eor_acc = 1-(1-eff_eor_100s)*acchight/100e3;
+
+const double fq_per_mev = 8300;
+
+const double b12ecutlow = 3;
+
+const double distcut = 400;
 
 /*
  * Prints the message once with the requested floating point precision
@@ -80,12 +102,14 @@ void printtwice(const char * const msg, const int digits, ...)
 
   va_list ap;
   va_start(ap, digits);
+#ifndef __CINT__
   printf(RED);
   vprintf(pmsg, ap);
   printf(CLR);
 
   va_start(ap, digits);
   vprintf(bmsg, ap);
+#endif
 }
 
 double logis(const double x,
@@ -147,16 +171,39 @@ string gaus(const string integral, const string mean)
   const string width =
     "sqrt([23]**2* " + MEAN + "+([24]*" + MEAN + ")**2+[25]**2)";
 
-  return INT + "/" + width +
+  return INT + "/(" + width + "*sqrt(2*TMath::Pi()))"
     "*exp(-(((x-" + MEAN + "*[1])/" + width + ")**2)/2)";
 }
 
-void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
+void drawpeak(TF1 * gg, const int peak)
 {
-  const double lowt   = region == 0? 4500 :region == 1?  lowt1: 2750;
+  const double a = gg->GetParameter("er_a");
+  const double b = gg->GetParameter("er_b");
+  const double c = gg->GetParameter("er_c");
+
+  static int uniq = 0;
+
+  TF1 * mypeak = new TF1(Form("mypeak%d", uniq++),
+    "[2]/([1]*sqrt(2*TMath::Pi()))*"
+    "exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
+  mypeak->SetNpx(400);
+
+  mypeak->SetParameter(0, gg->GetParameter(1));
+  const double E = gg->GetParameter(Form("e%d", peak));
+  mypeak->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
+
+  for(int i = 2; i < 4; i++)
+    mypeak->SetParameter(i,
+      gg->GetParameter(i+gg->GetParNumber(Form("n%d", peak))-2));
+
+  mypeak->Draw("same");
+}
+
+void b12gammafinalfit(const int region = 1)
+{
+  const double lowt   = region == 0? 4500 :region == 1?  3008: 2750;
   const double hight = 5500.; // ns
   const double highfq = region == 0? 215:region == 1? 215: 1000; // MeV
-
 
 #ifdef HP
   // From muon counting.  Exact.
@@ -172,45 +219,58 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
                        :1;
 #endif
 
-  const double li8life = 839.9;
-
-  TFile * f = new TFile(rootfile3up, "read");
-  TTree * t = (TTree *)f->Get("t");
-
-  const double b12hl = 20.2; // b12 half life, ms
-
-  const double b12lowt = 2, b12hight = 60;
-  const double acclowt = 10e3, acchight = 100e3;
-
-  const double eff_eor_100s  = 0.9709;
-  const double eff_eor = 1-(1-eff_eor_100s)*b12hight/100e3;
-
-  const double fq_per_mev = 8300;
-
-  const double b12ecutlow = 4;
-
-  const double distcut = 400;
-
-  // Relative to B-12 selection
-  const double eff = 1
+  const double b12eff = 1
     * 0.981  // Subsequent muon veto efficiency 
-    * eff_eor // timeleft cut
-    * 0.8504 // B-12 energy cut
-    * wholedet_dist400eff
-    * (exp(-lowt/muClife)-exp(-hight/muClife)) // C-12 capture time
+    * eff_eor_b12 // timeleft cut
+    * (b12ecutlow == 3?0.9251:(exit(1),1)) // B-12 energy cut
+    * (distcut == 400?wholedet_dist400eff:(exit(1),1))
     * (exp(-b12lowt *log(2)/b12hl)
       -exp(-b12hight*log(2)/b12hl)) // B-12 beta decay time
     * fq_eff
   ;
 
+  const double eff = b12eff
+    * (exp(-lowt/muClife)-exp(-hight/muClife)) // C-12 capture time
+  ;
+
   printtwice("Efficiency: %f%%\n", 1, 100*eff);
+
+  TFile * f = new TFile(rootfile3up, "read");
+  TTree * t = (TTree *)f->Get("t");
 
   TCanvas * c2 = new TCanvas;
 
   TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
   TH1D * bg     = new TH1D("bg"    , "", 600, 0.7, 60.7);
   TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
+/*
+  TFile * tempfile = new
+    TFile(Form("/tmp/b12gammafit.%d.root", getpid()), "recreate");
 
+  TTree * seltree = t->CopyTree(Form(
+         #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+         #endif
+         "!earlymich && "
+         "latennear==0 && "
+         "e > %f && e < 15 && "
+         "dt >%f && dt < %f && "
+         "dist < %f && "
+         "fq < %f && "
+         "micht >= %f && micht < %f"
+         , b12ecutlow, b12lowt, b12hight, distcut,
+         fq_per_mev*highfq, lowt, hight));
+  tempfile->cd();
+  seltree->Write();
+
+
+  printf("%d events in t, %d in seltree\n",
+         t->GetEntries(), seltree->GetEntries());
+  delete t;
+  if(seltree->GetEntries() == 0){ printf("No events in seltree\n"); exit(1);}
+*/
+  printf("Drawing signal...\n");
   t->Draw(Form("corrmiche(miche, fq/%f, micht) >> ehist",
                fq_per_mev),
          Form(
@@ -231,6 +291,10 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          fq_per_mev*highfq, lowt, hight)
       , "e");
 
+  if(ehist->Integral()   == 0){ printf("No i signal events\n"); exit(1); }
+  if(ehist->GetEntries() == 0){ printf("No g signal events\n"); exit(1); }
+
+  printf("Drawing accidental background...\n");
   t->Draw("corrmiche(miche, fq/8300, micht) >> bg",
          Form(
          #ifdef HP
@@ -242,7 +306,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          //"ndecay == 0 && " how to handle this? Really need the first
          //event in lots of windows, which isn't convenient -- I think
          //this is close enough
-         "e> %f && e < 15 && "
+         "e > %f && e < 15 && "
          "dt > %f && dt < %f && "
          "timeleft>%f && "
          "dist < %f && "
@@ -253,9 +317,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
       , "e");
 
 
-  // Possible background from li-8 gammas, particularly at 980.8keV
-  const double li8lowt = 300, li8hight = 5*li8life;
-
+  printf("Drawing correlated background...\n");
   t->Draw(Form("corrmiche(miche, fq/%f, micht) >> corrbg",
                fq_per_mev),
          Form(
@@ -265,13 +327,13 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
          #endif
          "!earlymich && "
          "latennear==0 && "
-         "e> %f && e < 15 && "
+         "e > %f && e < 15 && "
          "dt > %f && dt < %f && "
-         "timeleft>100e3 && "
+         "timeleft>%f && "
          "dist < %f && "
          "fq < %f && "
          "micht >= %f && micht < %f "
-         , b12ecutlow, li8lowt, li8hight, distcut,
+         , b12ecutlow, li8lowt, li8hight, li8hight, distcut,
          fq_per_mev*highfq, lowt, hight)
       , "e");
 
@@ -280,7 +342,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
   bg->SetMarkerColor(kRed);
   corrbg->SetLineColor(kViolet);
   corrbg->SetMarkerColor(kViolet);
-  bg->Scale((b12hight - b12lowt)/(acchight-acclowt)/eff_eor_100s);
+  bg->Scale((b12hight - b12lowt)/(acchight-acclowt)/eff_eor_acc);
   bg->Draw("histsame");
 
   TF1 *bggg = new TF1("bggg",
@@ -316,6 +378,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 
   bggg->SetParLimits(7,0,1);
 
+  printf("Fitting...\n");
   bg->Fit("bggg", "li", "", 0.7, 40);
 
   // corrbg has accidentals in it too
@@ -325,7 +388,7 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
   // expected amount in the signal window
   corrbg->Scale(
     (exp(-b12lowt/li8life) - exp(-b12hight/li8life))/
-    (exp(-li8lowt/li8life) - exp(-li8hight/li8life))/eff_eor_100s);
+    (exp(-li8lowt/li8life) - exp(-li8hight/li8life))/eff_eor_li8);
 
   corrbg->Draw("histsame");
 
@@ -409,11 +472,45 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
     const double b = gg->GetParameter("er_b");
     const double c = gg->GetParameter("er_c");
     const double hn_t = 179., gn_t = 28.;
+
+    const double Pb12n = 0.516; // from my own measurements
+    const double ntrueb12n = Nc13cap*Pb12n;
+    const double nobsb12n = ntrueb12n*b12eff;
+
+    const double targfrac = 
+      double(t->GetEntries(Form(
+          "mx**2+my**2 < 1154**2 && "
+          "abs(mz) < 1229+4+0.03*(1154-sqrt(mx**2+my**2)) && "
+        #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+        #endif
+         "ndecay == 0 && fq < %f", fq_per_mev*highfq)))/
+      t->GetEntries(Form(
+        #ifdef HP
+          "mx**2+my**2 < 1050**2 && mz > -1175 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+        #endif
+         "ndecay == 0 && fq < %f", fq_per_mev*highfq));
+
+    const double gdfracintarget_nominal = 0.85;
+    // Gd capture doesn't get efficient until the neutron is fully
+    // thermalized.  From doc-5608-v4, figure 5, it seems that the
+    // rate is about half nominal in the relevant time window.
+    const double early_gd_fudge = 0.5;
+
+    const double gdfrac=gdfracintarget_nominal*targfrac*early_gd_fudge;
+
+    const double n_hn = (1-gdfrac) * nobsb12n *
+      (exp(-lowt/1000./hn_t)-exp(-hight/1000./hn_t));
+
+    const double n_gn = gdfrac * nobsb12n *
+      (exp(-lowt/1000./gn_t)-exp(-hight/1000./gn_t));
+
+    printf("Number of Hn = %.1f, Gdn = %.1f\n", n_hn, n_gn);
+
     const double nomEerr = sqrt(a*a*hn_e + b*b*hn_e*hn_e + c*c);
-    const double normNN =
-        23.3 * (exp(-lowt/1000/hn_t)-exp(-5.5/hn_t))
-       + 1.5 * (exp(-lowt/1000/gn_t)-exp(-5.5/gn_t));
-    gg->FixParameter(29, normNN/nomEerr/sqrt(2*M_PI));
+    gg->FixParameter(29, n_hn/nomEerr/sqrt(2*M_PI));
     gg->FixParameter(30, hn_e);
     gg->FixParameter(31, nomEerr);
   }
@@ -446,42 +543,19 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
 
   if(region == 0) {
     {
-      TF1 * mypeak0a = new TF1("mypeak0a",
-        "[2]/[1]* exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
-      mypeak0a->SetNpx(400);
-
-      mypeak0a->SetParameter(0, gg->GetParameter(1));
-      const double E = gg->GetParameter("e1");
-      mypeak0a->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
-
-      for(int i = 2; i < 4; i++)
-        mypeak0a->SetParameter(i, gg->GetParameter(i+1));
-
-      mypeak0a->Draw("same");
+      drawpeak(gg, 1);
 
       // The number of events in the peak, corrected for efficiency.
-      const double nev = mypeak0a->Integral(0, 15)/ehist->GetBinWidth(1);
+      const double nev = gg->GetParameter("n1")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[0]/gg->GetParameter("n1")*nev;
       const double nevelo = gMinuit->fErn[0]/gg->GetParameter("n1")*nev;
 
       print_results(eff, 953, nev, nevelo, neveup);
     }
     {
-      TF1 * mypeak0b = new TF1("mypeak0b",
-        "[2]/[1]* exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
-      mypeak0b->SetNpx(400);
+      drawpeak(gg, 2);
 
-      mypeak0b->SetParameter(0, gg->GetParameter(1));
-      const double E = gg->GetParameter("e2");
-      mypeak0b->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
-
-      for(int i = 2; i < 4; i++)
-        mypeak0b->SetParameter(i,
-          gg->GetParameter(i+gg->GetParNumber("n2")-2));
-
-      mypeak0b->Draw("same");
-
-      const double nev = mypeak0b->Integral(0, 15)/ehist->GetBinWidth(1);
+      const double nev = gg->GetParameter("n2")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[1]/gg->GetParameter("n2")*nev;
       const double nevelo = gMinuit->fErn[1]/gg->GetParameter("n2")*nev;
 
@@ -490,42 +564,18 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
   }
   else if(region == 1){
     {
-      TF1 * mypeak1a = new TF1("mypeak1a",
-        "[2]/[1]* exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
-      mypeak1a->SetNpx(400);
+      drawpeak(gg, 3);
 
-      mypeak1a->SetParameter(0, gg->GetParameter(1));
-      const double E = gg->GetParameter("e3");
-      mypeak1a->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
-
-      for(int i = 2; i <= 3; i++)
-        mypeak1a->SetParameter(i,
-          gg->GetParameter(i+gg->GetParNumber("n3")-2));
-
-      mypeak1a->Draw("same");
-
-      const double nev = mypeak1a->Integral(0, 15)/ehist->GetBinWidth(1);
+      const double nev = gg->GetParameter("n3")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[2]/gg->GetParameter("n3")*nev;
       const double nevelo = gMinuit->fErn[2]/gg->GetParameter("n3")*nev;
 
       print_results(eff, 2621, nev, nevelo, neveup);
     }
     {
-      TF1 * mypeak1b = new TF1("mypeak1b",
-        "[2]/[1]* exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
-      mypeak1b->SetNpx(400);
+      drawpeak(gg, 5);
 
-      mypeak1b->SetParameter(0, gg->GetParameter(1));
-      const double E = gg->GetParameter("e5");
-      mypeak1b->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
-
-      for(int i = 2; i < 4; i++)
-        mypeak1b->SetParameter(i,
-          gg->GetParameter(i+gg->GetParNumber("n5")-2));
-
-      mypeak1b->Draw("same");
-
-      const double nev = mypeak1b->Integral(0, 15)/ehist->GetBinWidth(1);
+      const double nev = gg->GetParameter("n5")/ehist->GetBinWidth(1);
       const double neveup = gMinuit->fErp[3]/gg->GetParameter("n5")*nev;
       const double nevelo = gMinuit->fErn[3]/gg->GetParameter("n5")*nev;
 
@@ -533,21 +583,9 @@ void b12gammafinalfit(const int region = 1, const double lowt1 = 3008.)
     }
   }
   else if(region == 2){
-    TF1 * mypeak2 = new TF1("mypeak2",
-      "[2]/[1]* exp(-(((x- [3]*[0])/[1])**2)/2)", 0, 15);
-    mypeak2->SetNpx(400);
+    drawpeak(gg, 6);
 
-    mypeak2->SetParameter(0, gg->GetParameter(1));
-    const double E = gg->GetParameter("e6");
-    mypeak2->SetParameter(1, sqrt(a*a*E + b*b*E*E + c*c));
-
-    for(int i = 2; i < 4; i++)
-      mypeak2->SetParameter(i,
-        gg->GetParameter(i+gg->GetParNumber("n6")-2));
-
-    mypeak2->Draw("same");
-
-    const double nev = mypeak2->Integral(0, 15)/ehist->GetBinWidth(1);
+    const double nev = gg->GetParameter("n6")/ehist->GetBinWidth(1);
     const double neveup = gMinuit->fErp[4]/gg->GetParameter("n6")*nev;
     const double nevelo = gMinuit->fErn[4]/gg->GetParameter("n6")*nev;
 
