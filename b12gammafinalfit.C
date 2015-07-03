@@ -1,5 +1,6 @@
 #include "unistd.h"
 #include "consts.h"
+#include <string>
 #include "math.h"
 #include "TFile.h"
 #include "TCanvas.h"
@@ -11,7 +12,17 @@
 #include "TROOT.h"
 #include <stdio.h>
 
+using std::string;
+
 //#define HP
+
+TCanvas * c2 = new TCanvas("c2", "", 0, 0, 500, 400);
+
+TH1D * bg     = new TH1D("bg"    , "", 600, 0.7, 60.7);
+TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
+TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
+
+TF1 *gg = NULL;
 
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
@@ -155,14 +166,14 @@ void print_results(const double eff, const double energy,
 
   const double n_ec = n/eff, nelo_ec = nelo/eff, neup_ec = neup/eff;
 
-  printtwice("\n%.0fkeV fitted number of events, eff corrected: "
-             "%f %f +%f\n", 1, energy, n_ec, nelo_ec, neup_ec);
+  /*printtwice("\n%.0fkeV fitted number of events, eff corrected: "
+             "%f %f +%f\n", 1, energy, n_ec, nelo_ec, neup_ec); */
 
-  printtwice("\n%.0fkeV per C-12 nuclear capture: "
+  /*printtwice("\n%.0fkeV per C-12 nuclear capture: "
              "(%f %f +%f)%%\n", 2, energy,
              100*n_ec   /Nc12cap,
              100*nelo_ec/Nc12cap,
-             100*neup_ec/Nc12cap);
+             100*neup_ec/Nc12cap);*/
 
   const double p_b12_from_c12 = 0.1735;
 
@@ -242,6 +253,44 @@ TF1 * drawnpeaks(TF1 * gg)
   return f;
 }
 
+void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
+{
+  chi2 = 0;
+  gg->SetParameters(par);
+  //gg->Draw("same"); c2->Update();  c2->Modified();
+  for(int i = 0; i < ehist->GetNbinsX(); i++){
+    const double bincenter = ehist->GetBinCenter(i);
+    const double binlo = ehist->GetBinLowEdge(i);
+    const double binhi = ehist->GetBinLowEdge(i+1);
+    if(bincenter < 0.7 || bincenter > 15) continue;
+    const double data = ehist->GetBinContent(i);
+
+    const double theory = gg->Integral(binlo, binhi)/(binhi-binlo);
+
+    chi2 += theory - data;
+    if(data > 0 && theory > 0) chi2 += data*log(data/theory);
+  }
+  chi2 *= 2;
+}
+
+double getlimup(TMinuit * mn, int i)
+{
+  double answer, dum;
+  int idum;
+  TString sdum;
+  mn->mnpout(i, sdum, dum, dum, dum, answer, idum);
+  return answer;
+}
+
+
+void fixat(TMinuit * mn, int i, float v)
+{
+  mn->Command(Form("REL %d", i));
+  if(getlimup(mn, i-1)) mn->Command(Form("SET LIM %d", i));
+  mn->Command(Form("SET PAR %d %g", i, v));
+  mn->Command(Form("FIX %d", i));
+}
+
 void b12gammafinalfit(const int region = 1)
 {
   const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
@@ -250,7 +299,7 @@ void b12gammafinalfit(const int region = 1)
 
   // number of neutrons.  Zero for the primary analysis.  One to determine 
   // gamma background from C-13 -> B-12n
-  const int nn = 1;
+  const int nn = 0;
 
   const double neff = 0.858;
 
@@ -283,6 +332,44 @@ void b12gammafinalfit(const int region = 1)
   printtwice("Gamma time efficiency: %f%%\n", 1, 100*gammatimecut_eff);
   printtwice("Efficiency: %f%%\n", 1, 100*eff);
 
+  gg = new TF1("gg", (
+    "[0] +"
+    // Six gaussians in which one of the fit parameters is the integral,
+    // with a parameter for the energy scale, in for which the width is
+    // set by the energy and three resolution parameters, all of which
+    // are the same for all gaussians.
+    + gaus( "3",  "4") + "+" + gaus( "5",  "6") + "+"
+    + gaus( "7",  "8") + "+" + gaus( "9", "10") + "+"
+    + gaus("11", "12") + "+" + gaus("13", "14") + "+"
+    // bg
+     "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
+    + gaus("26", "27") + "+" + gaus("([30]*[28])", "[29]", false)
+
+    // [30] is the normalization of the Gd-n distribution, with a 
+    // parameterization derived from the histogram in doc-5593-v3
+    + " + ([30]*(1-[28]))*( "
+
+    // normalization of the gaussian peak
+    "0.725471/(sqrt([23]**2*8.19701+([24]*8.19701)**2+[25]**2 + 0.1091)*"
+    "sqrt(2*TMath::Pi()))"
+
+    // main gaussian.  The width is the quadrature sum of the intrinsic
+    // width (sqrt(0.1091)) and the resolution
+     "*exp(-(((x-8.19701*[1])/"
+     "sqrt([23]**2* 8.19701+([24]*8.19701)**2+[25]**2 + 0.1091))**2)/2)"
+
+    // Then we have a parametrization for the low-energy tail
+    // First a double logisitic that goes up from zero at 5MeV, then
+    // down in the middle of the gaussian peak
+    "+0.0372863/(1+exp(-(x-5.0757)/0.332407))/(1+exp((x-8)/0.1))"
+
+    // Then a logistic that handles the stuff below 5, and goes
+    // away in the middle of the gaussian peak.
+    "+0.0149869/(1+exp((x-8)/0.1))"
+
+    ")"
+     ).c_str(), 0,15);
+
   TFile * f = 
 //#define FAST
 #ifdef FAST
@@ -292,11 +379,6 @@ void b12gammafinalfit(const int region = 1)
   new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
-  TCanvas * c2 = new TCanvas;
-
-  TH1D * bg     = new TH1D("bg"    , "", 600, 0.7, 60.7);
-  TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
-  TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
   bg->Sumw2();
   corrbg->Sumw2();
   ehist->Sumw2();
@@ -425,45 +507,6 @@ void b12gammafinalfit(const int region = 1)
   corrbg->Fit("corrbgfit", "i");
   corrbgfit->SetNpx(300);
 
-  TF1 *gg = new TF1("gg", (
-  "[0] +"
-  // Six gaussians in which one of the fit parameters is the integral,
-  // with a parameter for the energy scale, in for which the width is
-  // set by the energy and three resolution parameters, all of which are
-  // the same for all gaussians.
-  + gaus( "3",  "4") + "+" + gaus( "5",  "6") + "+"
-  + gaus( "7",  "8") + "+" + gaus( "9", "10") + "+"
-  + gaus("11", "12") + "+" + gaus("13", "14") + "+"
-  // bg
-   "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
-  + gaus("26", "27") + "+" + gaus("([30]*[28])", "[29]", false)
-
-  // [30] is the normalization of the Gd-n distribution, with a 
-  // parameterization derived from the histogram in doc-5593-v3
-  + " + ([30]*(1-[28]))*( "
-
-  // normalization of the gaussian peak
-  "0.725471/(sqrt([23]**2*8.19701+([24]*8.19701)**2+[25]**2 + 0.1091)*"
-  "sqrt(2*TMath::Pi()))"
- 
-  // main gaussian.  The width is the quadrature sum of the intrinsic
-  // width (sqrt(0.1091)) and the resolution
-   "*exp(-(((x-8.19701*[1])/"
-   "sqrt([23]**2* 8.19701+([24]*8.19701)**2+[25]**2 + 0.1091))**2)/2)"
-
-  // Then we have a parametrization for the low-energy tail
-  // First a double logisitic that goes up from zero at 5MeV, then
-  // down in the middle of the gaussian peak
-  "+0.0372863/(1+exp(-(x-5.0757)/0.332407))/(1+exp((x-8)/0.1))"
-
-  // Then a logistic that handles the stuff below 5, and goes
-  // away in the middle of the gaussian peak.
-  "+0.0149869/(1+exp((x-8)/0.1))"
-
-  ")"
-   ).c_str()
-    , 0,15);
-
   const char * ggpars[31] = { "accidentals", "energyscale", "unused",
   "n1", "e1",
   "n2", "e2",
@@ -485,36 +528,45 @@ void b12gammafinalfit(const int region = 1)
   "n_totn",
   };
 
+  TMinuit * mn = new TMinuit(gg->GetNpar());
+  mn->Command("Set print 0");
+  mn->fGraphicsMode = false;
+  mn->SetFCN(fcn);
+
   for(int i = 0; i < gg->GetNpar(); i++) gg->SetParName(i, ggpars[i]);
+
+  for(int mni = 0; mni < gg->GetNpar(); mni++){
+    int err = 0;
+    mn->mnparm(mni, gg->GetParName(mni), 0, 0.1, 0, 0, err);
+  }
 
   gg->SetNpx(400);
 
-  for(int i = 3; i <= 13; i+=2) gg->SetParLimits(i, 0, 100);
   for(int i = 15; i <= 22; i++)
-    gg->FixParameter(i, bggg->GetParameter(i-15));
+    fixat(mn, 1+i, bggg->GetParameter(i-15));
 
-  gg->FixParameter(23, 0.077);
-  gg->FixParameter(24, 0.018);
-  gg->FixParameter(25, 0.017);
+  fixat(mn, 1+23, 0.077);
+  fixat(mn, 1+24, 0.018);
+  fixat(mn, 1+25, 0.1);
 
-  gg->FixParameter(0, 0);
-  gg->FixParameter(1, 1);
-  gg->FixParameter(2, 0.22);
+  fixat(mn, 1+0, 0);
+  fixat(mn, 1+1, 1);
+  fixat(mn, 1+2, 0.22);
 
-  gg->FixParameter(4, 0.95314);
-  gg->FixParameter(6, 1.67365);
-  gg->FixParameter(8, 2.6208);
+  fixat(mn, 1+4, 0.95314);
+  fixat(mn, 1+6, 1.67365);
+  fixat(mn, 1+8, 2.6208);
 
-  gg->FixParameter(9, 0);
-  gg->FixParameter(10,0);
+  fixat(mn, 1+9, 0);
+  fixat(mn, 1+10,0);
 
-  gg->FixParameter(12,3.759);
-  gg->FixParameter(13, 0);
-  gg->FixParameter(14,9.040);
+  fixat(mn, 1+12,3.759);
+  fixat(mn, 1+13, 0);
+  fixat(mn, 1+14,9.040);
 
-  gg->FixParameter(26, max(0, corrbgfit->GetParameter(0)));
-  gg->FixParameter(27, corrbgfit->GetParameter(1));
-  gg->FixParameter(28, corrbgfit->GetParameter(2));
+  fixat(mn, 1+26, max(0, corrbgfit->GetParameter(0)));
+  fixat(mn, 1+27, corrbgfit->GetParameter(1));
+  fixat(mn, 1+28, corrbgfit->GetParameter(2));
 
   // contamination by Hn and Gdn events.
   if(nn == 0){
@@ -570,44 +622,58 @@ void b12gammafinalfit(const int region = 1)
     printf("Number of Hn = %.1f (T %.3f, GC %.1f), Gdn = %.3f\n",
            n_hn, n_hn_targ, n_hn_gc, n_gn);
 
-    gg->FixParameter(gg->GetParNumber("frac_hn"), n_hn/(n_hn+n_gn));
-    gg->FixParameter(29, hn_e);
+    fixat(mn, 1+gg->GetParNumber("frac_hn"), n_hn/(n_hn+n_gn));
+    fixat(mn, 1+gg->GetParNumber("e_hn"), hn_e);
 
-    gg->SetParLimits(gg->GetParNumber("n_totn"), 0,
-           10*(n_gn+n_hn)*ehist->GetBinWidth(1));
-    gg->FixParameter(gg->GetParNumber("n_totn"),
+    mn->Command(Form("set limits %d 0. %f",
+                     1+gg->GetParNumber("n_totn"),
+                     10*(n_gn+n_hn)*ehist->GetBinWidth(1)));
+    fixat(mn, 1+gg->GetParNumber("n_totn"),
            (n_gn+n_hn)*ehist->GetBinWidth(1));
   }
   else{
-    gg->FixParameter(gg->GetParNumber("n_totn"), 0);
-    gg->FixParameter(gg->GetParNumber("frac_hn"), 0);
+    fixat(mn, 1+gg->GetParNumber("n_totn"), 0);
+    fixat(mn, 1+gg->GetParNumber("frac_hn"), 0);
   }
 
-  printf("Fitting signal, step 1/2...\n");
-  ehist->Fit("gg", "lq", "", 0.7, 15);
-  gg->ReleaseParameter(25);
-  gg->SetParLimits(25, 0, 1.92530e-01 + 1.81760e-02);
-  printf("Fitting signal, step 2/2...\n");
-  ehist->Fit("gg", "limq", "", 0.7, 15);
+  for(int i = 3; i <= 13; i+=2)
+    mn->Command(Form("set limits %d 0. 100.", i+1));
+
+  mn->Command("show par");
 
   ehist->Draw("e");
+  ehist->GetXaxis()->SetRangeUser(0.7, 12);
+
+  printf("Fitting signal, step 1/2...\n");
+  mn->Command("MIGRAD");
+  mn->Command("Release 26");
+  mn->Command(Form("Set limits 26 0 %f", 1.92530e-01 + 1.81760e-02));
+  printf("Fitting signal, step 2/2...\n");
+  mn->Command("MIGRAD");
+
   bg->Draw("histsame");
   corrbg->Draw("samee");
   bggg->Draw("same");
   corrbgfit->Draw("same");
 
 
-  gMinuit->Command("Set strategy 2");
+  mn->Command("Set strategy 2");
   if(region == 0){
-    gMinuit->Command("MINOS 10000 4");
-    gMinuit->Command("MINOS 10000 6");
+    mn->Command("MINOS 10000 4");
+    mn->Command("MINOS 10000 6");
   }
   else{
-    gMinuit->Command("MINOS 10000 8");
-    gMinuit->Command("MINOS 10000 12");
+    mn->Command("MINOS 10000 8");
+    mn->Command("MINOS 10000 12");
   }
 
-  gMinuit->Command("showmin");
+  for(int i = 0; i < gg->GetNpar(); i++){
+    double p, dummy;
+    mn->GetParameter(i, p, dummy);
+    gg->SetParameter(i, p);
+  }
+
+  mn->Command("showmin");
 
   const double a = gg->GetParameter("er_a");
   const double b = gg->GetParameter("er_b");
@@ -625,8 +691,8 @@ void b12gammafinalfit(const int region = 1)
 
       // The number of events in the peak, corrected for efficiency.
       const double nev = gg->GetParameter("n1")/ehist->GetBinWidth(1);
-      const double neveup = gMinuit->fErp[0]/gg->GetParameter("n1")*nev;
-      const double nevelo = gMinuit->fErn[0]/gg->GetParameter("n1")*nev;
+      const double neveup = mn->fErp[0]/gg->GetParameter("n1")*nev;
+      const double nevelo = mn->fErn[0]/gg->GetParameter("n1")*nev;
 
       print_results(eff, 953, nev, nevelo, neveup);
     }
@@ -634,8 +700,8 @@ void b12gammafinalfit(const int region = 1)
       drawpeak(gg, "2");
 
       const double nev = gg->GetParameter("n2")/ehist->GetBinWidth(1);
-      const double neveup = gMinuit->fErp[1]/gg->GetParameter("n2")*nev;
-      const double nevelo = gMinuit->fErn[1]/gg->GetParameter("n2")*nev;
+      const double neveup = mn->fErp[1]/gg->GetParameter("n2")*nev;
+      const double nevelo = mn->fErn[1]/gg->GetParameter("n2")*nev;
 
       print_results(eff, 1674, nev, nevelo, neveup);
     }
@@ -645,8 +711,8 @@ void b12gammafinalfit(const int region = 1)
       drawpeak(gg, "3");
 
       const double nev = gg->GetParameter("n3")/ehist->GetBinWidth(1);
-      const double neveup = gMinuit->fErp[2]/gg->GetParameter("n3")*nev;
-      const double nevelo = gMinuit->fErn[2]/gg->GetParameter("n3")*nev;
+      const double neveup = mn->fErp[2]/gg->GetParameter("n3")*nev;
+      const double nevelo = mn->fErn[2]/gg->GetParameter("n3")*nev;
 
       print_results(eff, 2621, nev, nevelo, neveup);
     }
@@ -654,8 +720,8 @@ void b12gammafinalfit(const int region = 1)
       drawpeak(gg, "5");
 
       const double nev = gg->GetParameter("n5")/ehist->GetBinWidth(1);
-      const double neveup = gMinuit->fErp[3]/gg->GetParameter("n5")*nev;
-      const double nevelo = gMinuit->fErn[3]/gg->GetParameter("n5")*nev;
+      const double neveup = mn->fErp[3]/gg->GetParameter("n5")*nev;
+      const double nevelo = mn->fErn[3]/gg->GetParameter("n5")*nev;
 
       print_results(eff, 3759, nev, nevelo, neveup);
     }
@@ -664,11 +730,10 @@ void b12gammafinalfit(const int region = 1)
     drawpeak(gg, "6");
 
     const double nev = gg->GetParameter("n6")/ehist->GetBinWidth(1);
-    const double neveup = gMinuit->fErp[4]/gg->GetParameter("n6")*nev;
-    const double nevelo = gMinuit->fErn[4]/gg->GetParameter("n6")*nev;
+    const double neveup = mn->fErp[4]/gg->GetParameter("n6")*nev;
+    const double nevelo = mn->fErn[4]/gg->GetParameter("n6")*nev;
 
     print_results(eff, 9040, nev, nevelo, neveup);
   }
-
-  ehist->GetXaxis()->SetRangeUser(0.7, 12);
+  gg->Draw("same");
 }
