@@ -57,6 +57,11 @@ const double b12ecutlow = 4;
 
 const double distcut = 400;
 
+double max(const double a, const double b)
+{
+  return a > b ? a : b;
+}
+
 /*
  * Prints the message once with the requested floating point precision
  * and in RED, then again with all digits in the default color, starting
@@ -102,9 +107,9 @@ void printtwice(const char * const msg, const int digits, ...)
     }
   }
 
+#ifndef __CINT__
   va_list ap;
   va_start(ap, digits);
-#ifndef __CINT__
   printf(RED);
   vprintf(pmsg, ap);
   printf(CLR);
@@ -239,22 +244,24 @@ TF1 * drawnpeaks(TF1 * gg)
 
 void b12gammafinalfit(const int region = 1)
 {
-  const double lowt   = region == 0? 4500 :region == 1?  3008: 2750;
-  const double hight = 5500.; // ns
-  const double highfq = region == 0? 215:region == 1? 215: 1000; // MeV
+  const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
+  const double hight = 5024.; // ns
+  const double highfq = 215; // MeV
+
+  // number of neutrons.  Zero for the primary analysis.  One to determine 
+  // gamma background from C-13 -> B-12n
+  const int nn = 1;
+
+  const double neff = 0.858;
 
 #ifdef HP
   // From muon counting.  Exact.
-  const double fq_eff = region == 0?481414./1628874
-                       :region == 1?481414./1628874
-                       :1;
+  const double fq_eff = 481414./1628874;
 #else
   // From B-12-like event counting, with a bit over 1% stat error. Since
   // the most precise output of this fit has 10% stat errors, I won't
   // obsess over that.
-  const double fq_eff = region == 0?0.3857
-                       :region == 1?0.3857
-                       :1;
+  const double fq_eff = 0.3857;
 #endif
 
   const double b12eff = 1
@@ -269,10 +276,11 @@ void b12gammafinalfit(const int region = 1)
     * fq_eff
   ;
 
-  const double eff = b12eff
-    * (exp(-lowt/muClife)-exp(-hight/muClife)) // C-12 capture time
-  ;
+  const double gammatimecut_eff = 
+    (exp(-lowt/muClife)-exp(-hight/muClife));
+  const double eff = b12eff * gammatimecut_eff;
 
+  printtwice("Gamma time efficiency: %f%%\n", 1, 100*gammatimecut_eff);
   printtwice("Efficiency: %f%%\n", 1, 100*eff);
 
   TFile * f = 
@@ -303,12 +311,12 @@ void b12gammafinalfit(const int region = 1)
           "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
          #endif
          "!earlymich && "
-         "latennear==0 && "
+         "latennear==%d && "
          "e > %f && e < 15 && "
          "dist < %f && "
          "fq < %f && "
          "micht >= %f && micht < %f"
-         , b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
+         , nn, b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
   seltree->Write();
 
   printf("%d events in t, %d in seltree\n",
@@ -504,12 +512,12 @@ void b12gammafinalfit(const int region = 1)
   gg->FixParameter(13, 0);
   gg->FixParameter(14,9.040);
 
-  gg->FixParameter(26, corrbgfit->GetParameter(0));
+  gg->FixParameter(26, max(0, corrbgfit->GetParameter(0)));
   gg->FixParameter(27, corrbgfit->GetParameter(1));
   gg->FixParameter(28, corrbgfit->GetParameter(2));
 
   // contamination by Hn and Gdn events.
-  {
+  if(nn == 0){
     const double hn_t = 179.;
 
     // from my own measurements of B-12n and Li-8n from C-13
@@ -569,6 +577,10 @@ void b12gammafinalfit(const int region = 1)
            10*(n_gn+n_hn)*ehist->GetBinWidth(1));
     gg->FixParameter(gg->GetParNumber("n_totn"),
            (n_gn+n_hn)*ehist->GetBinWidth(1));
+  }
+  else{
+    gg->FixParameter(gg->GetParNumber("n_totn"), 0);
+    gg->FixParameter(gg->GetParNumber("frac_hn"), 0);
   }
 
   printf("Fitting signal, step 1/2...\n");
