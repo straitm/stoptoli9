@@ -179,11 +179,13 @@ void print_results(const double eff, const double energy,
 /* Print the TFormula-style expression for a Gaussian, arranged so that
  * one of the parameters gives the integral, another the mean, and
  * the rest take care of the energy scale and resolution as is useful
- * for this fit. */
-string gaus(const string integral, const string mean)
+ * for this fit. If arepar is false, instead of the strings being
+ * parameters, they are constants. */
+string gaus(const string integral, const string mean,
+            const bool arepar = true)
 {
-  const string INT  = "[" + integral + "]";
-  const string MEAN = "[" + mean     + "]";
+  const string INT  = (arepar?"[":"") + integral + (arepar?"]":"");
+  const string MEAN = (arepar?"[":"") + mean     + (arepar?"]":"");
 
   const string width =
     "sqrt([23]**2* " + MEAN + "+([24]*" + MEAN + ")**2+[25]**2)";
@@ -215,6 +217,24 @@ TF1 * drawpeak(TF1 * gg, const char * const peak)
 
   mypeak->Draw("same");
   return mypeak;
+}
+
+TF1 * drawnpeaks(TF1 * gg)
+{
+  TF1 * f = (TF1 *)gg->Clone("gdpeak");
+  for(int i = 0; i < f->GetNpar(); i++){
+    if(
+       !strcmp(f->GetParName(i), "er_a") || 
+       !strcmp(f->GetParName(i), "er_b") || 
+       !strcmp(f->GetParName(i), "er_c") || 
+       !strcmp(f->GetParName(i), "energyscale") || 
+       !strcmp(f->GetParName(i), "n_totn") || 
+       !strcmp(f->GetParName(i), "e_hn") || 
+       !strcmp(f->GetParName(i), "frac_hn")) continue;
+    f->SetParameter(i, 0);
+  }
+  f->Draw("same");
+  return f;
 }
 
 void b12gammafinalfit(const int region = 1)
@@ -255,8 +275,13 @@ void b12gammafinalfit(const int region = 1)
 
   printtwice("Efficiency: %f%%\n", 1, 100*eff);
 
-  TFile * f = /*new TFile(Form("b12gamma.sel%d.root", region), "read");
-  if(!f || f->IsZombie()) f =*/ new TFile(rootfile3up, "read");
+  TFile * f = 
+//#define FAST
+#ifdef FAST
+  new TFile(Form("b12gamma.sel%d.root", region), "read");
+  if(!f || f->IsZombie()) f =
+#endif
+  new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
   TCanvas * c2 = new TCanvas;
@@ -401,14 +426,37 @@ void b12gammafinalfit(const int region = 1)
   + gaus( "3",  "4") + "+" + gaus( "5",  "6") + "+"
   + gaus( "7",  "8") + "+" + gaus( "9", "10") + "+"
   + gaus("11", "12") + "+" + gaus("13", "14") + "+"
- // bg
+  // bg
    "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
-  + gaus("26", "27") + "+" + gaus("28", "29") + "+"
-  + gaus("30", "31") + "+" + gaus("32", "33")
+  + gaus("26", "27") + "+" + gaus("([30]*[28])", "[29]", false)
+
+  // [30] is the normalization of the Gd-n distribution, with a 
+  // parameterization derived from the histogram in doc-5593-v3
+  + " + ([30]*(1-[28]))*( "
+
+  // normalization of the gaussian peak
+  "0.725471/(sqrt([23]**2*8.19701+([24]*8.19701)**2+[25]**2 + 0.1091)*"
+  "sqrt(2*TMath::Pi()))"
+ 
+  // main gaussian.  The width is the quadrature sum of the intrinsic
+  // width (sqrt(0.1091)) and the resolution
+   "*exp(-(((x-8.19701*[1])/"
+   "sqrt([23]**2* 8.19701+([24]*8.19701)**2+[25]**2 + 0.1091))**2)/2)"
+
+  // Then we have a parametrization for the low-energy tail
+  // First a double logisitic that goes up from zero at 5MeV, then
+  // down in the middle of the gaussian peak
+  "+0.0372863/(1+exp(-(x-5.0757)/0.332407))/(1+exp((x-8)/0.1))"
+
+  // Then a logistic that handles the stuff below 5, and goes
+  // away in the middle of the gaussian peak.
+  "+0.0149869/(1+exp((x-8)/0.1))"
+
+  ")"
    ).c_str()
     , 0,15);
 
-  const char * ggpars[34] = { "accidentals", "energyscale", "unused",
+  const char * ggpars[31] = { "accidentals", "energyscale", "unused",
   "n1", "e1",
   "n2", "e2",
   "n3", "e3",
@@ -425,9 +473,8 @@ void b12gammafinalfit(const int region = 1)
   "bgmich",
   "er_a", "er_b", "er_c",
   "li8n", "li8m",
-  "n_hn", "e_hn",
-  "n_gn1", "e_gn1",
-  "n_gn2", "e_gn2"
+  "frac_hn", "e_hn",
+  "n_totn",
   };
 
   for(int i = 0; i < gg->GetNpar(); i++) gg->SetParName(i, ggpars[i]);
@@ -454,13 +501,14 @@ void b12gammafinalfit(const int region = 1)
   gg->FixParameter(10,0);
 
   gg->FixParameter(12,3.759);
+  gg->FixParameter(13, 0);
   gg->FixParameter(14,9.040);
 
   gg->FixParameter(26, corrbgfit->GetParameter(0));
   gg->FixParameter(27, corrbgfit->GetParameter(1));
   gg->FixParameter(28, corrbgfit->GetParameter(2));
 
-  // contamination by Hn events.
+  // contamination by Hn and Gdn events.
   {
     const double hn_t = 179.;
 
@@ -514,17 +562,13 @@ void b12gammafinalfit(const int region = 1)
     printf("Number of Hn = %.1f (T %.3f, GC %.1f), Gdn = %.3f\n",
            n_hn, n_hn_targ, n_hn_gc, n_gn);
 
-    gg->FixParameter(28, n_hn*ehist->GetBinWidth(1));
+    gg->FixParameter(gg->GetParNumber("frac_hn"), n_hn/(n_hn+n_gn));
     gg->FixParameter(29, hn_e);
 
-    // fraction of Gd captures that are Gd-157
-    const double frac157 = 0.815;
-
-    gg->FixParameter(30, frac157*n_gn*ehist->GetBinWidth(1));
-    gg->FixParameter(31, gn_e1);
-
-    gg->FixParameter(32, (1 - frac157)*n_gn*ehist->GetBinWidth(1));
-    gg->FixParameter(33, gn_e2);
+    gg->SetParLimits(gg->GetParNumber("n_totn"), 0,
+           10*(n_gn+n_hn)*ehist->GetBinWidth(1));
+    gg->FixParameter(gg->GetParNumber("n_totn"),
+           (n_gn+n_hn)*ehist->GetBinWidth(1));
   }
 
   printf("Fitting signal, step 1/2...\n");
@@ -549,7 +593,6 @@ void b12gammafinalfit(const int region = 1)
   else{
     gMinuit->Command("MINOS 10000 8");
     gMinuit->Command("MINOS 10000 12");
-    gMinuit->Command("MINOS 10000 14");
   }
 
   gMinuit->Command("showmin");
@@ -560,6 +603,9 @@ void b12gammafinalfit(const int region = 1)
 
   TF1 * nh_peak = drawpeak(gg, "_hn");
   nh_peak->SetLineStyle(7);
+
+  TF1 * gh_peak = drawnpeaks(gg);
+  gh_peak->SetLineStyle(7);
 
   if(region == 0) {
     {
@@ -602,7 +648,7 @@ void b12gammafinalfit(const int region = 1)
       print_results(eff, 3759, nev, nevelo, neveup);
     }
   }
-  else if(region == 2){
+  else if(region == 2 && gg->GetParameter("n6") != 0){
     drawpeak(gg, "6");
 
     const double nev = gg->GetParameter("n6")/ehist->GetBinWidth(1);
