@@ -18,16 +18,21 @@ using std::string;
 // gamma background from C-13 -> B-12n
 const int nn = 0;
 
+const int ggnnpars = 4;
 
 //#define HP
 
 TCanvas * c2 = new TCanvas("c2", "", 0, 0, 500, 400);
 
 TH1D * bg     = new TH1D("bg"    , "", 600, 0.7, 60.7);
+TH1D * bgn    = new TH1D("bgn"   , "", 600, 0.7, 60.7);
 TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
 TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
+TH1D * ehistn = new TH1D("ehistn", "", 600, 0.7, 60.7);
 
-TF1 *gg = NULL;
+TF1 *gg = NULL, *ggn = NULL;
+
+double n_to_0_bg_rat = 0; // set later
 
 const double neff = 0.858;
 const double b12n_subfactor = (1-neff)/neff;
@@ -289,19 +294,65 @@ TF1 * drawnpeaks(TF1 * gg)
 void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
 {
   chi2 = 0;
-  gg->SetParameters(par);
-  //gg->Draw("same"); c2->Update();  c2->Modified();
+
+  // B-12 everything
+  for(int i = 0; i < gg->GetNpar(); i++)
+    gg ->SetParameter(i, par[i]);
+
+  const int ncorr = 4;
+  const int corrections[ncorr] = {3, 5, 7, 11};
+  const int corrpar[ncorr] = {31, 32, 33, 34};
+
+  // Add the feed-down from B-12n to B-12 to the expected number of
+  // B-12-gamma-like events
+  for(int i = 0; i < ncorr; i++)
+    gg->SetParameter(corrections[i],
+                     par[corrections[i]] + b12n_subfactor*par[corrpar[i]]);
+
+  // B-12n gamma probabilities
+  for(int i = 0; i < ncorr; i++)
+    ggn->SetParameter(i+2, par[corrpar[i]]);
+
+  // B-12n energy scale.
+  ggn->SetParameter(1, par[1]);
+
+  // bg normalization
+  ggn->SetParameter(6, n_to_0_bg_rat);
+
+  // accidental and Michel background in the B-12n sample
+  // and resolution variables
+  for(int i = 15; i <= 25; i++) ggn->SetParameter(i, par[i]);
+
+#if 1
+  static int call = 0;
+  if(call++%100 == 0){
+    gg->Draw("same"); ggn->Draw("same");
+    c2->SetLogy(); c2->Update();  c2->Modified();
+  }
+#endif
   for(int i = 0; i < ehist->GetNbinsX(); i++){
     const double bincenter = ehist->GetBinCenter(i);
     const double binlo = ehist->GetBinLowEdge(i);
     const double binhi = ehist->GetBinLowEdge(i+1);
     if(bincenter < 0.7 || bincenter > 15) continue;
-    const double data = ehist->GetBinContent(i);
+ 
+    {
+      const double data = ehist->GetBinContent(i);
 
-    const double theory = gg->Integral(binlo, binhi)/(binhi-binlo);
+      const double theory = gg->Integral(binlo, binhi)/(binhi-binlo);
 
-    chi2 += theory - data;
-    if(data > 0 && theory > 0) chi2 += data*log(data/theory);
+      chi2 += theory - data;
+      if(data > 0 && theory > 0) chi2 += data*log(data/theory);
+    }
+ 
+    {
+      const double data = ehistn->GetBinContent(i);
+
+      const double theory = ggn->Integral(binlo, binhi)/(binhi-binlo);
+
+      chi2 += theory - data;
+      if(data > 0 && theory > 0) chi2 += data*log(data/theory);
+    }
   }
   chi2 *= 2;
 }
@@ -397,6 +448,16 @@ void b12gammafinalfit(const int region = 1)
     ")"
      ).c_str(), 0,15);
 
+  ggn = new TF1("ggn", (gaus("[2]", "0.95314", false) + "+" + // sic
+                        gaus("[3]", "1.67365", false) + "+" +
+                        gaus("[4]", "2.62080", false) + "+" +
+                        gaus("[5]", "3.75900", false) + 
+      // accidental bg and michels.  Right for the accidentals,
+      // wrong for the Michels, but I think it is ok.
+      "+  [6]*("
+       "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3)"
+          ")"          ).c_str(), 0, 15);
+
   TFile * f = 
 //#define FAST
 #ifdef FAST
@@ -407,6 +468,7 @@ void b12gammafinalfit(const int region = 1)
   TTree * t = (TTree *)f->Get("t");
 
   bg->Sumw2();
+  bgn->Sumw2();
   corrbg->Sumw2();
   ehist->Sumw2();
 
@@ -420,22 +482,22 @@ void b12gammafinalfit(const int region = 1)
           "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
          #endif
          "!earlymich && "
-         "latennear==%d && "
          "e > %f && e < 15 && "
          "dist < %f && "
          "fq < %f && "
          "micht >= %f && micht < %f"
-         , nn, b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
+         , b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
   seltree->Write();
 
   printf("%d events in t, %d in seltree\n",
          t->GetEntries(), seltree->GetEntries());
   if(seltree->GetEntries() == 0){ printf("No events in seltree\n"); exit(1);}
 
-  int ndecay;
+  int ndecay, latennear;
   float dt, timeleft, miche, micht, fq; // yes, all floats
   #define SBA(x) seltree->SetBranchAddress(#x, &x);
   SBA(ndecay); 
+  SBA(latennear); 
   SBA(dt); 
   SBA(timeleft); 
   SBA(miche); 
@@ -446,20 +508,36 @@ void b12gammafinalfit(const int region = 1)
   for(int i = 0; i < seltree->GetEntries(); i++){
     seltree->GetEntry(i);
 
-    if(timeleft > b12hight && dt > b12lowt && dt < b12hight && ndecay == 0)
-      ehist ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+    if(latennear == 0){
+      if(timeleft > b12hight && dt > b12lowt &&
+         dt < b12hight && ndecay == 0)
+        ehist ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
 
-    // "ndecay == 0" how to handle this? Really need the first event in
-    // lots of windows, which isn't convenient -- I think this is close
-    // enough
-    if(timeleft > acchight && dt > acclowt && dt < acchight)
-      bg    ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+      // "ndecay == 0" how to handle this? Really need the first event
+      // in lots of windows, which isn't convenient -- I think this is
+      // close enough
+      if(timeleft > acchight && dt > acclowt && dt < acchight)
+        bg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
 
-    if(timeleft > li8hight && dt > li8lowt && dt < li8hight && ndecay == 0)
-      corrbg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+      if(timeleft > li8hight && dt > li8lowt &&
+         dt < li8hight && ndecay == 0)
+        corrbg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+    }
+    else if(latennear == 1){
+      if(timeleft > b12hight && dt > b12lowt &&
+         dt < b12hight && ndecay == 0)
+        ehistn->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+
+      if(timeleft > acchight && dt > acclowt && dt < acchight)
+        bgn->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+    }
+
   }
 
   if(ehist->GetEntries() == 0){ printf("No signal events\n"); exit(1); }
+
+  bgn->SetLineColor(kRed-7);
+  bgn->SetMarkerColor(kRed-7);
 
   bg->SetLineColor(kRed);
   bg->SetMarkerColor(kRed);
@@ -469,7 +547,13 @@ void b12gammafinalfit(const int region = 1)
            *eff_eor_b12/eff_eor_acc;
   const double bgscaleli8 = (li8hight - li8lowt)/(acchight-acclowt)
            *eff_eor_li8/eff_eor_acc;
+
+  n_to_0_bg_rat = bgn->Integral()/bg->Integral();
+
+  ggn->SetParameter(6, n_to_0_bg_rat);
+
   bg->Scale(bgscaleb12);
+  bgn->Scale(bgscaleb12);
 
   TF1 *bggg = new TF1("bggg",
     //                Simple Michel spectrum, stretched a little to
@@ -555,19 +639,27 @@ void b12gammafinalfit(const int region = 1)
   "n_totn",
   };
 
-  TMinuit * mn = new TMinuit(gg->GetNpar());
+  TMinuit * mn = new TMinuit(gg->GetNpar() + ggnnpars);
   mn->Command("Set print 0");
   mn->fGraphicsMode = false;
   mn->SetFCN(fcn);
 
   for(int i = 0; i < gg->GetNpar(); i++) gg->SetParName(i, ggpars[i]);
 
-  for(int mni = 0; mni < gg->GetNpar(); mni++){
+  {
     int err = 0;
-    mn->mnparm(mni, gg->GetParName(mni), 0, 0.1, 0, 0, err);
+    for(int mni = 0; mni < gg->GetNpar(); mni++)
+      mn->mnparm(mni, gg->GetParName(mni), 0, 0.1, 0, 0, err);
+
+    mn->mnparm(gg->GetNpar()+0, "b12n_n1", 0, 0.1, 0, 0, err);
+    mn->mnparm(gg->GetNpar()+1, "b12n_n2", 0, 0.1, 0, 0, err);
+    mn->mnparm(gg->GetNpar()+2, "b12n_n3", 0, 0.1, 0, 0, err);
+    mn->mnparm(gg->GetNpar()+3, "b12n_n5", 0, 0.1, 0, 0, err); // sic
   }
 
   gg->SetNpx(400);
+  ggn->SetNpx(400);
+  ggn->SetLineColor(kOrange);
 
   for(int i = 15; i <= 22; i++)
     fixat(mn, 1+i, bggg->GetParameter(i-15));
@@ -664,15 +756,22 @@ void b12gammafinalfit(const int region = 1)
     fixat(mn, 1+gg->GetParNumber("frac_hn"), 0);
   }
 
+  // Limit the number of events to be positive
   for(int i = 3; i <= 13; i+=2)
+    mn->Command(Form("set limits %d 0. 100.", i+1));
+  for(int i = 31; i <= 34; i++)
     mn->Command(Form("set limits %d 0. 100.", i+1));
 
   mn->Command("show par");
 
   ehist->Draw("e");
-  ehist->GetXaxis()->SetRangeUser(0.7, 12);
+  ehistn->SetLineColor(kOrange);
+  ehistn->Draw("samee");
+  ehist->GetXaxis()->SetRangeUser(0.7, 10);
+  ehist->GetYaxis()->SetRangeUser(0.0001, 30);
 
   printf("Fitting signal, step 1/2...\n");
+  mn->Command("SIMPLEX");
   mn->Command("MIGRAD");
   mn->Command("Release 26");
   mn->Command(Form("Set limits 26 0 %f", 1.92530e-01 + 1.81760e-02));
@@ -681,6 +780,7 @@ void b12gammafinalfit(const int region = 1)
   mn->Command("MIGRAD");
 
   bg->Draw("histsame");
+  bgn->Draw("histsame");
   corrbg->Draw("samee");
   bggg->Draw("same");
   corrbgfit->Draw("same");
@@ -725,7 +825,8 @@ void b12gammafinalfit(const int region = 1)
       const double nevelo = mn->fErn[0]/gg->GetParameter("n1")*nev;
 
       print_results(eff, 953, nev, nevelo, neveup,
-                     6.075891, -2.337429, +3.095766);
+                    0, 0, 0);
+//                     6.075891, -2.337429, +3.095766);
     }
     {
       drawpeak(gg, "2");
@@ -735,7 +836,8 @@ void b12gammafinalfit(const int region = 1)
       const double nevelo = mn->fErn[1]/gg->GetParameter("n2")*nev;
 
       print_results(eff, 1674, nev, nevelo, neveup,
-                    2.555937, -1.374821, +2.107725);
+                    0, 0, 0);
+//                    2.555937, -1.374821, +2.107725);
     }
   }
   else if(region == 1){
@@ -747,7 +849,8 @@ void b12gammafinalfit(const int region = 1)
       const double nevelo = mn->fErn[2]/gg->GetParameter("n3")*nev;
 
       print_results(eff, 2621, nev, nevelo, neveup, 
-                     1.018417, -0.722168, +1.403013);
+                    0, 0, 0);
+//                     1.018417, -0.722168, +1.403013);
     }
     {
       drawpeak(gg, "5");
@@ -757,7 +860,8 @@ void b12gammafinalfit(const int region = 1)
       const double nevelo = mn->fErn[3]/gg->GetParameter("n5")*nev;
 
       print_results(eff, 3759, nev, nevelo, neveup, 
-                    1.001790, -0.722315, +1.401882);
+                    0, 0, 0);
+//                    1.001790, -0.722315, +1.401882);
     }
   }
   else if(region == 2 && gg->GetParameter("n6") != 0){
