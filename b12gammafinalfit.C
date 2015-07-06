@@ -14,6 +14,11 @@
 
 using std::string;
 
+// number of neutrons.  Zero for the primary analysis.  One to determine 
+// gamma background from C-13 -> B-12n
+const int nn = 0;
+
+
 //#define HP
 
 TCanvas * c2 = new TCanvas("c2", "", 0, 0, 500, 400);
@@ -23,6 +28,9 @@ TH1D * corrbg = new TH1D("corrbg", "", 600, 0.7, 60.7);
 TH1D * ehist  = new TH1D("ehist" , "", 600, 0.7, 60.7);
 
 TF1 *gg = NULL;
+
+const double neff = 0.858;
+const double b12n_subfactor = (1-neff)/neff;
 
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
@@ -97,10 +105,10 @@ void printtwice(const char * const msg, const int digits, ...)
         *bmp++ = '\0';
         break;
       case '%':
+        gotone = true;
         switch(msg[i+1]){
           case 'e': case 'E': case 'f': case 'F':
           case 'g': case 'G': case 'a': case 'A':
-            gotone = true;
             *pmp++ = '%';
             *bmp++ = '%';
             *pmp++ = '.';
@@ -128,6 +136,9 @@ void printtwice(const char * const msg, const int digits, ...)
   va_start(ap, digits);
   vprintf(bmsg, ap);
 #endif
+
+  free(bmsg);
+  free(pmsg);
 }
 
 double logis(const double x,
@@ -158,13 +169,35 @@ TF1 * gdtime()
   return f;
 }
 
+// eff: the efficiency
+// energy: the gamma line energy
+// n: the raw number of fitted events
+// nelo: the lower error on that
+// neup: the upper error on that
+// sub: the raw number of B-12n events to subtract
+// sublo: the lower error on that
+// subup: the upper error on that
+// The neutron efficiencies are applied here, so don't put in
+// the B-12n number corrected for that.
+// B-12n numbers do nothing unless nn == 0, so this can be used
+// unmodified to *get* the B-12n numbers.
 void print_results(const double eff, const double energy,
-                   const double n, const double nelo, const double neup)
+                   const double n, const double nelo, const double neup,
+                   const double sub, const double sublo,
+                                     const double subup)
 {
+  const double n_sub = n - (nn == 0)*sub*b12n_subfactor,
+    nelo_sub=sqrt(nelo*nelo + (nn == 0)*pow(sublo*b12n_subfactor,2)),
+    neup_sub=sqrt(neup*neup + (nn == 0)*pow(subup*b12n_subfactor,2));
+
   printtwice("\n%.0fkeV fitted number of events, raw: "
              "%f %f +%f\n", 1, energy, n, nelo, neup);
 
-  const double n_ec = n/eff, nelo_ec = nelo/eff, neup_ec = neup/eff;
+  printtwice("\n%.0fkeV fitted number of events, B12-n subbed: "
+             "%f %f +%f\n", 1, energy, n_sub, nelo_sub, neup_sub);
+
+  const double n_ec = n_sub/eff, nelo_ec = nelo_sub/eff,
+                                 neup_ec = neup_sub/eff;
 
   /*printtwice("\n%.0fkeV fitted number of events, eff corrected: "
              "%f %f +%f\n", 1, energy, n_ec, nelo_ec, neup_ec); */
@@ -296,12 +329,6 @@ void b12gammafinalfit(const int region = 1)
   const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
   const double hight = 5024.; // ns
   const double highfq = 215; // MeV
-
-  // number of neutrons.  Zero for the primary analysis.  One to determine 
-  // gamma background from C-13 -> B-12n
-  const int nn = 0;
-
-  const double neff = 0.858;
 
 #ifdef HP
   // From muon counting.  Exact.
@@ -633,6 +660,7 @@ void b12gammafinalfit(const int region = 1)
   }
   else{
     fixat(mn, 1+gg->GetParNumber("n_totn"), 0);
+    fixat(mn, 1+gg->GetParNumber("e_hn"), hn_e);
     fixat(mn, 1+gg->GetParNumber("frac_hn"), 0);
   }
 
@@ -648,6 +676,7 @@ void b12gammafinalfit(const int region = 1)
   mn->Command("MIGRAD");
   mn->Command("Release 26");
   mn->Command(Form("Set limits 26 0 %f", 1.92530e-01 + 1.81760e-02));
+  if(ehist->GetEntries() < 50) fixat(mn, 26, 0.186);
   printf("Fitting signal, step 2/2...\n");
   mn->Command("MIGRAD");
 
@@ -689,12 +718,14 @@ void b12gammafinalfit(const int region = 1)
     {
       drawpeak(gg, "1");
 
+
       // The number of events in the peak, corrected for efficiency.
       const double nev = gg->GetParameter("n1")/ehist->GetBinWidth(1);
       const double neveup = mn->fErp[0]/gg->GetParameter("n1")*nev;
       const double nevelo = mn->fErn[0]/gg->GetParameter("n1")*nev;
 
-      print_results(eff, 953, nev, nevelo, neveup);
+      print_results(eff, 953, nev, nevelo, neveup,
+                     6.075891, -2.337429, +3.095766);
     }
     {
       drawpeak(gg, "2");
@@ -703,7 +734,8 @@ void b12gammafinalfit(const int region = 1)
       const double neveup = mn->fErp[1]/gg->GetParameter("n2")*nev;
       const double nevelo = mn->fErn[1]/gg->GetParameter("n2")*nev;
 
-      print_results(eff, 1674, nev, nevelo, neveup);
+      print_results(eff, 1674, nev, nevelo, neveup,
+                    2.555937, -1.374821, +2.107725);
     }
   }
   else if(region == 1){
@@ -714,7 +746,8 @@ void b12gammafinalfit(const int region = 1)
       const double neveup = mn->fErp[2]/gg->GetParameter("n3")*nev;
       const double nevelo = mn->fErn[2]/gg->GetParameter("n3")*nev;
 
-      print_results(eff, 2621, nev, nevelo, neveup);
+      print_results(eff, 2621, nev, nevelo, neveup, 
+                     1.018417, -0.722168, +1.403013);
     }
     {
       drawpeak(gg, "5");
@@ -723,7 +756,8 @@ void b12gammafinalfit(const int region = 1)
       const double neveup = mn->fErp[3]/gg->GetParameter("n5")*nev;
       const double nevelo = mn->fErn[3]/gg->GetParameter("n5")*nev;
 
-      print_results(eff, 3759, nev, nevelo, neveup);
+      print_results(eff, 3759, nev, nevelo, neveup, 
+                    1.001790, -0.722315, +1.401882);
     }
   }
   else if(region == 2 && gg->GetParameter("n6") != 0){
@@ -733,7 +767,7 @@ void b12gammafinalfit(const int region = 1)
     const double neveup = mn->fErp[4]/gg->GetParameter("n6")*nev;
     const double nevelo = mn->fErn[4]/gg->GetParameter("n6")*nev;
 
-    print_results(eff, 9040, nev, nevelo, neveup);
+    print_results(eff, 9040, nev, nevelo, neveup, 0, 0, 0);
   }
   gg->Draw("same");
 }
