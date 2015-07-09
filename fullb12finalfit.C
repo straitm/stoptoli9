@@ -182,7 +182,7 @@ const double li9eff = mich_eff * eor_eff * sub_muon_eff * li9eff_energy;
 const double neff_err = 0.01;
 
 // Measured probablity of getting one accidental neutron.  These
-// are *detected* muons, so don't apply efficiency to them.
+// are *detected* neutrons, so don't apply efficiency to them.
 const double paccn = 1.1e-4;
 
 /*

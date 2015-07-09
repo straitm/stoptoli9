@@ -16,10 +16,6 @@
 
 using std::string;
 
-// number of neutrons.  Zero for the primary analysis.  One to determine 
-// gamma background from C-13 -> B-12n
-const int nn = 0;
-
 const int ggnnpars = 5;
 
 //#define HP
@@ -41,6 +37,10 @@ double n_to_0_bg_rat = 0; // set later
 
 const double neff = 0.858;
 const double neff_e = 0.01;
+
+// Measured probablity of getting one accidental neutron.  These
+// are *detected* neutrons, so don't apply efficiency to them.
+const double paccn = 1.1e-4;
 
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
@@ -320,18 +320,27 @@ void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
   const int corrections[ncorr] = {3, 5, 7, 11};
   const int corrpar[ncorr] = {31, 32, 33, 34};
 
-  // Neutron efficiency with pull term below
-  const double b12n_subfactor = (1-par[2])/par[2];
-
   // Add the feed-down from B-12n to B-12 to the expected number of
-  // B-12-gamma-like events
+  // B-12-gamma-like events.
   for(int i = 0; i < ncorr; i++)
     gg->SetParameter(corrections[i],
-      par[corrections[i]] + b12n_subfactor*par[corrpar[i]]);
+      // B-12 signal without accidental neutron
+      (1-paccn)*par[corrections[i]]
+
+      // B-12n signal with inefficiency and without accidental neutron
+      + (1-par[2])*(1-paccn)*par[corrpar[i]]); // par[2] ~= neff
 
   // B-12n gamma probabilities
   for(int i = 0; i < ncorr; i++)
-    ggn->SetParameter(i+2, par[corrpar[i]]);
+    ggn->SetParameter(i+2,
+
+      // B-12n signal with efficiency and without accidental neutron 
+      (1-paccn)*par[2]*par[corrpar[i]]
+
+      // B-12n signal with accidental neutron
+     + paccn*par[corrections[i]]
+    );
+
   ggn->SetParameter(7, par[35]); // through-Hn-n-B12
   ggn->SetParameter(30, par[36]); // through-Gdn-n-B12
 
@@ -416,7 +425,14 @@ void fixat(TMinuit * mn, int i, float v)
 // of their separation
 double lratsig(const double l1, const double l2)
 {
-  const double dll = (l1-l2)/2;
+  if(l1 < l2)
+    fprintf(stderr, "lratsig: Reporting reversed significance\n");
+
+  const double dll = fabs(l1-l2)/2;
+
+  // Too far out in the tail to do the quantile.
+  if(dll*2 > 64) return sqrt(2*dll) - 0.290756;
+
   const double rat = exp(dll);
   return TMath::NormQuantile(1-1/(2*rat));
 }
@@ -773,7 +789,7 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
   fixat(mn, 1+28, corrbgfit->GetParameter(2));
 
   // contamination by Hn and Gdn events.
-  if(nn == 0){
+  {
     const double hn_t = 179.;
 
     // from my own measurements of B-12n and Li-8n from C-13
@@ -836,11 +852,6 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
     fixat(mn, 1+gg->GetParNumber("n_totn"),
            (n_gn+n_hn)*ehist->GetBinWidth(1));
   }
-  else{
-    fixat(mn, 1+gg->GetParNumber("n_totn"), 0);
-    fixat(mn, 1+gg->GetParNumber("e_hn"), hn_e);
-    fixat(mn, 1+gg->GetParNumber("frac_hn"), 0);
-  }
 
   // Limit the number of events to be positive
   for(int i = 3; i <= 13; i+=2)
@@ -877,10 +888,15 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
 
   if(region == 0){
 
+    // Can't let the energy scale float when the 2621 line is zeroed,
+    // since it mostly sets the energy scale. For consistency, keep it
+    // fixed for the other tests too (but not for MINOS).
+    mn->Command("fix 2");
     findsigforarate(4);
     findsigforarate(6);
     findsigforarate(32);
     findsigforarate(33);
+    mn->Command("release 2");
 
     mn->Command("MINOS 10000 4");
     mn->Command("MINOS 10000 6");
@@ -888,10 +904,12 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
     mn->Command("MINOS 10000 33");
   }
   else{
+    mn->Command("fix 2");
     findsigforarate(8);
     findsigforarate(12);
     findsigforarate(34);
     findsigforarate(35);
+    mn->Command("release 2");
 
     mn->Command("MINOS 10000 8");
     mn->Command("MINOS 10000 12");
