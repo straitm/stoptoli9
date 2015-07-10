@@ -155,11 +155,23 @@ double logis(const double x,
   return p0/(1+ exp(-(x - p1)/p2));
 }
 
+int whichcorr = 0;
+
 // Return a michel/gamma/neutron energy adjusted for the baseline
 // shift (presumably) after a muon.
 double corrmiche(const double e, const double me)
 {
-  return e  - logis(me, 0.521, 266., 63.6);
+  double pars[7][3] ={{ 0.583, 287., 94.2}, // nominal
+                      { 0.609, 307., 109.}, // shifted 1sigma each way
+                      { 0.562, 273., 83.6},
+                      { 0.567, 269., 83.0},
+                      { 0.606, 310., 109.},
+                      { 0.568, 273., 79.5},
+                      { 0.604, 306., 112.}};
+         
+  return e  - logis(me, pars[whichcorr][0],
+                        pars[whichcorr][1],
+                        pars[whichcorr][2]);
 }
 
 // Returns a pretty darn good approximation to the plot in 
@@ -182,11 +194,15 @@ TF1 * gdtime()
 // n: the raw number of fitted events
 // nelo: the lower error on that
 // neup: the upper error on that
+// addsystf: additional symmetric fractional systematic error
 void print_results(const double eff, const double energy,
-                   const double n, const double nelo, const double neup)
+                   const double n, const double nelo, const double neup,
+                   const double addsystf)
 {
   printtwice("\n%.0fkeV fitted number of events, raw: "
              "%f %f +%f\n", 1, energy, n, nelo, neup);
+
+  printf("Additional systematic: %f%%\n", 100*addsystf);
 
   const double n_ec = n/eff, nelo_ec = nelo/eff,
                              neup_ec = neup/eff;
@@ -202,8 +218,8 @@ void print_results(const double eff, const double energy,
 
   const double p_b12_from_c12 = 0.1735;
 
-  const double b12syst_fup =  0.0319,
-               b12syst_flo = -0.0163;
+  const double b12syst_fup =  sqrt(pow(0.0319, 2) + pow(addsystf,2)),
+               b12syst_flo = -sqrt(pow(0.0163, 2) + pow(addsystf,2));
 
   const double
     b12stat_lo = 100*nelo_ec/Nc12cap/p_b12_from_c12,
@@ -222,7 +238,7 @@ void print_results(const double eff, const double energy,
 
   const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
 
-  const double ratesyst_f = 0.021;
+  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -355,7 +371,7 @@ void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
 
 #if 1
   static int call = 0;
-  if(call++%10 == 0){
+  if(call++%100 == 0){
     gg->Draw("same"); ggn->Draw("same");
     c2->SetLogy(); c2->Update();  c2->Modified();
   }
@@ -437,6 +453,7 @@ double lratsig(const double l1, const double l2)
 
 void findsigforarate(const int fnum)
 {
+  return; // XXX
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
@@ -457,8 +474,9 @@ void setlinemarkercolor(TH1 * h, int c)
   h->SetMarkerColor(c);
 }
 
-void b12gammafinalfit(const int region = 1, double targfrac = 0)
+void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double targfrac = 0)
 {
+  whichcorr = whichcorr_;
   const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
   const double hight = 5024.; // ns
   const double highfq = 215; // MeV
@@ -884,6 +902,7 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
   mn->Command("Set strategy 2");
   mn->Command("MIGRAD");
 
+  printf("Finding MINOS errors...\n");
   if(region == 0){
 
     // Can't let the energy scale float when the 2621 line is zeroed,
@@ -938,7 +957,7 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
       const double neveup = mn->fErp[2]/gg->GetParameter("n1")*nev;
       const double nevelo = mn->fErn[2]/gg->GetParameter("n1")*nev;
 
-      print_results(eff, 953, nev, nevelo, neveup);
+      print_results(eff, 953, nev, nevelo, neveup, 0.00170994 / 0.315747);
     }
     {
       drawpeak("2");
@@ -947,7 +966,8 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
       const double neveup = mn->fErp[3]/gg->GetParameter("n2")*nev;
       const double nevelo = mn->fErn[3]/gg->GetParameter("n2")*nev;
 
-      print_results(eff, 1674, nev, nevelo, neveup);
+      print_results(eff, 1674, nev, nevelo, neveup,
+                    sqrt(pow(0.00174438/0.0617006,2) + pow(0.03,2)));
     }
   }
   else if(region == 1){
@@ -958,7 +978,8 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
       const double neveup = mn->fErp[4]/gg->GetParameter("n3")*nev;
       const double nevelo = mn->fErn[4]/gg->GetParameter("n3")*nev;
 
-      print_results(eff, 2621, nev, nevelo, neveup);
+      print_results(eff, 2621, nev, nevelo, neveup,
+                    sqrt(pow(0.00107529/0.464471,2) + pow(0.01,2)));
     }
     {
       drawpeak("5");
@@ -967,7 +988,7 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
       const double neveup = mn->fErp[5]/gg->GetParameter("n5")*nev;
       const double nevelo = mn->fErn[5]/gg->GetParameter("n5")*nev;
 
-      print_results(eff, 3759, nev, nevelo, neveup);
+      print_results(eff, 3759, nev, nevelo, neveup, 0.000441855/0.0258321);
     }
   }
   else if(region == 2 && gg->GetParameter("n6") != 0){
@@ -977,7 +998,7 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
     const double neveup = mn->fErp[6]/gg->GetParameter("n6")*nev;
     const double nevelo = mn->fErn[6]/gg->GetParameter("n6")*nev;
 
-    print_results(eff, 9040, nev, nevelo, neveup);
+    print_results(eff, 9040, nev, nevelo, neveup, 0);
   }
   gg->Draw("same");
 }
