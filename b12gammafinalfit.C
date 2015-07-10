@@ -44,8 +44,6 @@ const double paccn = 1.1e-4;
 
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
-const double gn_e1 = 7.937; // Gd-157
-const double gn_e2 = 8.536; // Gd-155
 
 const double mulife = 2196.9811;
 const double muClife_err = 2.;
@@ -157,11 +155,11 @@ double logis(const double x,
   return p0/(1+ exp(-(x - p1)/p2));
 }
 
-double corrmiche(const double e, const double me, const double mt)
+// Return a michel/gamma/neutron energy adjusted for the baseline
+// shift (presumably) after a muon.
+double corrmiche(const double e, const double me)
 {
-  const double early = e /(logis(me, 0.402/hn_e, 203., 25.0) + 1);
-  const double late  = e /(logis(me, 0.559/hn_e, 286., 73.0) + 1);
-  return early + (late - early) * (mt - 3625.)/1250.;
+  return e  - logis(me, 0.521, 266., 63.6);
 }
 
 // Returns a pretty darn good approximation to the plot in 
@@ -500,13 +498,13 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
     "("
 
     // normalization of the gaussian peak
-    "0.725471/(sqrt([23]**2*8.19701+([24]*8.19701)**2+[25]**2 + 0.1091)*"
+    "0.760129/(sqrt([23]**2*7.983+([24]*7.983)**2+[25]**2 + 0.1091)*"
     "sqrt(2*TMath::Pi()))"
 
     // main gaussian.  The width is the quadrature sum of the intrinsic
     // width (sqrt(0.1091)) and the resolution
-     "*exp(-(((x-8.19701*[1])/"
-     "sqrt([23]**2* 8.19701+([24]*8.19701)**2+[25]**2 + 0.1091))**2)/2)"
+     "*exp(-(((x-7.983*[1])/"
+     "sqrt([23]**2* 7.983+([24]*7.983)**2+[25]**2 + 0.1091))**2)/2)"
 
     // Then we have a parametrization for the low-energy tail
     // First a double logisitic that goes up from zero at 5MeV, then
@@ -532,8 +530,8 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
      "[15]+gaus(16)+gaus(19)+[22]*(3*(x/52.8)^2-2*(x/52.8)^3) +"
     + gaus("26", "27") + "+" + gaus("([30]*[28])", "[29]", false)
 
-    // [30] is the normalization of the Gd-n distribution, with a 
-    // parameterization derived from the histogram in doc-5593-v3
+    // [30] is the normalization of the all n captures, and 28 is the
+    // fraction that are Hn
     + " + ([30]*(1-[28]))*" + gdndist 
      ).c_str(), 0,15);
 
@@ -608,29 +606,29 @@ void b12gammafinalfit(const int region = 1, double targfrac = 0)
     if(latennear == 0){
       if(timeleft > b12hight && dt > b12lowt &&
          dt < b12hight && ndecay == 0)
-        ehist ->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        ehist ->Fill(corrmiche(miche, fq/fq_per_mev));
 
       // "ndecay == 0" how to handle this? Really need the first event
       // in lots of windows, which isn't convenient -- I think this is
       // close enough
       if(timeleft > acchight && dt > acclowt && dt < acchight)
-        bg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        bg->Fill(corrmiche(miche, fq/fq_per_mev));
 
       if(timeleft > li8hight && dt > li8lowt &&
          dt < li8hight && ndecay == 0)
-        corrbg->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        corrbg->Fill(corrmiche(miche, fq/fq_per_mev));
     }
     else if(latennear == 1){
       if(timeleft > b12hight && dt > b12lowt &&
          dt < b12hight && ndecay == 0)
-        ehistn->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        ehistn->Fill(corrmiche(miche, fq/fq_per_mev));
 
       if(timeleft > acchight && dt > acclowt && dt < acchight)
-        bgn->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        bgn->Fill(corrmiche(miche, fq/fq_per_mev));
 
       if(timeleft > li8hight && dt > li8lowt &&
          dt < li8hight && ndecay == 0)
-        corrbgn->Fill(corrmiche(miche, fq/fq_per_mev, micht));
+        corrbgn->Fill(corrmiche(miche, fq/fq_per_mev));
     }
   }
 
