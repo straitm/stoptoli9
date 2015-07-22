@@ -901,6 +901,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   bool followingov = false;
   double followingovtime = 0, followingqivtime = 0;
   double firstlatenearneutrontime = 0, firstlatenearneutronenergy = 0;
+  double firstneutrontime = 0, firstneutronenergy = 0;
   float followingqiv = 0;
 
 
@@ -927,21 +928,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctqbr           = chtree->GetBranch("ctq"),
     * const trgtimebr       = chtree->GetBranch("trgtime");
   
-  double deadtime = 0, nondeadenergy = 0;
-  for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
-    trgtimebr->GetEntry(i);
-    ctEvisIDbr->GetEntry(i);
-    if(bits.ctEvisID == 0){
-      ctqbr->GetEntry(i);
-      bits.ctEvisID = bits.ctq/34e3;
-    }
-    if(bits.trgtime-mutime < 6000) continue;
-    deadtime = bits.trgtime-mutime;
-    nondeadenergy = bits.ctEvisID;
-    break;
-  }
-
-
   const double max_micht = near?30000:5500;
   const double max_time_probably_a_mich = 5500;
 
@@ -1026,6 +1012,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     const bool alsoamichel = dt < max_time_probably_a_mich;
     nneutronanydist[0]++;
+    if(firstneutrontime == 0){
+      firstneutrontime = dt;
+      firstneutronenergy = bits.ctEvisID;
+    }
     if(gd) ngdneutronanydist[0]++;
     if(nnear) nneutronnear[0]++;
     if(gd && nnear) ngdneutronnear[0]++;
@@ -1040,7 +1030,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
           firstlatenearneutrontime = dt;
           firstlatenearneutronenergy = bits.ctEvisID;
         }
-      } 
+      }
       if(gd && nnear) ngdneutronnear[1]++;
     }
   }
@@ -1082,12 +1072,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      nneutronnear[1],  nneutronanydist[1], \
      michele, michelx, michely, michelz, \
      michelt, gclen, entr_mux, entr_muy, entr_muz, \
-     deadtime, nondeadenergy, michdist, \
+     michdist, \
      mufqid, mufqiv, muctqid, muctqiv, \
      timeleft, ttlastvalid, ttlastmuon, \
      ttlastgcmuon, followingov, followingovtime, \
      followingqiv, followingqivtime, printed, \
      firstlatenearneutrontime, firstlatenearneutronenergy, \
+     firstneutrontime, firstneutronenergy, \
      idexitqf, ivqbal
 
     if(dt_ms > maxtime){ // stop looking and print muon info
@@ -1401,11 +1392,12 @@ int main(int argc, char ** argv)
     "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
     "latengd/I:latennear/I:laten/I:miche/F:"
     "michx/F:michy/F:michz/F:micht/F:gclen/F:"
-    "fex/F:fey/F:fez/F:deadt/F:"
-    "deade/F:michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
+    "fex/F:fey/F:fez/F:"
+    "michd/F:fq/F:fqiv/F:cq/F:cqiv/F:timeleft/F:"
     "ttlastvalid/F:ttlastmuon/F:ttlastgcmuon/F:"
     "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
-    "ndecay/I:firstlatenneart/F:firstlatenneare/F:idexitqf/F:ivqbal/F");
+    "ndecay/I:firstlatenneart/F:firstlatenneare/F:firstnt/F:firstne/F:"
+    "idexitqf/F:ivqbal/F");
   if(is_be12search) // same as above with 2s appended to each name
                     // some are dumb, since, i.e., mutrig === mutrig2
     printf(
@@ -1414,11 +1406,12 @@ int main(int argc, char ** argv)
       "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
       "latengd2/I:latennear2/I:laten2/I:miche2/F:"
       "michx2/F:michy2/F:michz2/F:micht2/F:gclen2/F:"
-      "fex2/F:fey2/F:fez2/F:deadt2/F:"
-      "deade2/F:michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
+      "fex2/F:fey2/F:fez2/F:"
+      "michd2/F:fq2/F:fqiv2/F:cq2/F:cqiv2/F:timeleft2/F:"
       "ttlastvalid2/F:ttlastmuon2/F:ttlastgcmuon2/F:"
       "followingov2/O:followingovtime2/F:followingqiv2/F:followingqivtime2/F:"
-      "ndecay2/I:firstlatenneart2/F:firstlatenneare2/F:idexitqf2/F:ivqbal2/F");
+      "ndecay2/I:firstlatenneart2/F:firstlatenneare2/F:firstnt2/F:firstne2/F:"
+      "idexitqf2/F:ivqbal2/F");
   printf("\n");
 
   for(int i = 4; i < argc; i+=2){
