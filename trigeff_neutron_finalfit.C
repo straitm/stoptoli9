@@ -1,3 +1,4 @@
+#include "TError.h"
 #include "TMarker.h"
 #include "TCanvas.h"
 #include "TArrow.h"
@@ -264,6 +265,8 @@ void trigeff_neutron_finalfit(const double lowe = 70,
   gmcerr->SetName("gmcerr");
   c1->cd();
   gmcerr->Draw("p");
+
+  gErrorIgnoreLevel = kWarning;
 
   c1->SaveAs(Form("trigeff-%.0f.C", lowe/2+highe/2));
 
