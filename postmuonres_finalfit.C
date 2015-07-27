@@ -11,7 +11,13 @@ double min(double a, double b)
   return a < b ? a : b;
 }
 
-void postmuonres_finalfit()
+void print()
+{
+  printf("H: %f %f +%f\n", MINUIT->fU[1], MINUIT->fErn[1], MINUIT->fErp[1]);
+  printf("Gd: %f %f +%f\n", MINUIT->fU[4], MINUIT->fErn[4], MINUIT->fErp[4]);
+}
+
+void postmuonres_finalfit(double emin = 60)
 {
   TFile * f = new TFile(rootfilethru, "read");
   TTree * t = (TTree *)f->Get("t");
@@ -36,8 +42,9 @@ void postmuonres_finalfit()
   TH1D * ehist = new TH1D("ehist", "", 100, 1, 11);
 
   const float halfw = 25;
-  for(int i = 1; i < 2; i++){
-    const float e = 60 + i*halfw*2 + halfw;
+  {
+    const int i = 1;
+    const float e = emin + i*halfw*2 + halfw;
     g->SetParameters(20, 2.223 + 0.001*e, 0.055*2.223, 10, 8, 0.4, 0);
 
     g->SetParLimits(0, 1, 100);
@@ -85,5 +92,7 @@ void postmuonres_finalfit()
     wh ->SetPointError(i, xerr, xerr, min(wh->GetY()[i], fabs(MINUIT->fErn[2])/2.223), MINUIT->fErp[2]/2.223);
     egd->SetPointError(i, xerr, xerr, -MINUIT->fErn[4], MINUIT->fErp[4]);
     wgd->SetPointError(i, xerr, xerr, -MINUIT->fErn[5]/7.95, MINUIT->fErp[5]/7.95);
+
+    print();
   }
 }
