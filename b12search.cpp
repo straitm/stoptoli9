@@ -819,9 +819,25 @@ static twolike lb12like(const vector<track> & ts, const float x,
   return max;
 }
 
-static bool isnenergy(const double e)
+double logis(const double x,
+             const double p0, const double p1, const double p2)
 {
-  return (e > 1.8 && e < 2.6) || (e > 4.0 && e < 10 );
+  return p0/(1+ exp(-(x - p1)/p2));
+}
+
+// Return a michel/gamma/neutron energy adjusted for the baseline
+// shift (presumably) after a muon.
+double corrmiche(const double e, const double me)
+{
+  double pars[3] ={ 0.583, 287., 94.2};
+  return e  - logis(me, pars[0], pars[1], pars[2]);
+}
+
+bool isnenergy(const double e, const double dt, const double me)
+{
+  const double corre = dt > 5500? e: corrmiche(e, me);
+
+  return (corre > 1.8 && corre < 2.6) || (corre > 4.0 && corre < 10 );
 }
 
 static int nnaftermu(const unsigned int muoni, dataparts & bits,
@@ -863,7 +879,7 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
     }
 
     // right energy for a neutron capture
-    if(!isnenergy(bits.ctEvisID)) continue;
+    if(!isnenergy(bits.ctEvisID, 1e4, 0 /* no correction */)) continue;
 
     found++; 
   }
@@ -1008,7 +1024,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       bits.ctEvisID = bits.ctq/34e3;
     }
     // right energy for a neutron capture
-    if(!isnenergy(bits.ctEvisID)) continue;
+    if(!isnenergy(bits.ctEvisID, dt, mufqid/8300)) continue;
 
     ctXbr->GetEntry(i);
 
