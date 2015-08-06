@@ -1,4 +1,7 @@
-all: stoptoli9 b12search fissionsearch microdst
+all: stoptoli9 b12search fissionsearch microdst scramble
+
+scramble.o: scramble.cpp
+	g++ -O2 -c scramble.cpp -Wall -Wextra -lm
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -lm
