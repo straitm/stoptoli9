@@ -66,7 +66,7 @@ TTree * readfile()
 {
   puts("Reading file");
 
-  TFile * f = new TFile("/cp/s4/strait/fullfido-neutron-20150722.d/all-withpost3rdpub.root", "read");
+  TFile * f = new TFile("/cp/s4/strait/fullfido-neutron-20150727.d/all.root", "read");
   TTree * tree = (TTree *)f->Get("t");
   tree->SetName("tree");
 
@@ -217,7 +217,7 @@ void trigeff_neutron_finalfit(const double lowe = 70,
   TH1D * h = new TH1D("h", "", 1600, 0, 800);
   t->Draw("t/1000 >> h",
     Form("!ov && fqiv > 225e3 && fqiv < 400e3 && "
-         "fq/8300 > %lf && fq/8300 < %lf && e > 2 && e < 2.6 &&"
+         "fq/8300 > %lf && fq/8300 < %lf && e > 2 && e < 3.99 &&"
          "nn > 1" // crucial for rejecting 
                   // stopping muons (in IV?) as through-going +
                   // Michel decay (in buffer?) as neutron
@@ -231,10 +231,6 @@ void trigeff_neutron_finalfit(const double lowe = 70,
 
   two->ReleaseParameter(1);
   two->SetParLimits(1, 24, 30); // capture Gd
-  h->Fit("two", "le", "", lowt, 800); 
-
-  two->ReleaseParameter(2);
-  two->SetParLimits(2, 0, 0.73); // Thermalization, fig3b of doc-4028
   h->Fit("two", "le", "", lowt, 800); 
 
   gMinuit->Command("show min");
