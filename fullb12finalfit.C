@@ -13,7 +13,7 @@
 #include "deadtime.C" // <-- note inclusion of source
 
 //#define DISABLEN16
-//#define DISABLELI
+#define DISABLELI
 
 using std::vector;
 
@@ -91,8 +91,31 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
+#define LESSSLANT
+
+#ifdef STD
 const double mum_count =   7.16322e5;
 const double mum_count_e = 0.05388e5;
+#endif
+
+#ifdef LESSCHI2
+//chi2 < 1.25
+const double mum_count = 580803.176822;
+const double mum_count_e = 4368.758071;
+#endif
+
+#ifdef LESSPOS
+// positions < 900
+const double mum_count = 487379.457734;
+const double mum_count_e = 3666.031841;
+#endif
+
+#ifdef LESSSLANT
+// slantdiff < 600
+const double mum_count = 554298.088453;
+const double mum_count_e = 4169.388778;
+#endif
+
 
 // Weighted average of T and GC measurements for the HP region
 const double f13 = 0.010921;
@@ -709,8 +732,21 @@ double b13limit()
 }
 
 void fullb12finalfit(const char * const cut =
+#ifdef LESSPOS
+"mx**2+my**2 < 900**2 && mz > -900 && "
+#else
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+#endif
+#ifdef LESSSLANT
+"abs(fez + 62*ivdedx/2 - 8847.2) < 600 && "
+#else
+"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
+#endif
+#ifdef LESSCHI2
+"chi2 < 1.25 && "
+#else
+"chi2 < 2 && "
+#endif
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f && laten <= 2")
 {
