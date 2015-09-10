@@ -206,7 +206,8 @@ pair<double,double> mcerror(TF1 * fin, const double low,
 
 void trigeff_neutron_finalfit(const double lowe = 70,
                               const double highe = 215,
-                              const double lowt = 20)
+                              const double lowt = 25,
+                              const char * const addcut = "1")
 {
   if(!t) t = readfile();
 
@@ -221,7 +222,8 @@ void trigeff_neutron_finalfit(const double lowe = 70,
          "nn > 1" // crucial for rejecting 
                   // stopping muons (in IV?) as through-going +
                   // Michel decay (in buffer?) as neutron
-         , lowe, highe),
+         " && %s"
+         , lowe, highe, addcut),
     "e");
 
   h->Fit("two", "l", "", lowt, 800); 
