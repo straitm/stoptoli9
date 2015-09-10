@@ -1,4 +1,7 @@
-all: stoptoli9 b12search fissionsearch microdst scramble
+all: stoptoli9 b12search fissionsearch microdst scramble calibstudyntuple
+
+calibstudyntuple: calibstudyntuple.cpp
+	g++ -O2 -o calibstudyntuple calibstudyntuple.cpp -Wall -Wextra -lm
 
 scramble: scramble.cpp
 	g++ -O2 -o scramble scramble.cpp -Wall -Wextra -lm
