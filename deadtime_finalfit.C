@@ -65,6 +65,18 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
     "(mz > -1175 && mx**2+my**2 < 1050**2 && chi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
   printf("%sHigh-purity cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
 
+  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen),
+    "(mz > -1175 && mx**2+my**2 < 1050**2 && chi2 < 1.25 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
+  printf("%sHigh-purity lesschi2 cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
+
+  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen),
+    "(mz > -900 && mx**2+my**2 < 900**2 && chi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
+  printf("%sHigh-purity lesspos cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
+
+  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen),
+    "(mz > -1175 && mx**2+my**2 < 1050**2 && chi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 600)");
+  printf("%sHigh-purity lessslant cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
+
 /*  t->Draw(Form(drawstring, comb, early, ntrue-nseen, early, nseen), "fq < 1.8e6");
   printf("%sEfficiency when fq < 1.8e6: %.2f%s\n", RED, h->GetMean()*100, CLR); */
 
