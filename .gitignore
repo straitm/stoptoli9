@@ -11,3 +11,6 @@ li9ntuples/*
 *.o
 fissionsearch
 be12search
+trigeff-*.C
+scramble
+buffersearch

@@ -43,7 +43,10 @@ void c9finalfit(const char elem = 'o')
     * 0.981 // subsequent muons
     * (elem=='o'?0.897:0.9405) // delta r
     * 0.99709 // 100s from end of run
-    * 0.969 // energy
+    * 0.969 // energy -- maybe a little optimistic: 60%
+            // goes to the ground state, rest to excited
+            // states between 2-3 MeV, which isn't too bad,
+            // but will lower the efficiency a little.
     * neff
   ;
 
