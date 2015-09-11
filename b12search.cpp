@@ -15,6 +15,8 @@ using std::vector;
 
 #include "search.h"
 
+enum searchtype{ b12, be12, neutron, buffer };
+
 // True if we are processing ND data.
 static const bool near = false;
 
@@ -889,8 +891,7 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            TTree * const fitree,
                            const unsigned int muoni,
-                           const bool is_be12search,
-                           const bool is_neutronsearch,
+                           const searchtype search,
                            const double timeleft)
 {
   const double mutime = bits.trgtime;
@@ -1037,7 +1038,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
 
-    if(is_neutronsearch){
+    if(search == neutron){
       ntoprint_e.push_back(bits.ctEvisID);
       ntoprint_t.push_back(dt);
       ntoprint_ov.push_back(bits.coinov);
@@ -1125,7 +1126,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      idexitqf, ivqbal
 
     if(dt_ms > maxtime){ // stop looking and print muon info
-      if(!is_neutronsearch && printed == 0)
+      if(search != neutron && printed == 0)
         printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
       break;
     }
@@ -1175,7 +1176,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     {
       // If the be12 search, record distance to previous selected event,
       // not always to muon, otherwise always to the muon.
-      const double dist = (got == 0 || !is_be12search)?
+      const double dist = (got == 0 || search != be12)?
         sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
@@ -1187,20 +1188,20 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
       const twolike b12like =
         lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
-      if(!is_neutronsearch)
+      if(search != neutron)
         // NOTE-luckplan
         printf("%d %lf %f %f %f %f %f %f %f " LATEFORM "%c",
                bits.trgId, dt_ms, dist,
                bits.ctEvisID, ix[got], iy[got], iz[got],
                b12like.like, b12like.altlike,
                LATEVARS,
-               is_be12search?' ':'\n');
+               search == be12?' ':'\n');
       printed++;
       
       // If searching for be12, use the ix/iy/iz arrays and stop when we
       // get 2 decays; these are printed on the same line. Otherwise,
       // keep going up to the time limit and put each on its own line.
-      if(is_be12search) got++;
+      if(search == be12) got++;
 
       if(got >= 2) break;
     }
@@ -1256,11 +1257,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     // at EOR, be sure to print muon info
-    if(!is_neutronsearch && i == chtree->GetEntries()-1 && printed == 0)
+    if(search != neutron && i == chtree->GetEntries()-1 && printed == 0)
       printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
   }
   if(got){
-    if(!is_neutronsearch) printf("\n");
+    if(search != neutron) printf("\n");
     fflush(stdout);
   }
 }
@@ -1290,9 +1291,9 @@ static double geteortime(dataparts & parts, TTree * const chtree,
   return eortime;
 }
 
-static void search(dataparts & parts, TTree * const chtree,
-                   TTree * const fitree, const bool is_be12search,
-                   const bool is_neutronsearch)
+static void searchforamuon(dataparts & parts, TTree * const chtree,
+                           TTree * const fitree,
+                           const searchtype search)
 {
   double lastmuontime = 0;
   double eortime = 0;
@@ -1333,7 +1334,7 @@ static void search(dataparts & parts, TTree * const chtree,
     ids_didfitbr->GetEntry(mi);
 
     // Must be possible that it's a stopper (or not for neutron search)
-    if(!(is_neutronsearch ^ parts.ids_didfit)) goto end;
+    if(!((search == neutron) ^ parts.ids_didfit)) goto end;
 
     trgtimebr->GetEntry(mi);
 
@@ -1346,27 +1347,39 @@ static void search(dataparts & parts, TTree * const chtree,
 
     fido_qidbr->GetEntry(mi);
     if(parts.fido_qid/(near?13500:8300) > 700) goto end;
-    if(parts.fido_qid/(near?13500:8300) < (is_neutronsearch?1:60)) goto end;
+    if(parts.fido_qid/(near?13500:8300) < (search == neutron?1:60)) goto end;
   
     nivtubesbr->GetEntry(mi);
     nidtubesbr->GetEntry(mi);
 
     if(parts.nidtubes+parts.nivtubes <= 6) goto end;
  
-    if(!is_neutronsearch){
+    if(search != neutron){
       ids_chi2br->GetEntry(mi);
       if(!near){
         if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6) > 10) goto end;
       }
 
-      ids_end_xbr->GetEntry(mi);
-      ids_end_ybr->GetEntry(mi);
-      // This correctly uses the *uncorrected* position
-      if(pow(parts.ids_end_x, 2)+pow(parts.ids_end_y, 2) > pow(1708-35,2)) goto end;
+      // These correctly use the *uncorrected* position
+      if(search == buffer){
+        // Accept *only* if the muon clearly appears to be exiting
+        ids_end_xbr->GetEntry(mi);
+        ids_end_ybr->GetEntry(mi);
+        ids_end_zbr->GetEntry(mi);
+        if(pow(parts.ids_end_x,2)+pow(parts.ids_end_y,2)<pow(1708-35,2)
+            &&
+           parts.ids_end_z > -1786+(near?40:35)) goto end;
+      }
+      else{
+        // Do *not* accept if the muon appears to be exiting
+        ids_end_xbr->GetEntry(mi);
+        ids_end_ybr->GetEntry(mi);
+        if(pow(parts.ids_end_x,2)+pow(parts.ids_end_y,2)>pow(1708-35,2))
+          goto end;
 
-      ids_end_zbr->GetEntry(mi);
-      // This correctly uses the *uncorrected* position
-      if(parts.ids_end_z < -1786+(near?40:35) /* silly */) goto end;
+        ids_end_zbr->GetEntry(mi);
+        if(parts.ids_end_z < -1786+(near?40:35)) goto end;
+      }
 
       ids_entr_zbr->GetEntry(mi);
       id_ivlenbr->GetEntry(mi);
@@ -1389,8 +1402,7 @@ static void search(dataparts & parts, TTree * const chtree,
     chtree->GetEntry(mi);
     fitree->GetEntry(mi);
 
-    searchfrommuon(parts, chtree, fitree, mi,
-                   is_be12search, is_neutronsearch,
+    searchfrommuon(parts, chtree, fitree, mi, search,
     // Record how much time is left to the end of the run so that we can
     // exclude events that are too close when analyzing.
                              (eortime - parts.trgtime)/1e6);
@@ -1425,6 +1437,11 @@ int main(int argc, char ** argv)
             "[cheetah file, fido file]*\n\n");
 
     fprintf(stderr,
+            "To search for buffer stopping muons:\n"
+            "buffersearch maxtime[ms] minenergy maxenergy "
+            "[cheetah file, fido file]*\n\n");
+
+    fprintf(stderr,
             "To check files only, use\n"
             "checkb12search foo foo foo "
             "[cheetah file, fido file]*\n");
@@ -1436,14 +1453,17 @@ int main(int argc, char ** argv)
   minenergy = atof(argv[2]);
   maxenergy = atof(argv[3]);
 
-  const bool is_be12search = !strcmp(basename(argv[0]), "be12search");
-  const bool is_neutronsearch = !strcmp(basename(argv[0]), "neutronsearch");
+  const searchtype search = 
+    !strcmp(basename(argv[0]),    "be12search")? be12:
+    !strcmp(basename(argv[0]), "neutronsearch")? neutron:
+    !strcmp(basename(argv[0]),  "buffersearch")? buffer:
+                                                 b12;
 
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
 
   // NOTE-luckplan
-  if(is_neutronsearch)
+  if(search == neutron)
     printf("i/I:nn/I:fq/F:t/F:e/F:ov/I:fqiv/F:x/F:y/F:z/F");
   else printf(
     "trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
@@ -1457,8 +1477,8 @@ int main(int argc, char ** argv)
     "followingov/O:followingovtime/F:followingqiv/F:followingqivtime/F:"
     "ndecay/I:firstlatenneart/F:firstlatenneare/F:firstnt/F:firstne/F:"
     "idexitqf/F:ivqbal/F");
-  if(is_be12search) // same as above with 2s appended to each name
-                    // some are dumb, since, i.e., mutrig === mutrig2
+  if(search == be12) // same as above with 2s appended to each name
+                     // some are dumb, since, i.e., mutrig === mutrig2
     printf(
       ":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
       "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
@@ -1586,7 +1606,7 @@ int main(int argc, char ** argv)
     if(chtree->SetBranchAddress("ctX", parts.ctX) < 0)
       chtree->SetBranchAddress("ctX[3]", parts.ctX);
 
-    search(parts, chtree, fitree, is_be12search, is_neutronsearch);
+    searchforamuon(parts, chtree, fitree, search);
 
     cleanup:
 
