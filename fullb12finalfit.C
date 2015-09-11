@@ -12,7 +12,7 @@
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
-//#define DISABLEN16
+#define DISABLEN16
 #define DISABLELI
 
 using std::vector;
@@ -91,7 +91,7 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
-#define LESSSLANT
+#define STD
 
 #ifdef STD
 const double mum_count =   7.16322e5;
