@@ -13,7 +13,7 @@ void be12finalfit()
   const double b12eff = 
       0.9251 // Energy over 3 MeV
     * 0.97 // dist2: from doc-5679 -- conservative given higher energies here
-    * exp(-1*log(2)/20.2)  // After 1ms
+    * (exp(-1*log(2)/20.2) - exp(-150*log(2)/20.2))  // After 1ms
     * 0.981 // subsequent muons
    ;
 
