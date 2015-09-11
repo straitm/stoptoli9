@@ -936,7 +936,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
 
   callfcn(); // get gg and ggn set right
 
-  mn->Command("showmin");
+  mn->Command("show min");
 
   const double a = gg->GetParameter("er_a");
   const double b = gg->GetParameter("er_b");
@@ -1001,4 +1001,6 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     print_results(eff, 9040, nev, nevelo, neveup, 0);
   }
   gg->Draw("same");
+
+  mn->Command("show cov");
 }
