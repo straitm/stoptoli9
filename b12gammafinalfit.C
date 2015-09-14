@@ -38,6 +38,12 @@ double n_to_0_bg_rat = 0; // set later
 const double neff = 0.858;
 const double neff_e = 0.01;
 
+// Gamma energies, plus 6keV for the B-12 recoil
+const double G1E = 0.95314 + 0.006;
+const double G2E = 1.67365 + 0.006;
+const double G3E = 2.6208 + 0.006;
+const double G4E = 3.759 + 0.006;
+
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* neutrons, so don't apply efficiency to them.
 const double paccn = 1.1e-4;
@@ -453,7 +459,7 @@ double lratsig(const double l1, const double l2)
 
 void findsigforarate(const int fnum)
 {
-  return; // XXX
+  //return; // sometimes disable because it is slow
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
@@ -553,10 +559,10 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     + " + ([30]*(1-[28]))*" + gdndist 
      ).c_str(), 0,15);
 
-  ggn = new TF1("ggn", (gaus("[2]", "0.95314", false) + "+" + // sic
-                        gaus("[3]", "1.67365", false) + "+" +
-                        gaus("[4]", "2.62080", false) + "+" +
-                        gaus("[5]", "3.75900", false) + "+" + 
+  ggn = new TF1("ggn", (gaus("[2]", Form("%.9f", G1E), false) + "+" + // sic
+                        gaus("[3]", Form("%.9f", G2E), false) + "+" +
+                        gaus("[4]", Form("%.9f", G3E), false) + "+" +
+                        gaus("[5]", Form("%.9f", G4E), false) + "+" + 
                         gaus("[7]", "2.224573",false) +  // sic
       // accidental bg and michels.  Right for the accidentals,
       // wrong for the Michels, but I think it is ok.
@@ -717,7 +723,8 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
 
   TF1 * corrbgfit = new TF1("corrbgfit", "gaus(0)", 0.7, 2);
   corrbgfit->SetLineColor(kViolet);
-  const double li8gamma = 0.9808;
+  const double li8gamma = 0.9808
+     + 4.40 / (13.0*0.2/*NT*/ + 17.4*0.8/*GC*/) /* quenched alpha */;
   corrbgfit->FixParameter(1, li8gamma);
 
   // energy resolution
@@ -789,14 +796,14 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   fixat(mn, 1+1, 1);
   mn->Command(Form("SET PAR 3 %f", neff));
 
-  fixat(mn, 1+4, 0.95314);
-  fixat(mn, 1+6, 1.67365);
-  fixat(mn, 1+8, 2.6208);
+  fixat(mn, 1+4, G1E);
+  fixat(mn, 1+6, G2E);
+  fixat(mn, 1+8, G3E);
 
   fixat(mn, 1+9, 0);
   fixat(mn, 1+10,0);
 
-  fixat(mn, 1+12,3.759);
+  fixat(mn, 1+12,G4E);
   fixat(mn, 1+13, 0);
   fixat(mn, 1+14,9.040);
 
