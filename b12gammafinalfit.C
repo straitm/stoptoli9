@@ -51,12 +51,18 @@ const double paccn = 1.1e-4;
 const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
 
+const double muC13life = 2037.; // muon lifetime in C-12, ns
+
 const double mulife = 2196.9811;
 const double muClife_err = 2.;
+const double muC13life_err = 8.;
 const double capprob12 = 1-muClife/mulife;
 const double errcapprob12 = (1-(muClife+muClife_err)/mulife)/2
                            -(1-(muClife-muClife_err)/mulife)/2;
 
+const double capprob13 = 1-muC13life/mulife;
+const double errcapprob13 = (1-(muClife+muC13life_err)/mulife)/2
+                           -(1-(muClife-muC13life_err)/mulife)/2;
 #ifdef HP
   const double No16cap_betan = n_o16cap_betan_hp*livetime;
   const double Nc12captarget = n_c12captarget_hp*livetime;
@@ -201,6 +207,83 @@ TF1 * gdtime()
 // nelo: the lower error on that
 // neup: the upper error on that
 // addsystf: additional symmetric fractional systematic error
+void print_results13(const double eff, const double energy,
+                   const double n, const double nelo, const double neup,
+                   const double addsystf)
+{
+  printtwice("\n%.0fkeV B12 + n fitted number of events, raw: "
+             "%f %f +%f\n", 1, energy, n, nelo, neup);
+
+  printf("Additional systematic: %f%%\n", 100*addsystf);
+
+  const double n_ec = n/eff, nelo_ec = nelo/eff,
+                             neup_ec = neup/eff;
+
+  const double p_b12_from_c13 = 0.516;
+
+  const double b12syst_fup= sqrt(pow(5/51.6, 2) +pow(addsystf,2)),
+               b12syst_flo=-sqrt(pow(5/51.6, 2) +pow(addsystf,2));
+
+  const double
+    b12stat_lo = 100*nelo_ec/Nc13cap/p_b12_from_c13,
+    b12stat_up = 100*neup_ec/Nc13cap/p_b12_from_c13,
+    b12syst_lo = 100*n_ec/Nc13cap/p_b12_from_c13 * b12syst_flo,
+    b12syst_up = 100*n_ec/Nc13cap/p_b12_from_c13 * b12syst_fup;
+
+  const double percentval = 100*n_ec/Nc13cap/p_b12_from_c13;
+  printtwice("\n%.0fkeV per B-12 + n production: "
+             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
+             percentval,
+             b12stat_lo, b12stat_up,
+             b12syst_lo, b12syst_up,
+             -sqrt(pow(b12stat_lo,2) + pow(b12syst_lo,2)),
+             sqrt(pow(b12stat_up,2) + pow(b12syst_up,2))
+            );
+
+  printtwice("\n%.0fkeV 90%% upper limit per B-12 + n production: "
+             "%f%%\n", 1, energy,
+             /* See comments for rate limit, below */
+             (percentval + b12stat_up*1.2816)
+             *(1 + b12syst_up/percentval*0.17)
+            );
+
+  const double ratemult = capprob13/(Nc13cap*muC13life)*1e6;
+
+  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
+
+  const double
+    ratestat_lo = nelo_ec*ratemult,
+    ratestat_up = neup_ec*ratemult,
+    ratesyst = ratesyst_f*n_ec*ratemult;
+
+  const double rateval = n_ec*ratemult;
+  printtwice("\n%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
+             "%f +%f (tot) e-3\n", 3, energy,
+             rateval,
+             ratestat_lo, ratestat_up,
+             ratesyst, ratesyst,
+             -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
+             sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
+
+  printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
+  /* Lazy treatment of upper limit, assuming an untruncated Gaussian
+  likelihood. Bayesian treatment (as far as it goes) with a flat prior
+  in rate. */
+             (rateval + ratestat_up * 1.2816)
+  /* Kludgy accounting for rate systematic. I know that with 33%
+  denominator error, a limit expands by 5.5239%. I don't think this
+  scales linearly, but it is also a *tiny* effect, so just fudge it. */
+             *(1 + ratesyst/rateval*0.17));
+
+  puts("");
+}
+
+// eff: the efficiency
+// energy: the gamma line energy
+// n: the raw number of fitted events
+// nelo: the lower error on that
+// neup: the upper error on that
+// addsystf: additional symmetric fractional systematic error
 void print_results(const double eff, const double energy,
                    const double n, const double nelo, const double neup,
                    const double addsystf)
@@ -260,6 +343,13 @@ void print_results(const double eff, const double energy,
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
   puts("");
+}
+
+double getpar(int i) // zero indexed
+{
+  double val, err;
+  mn->GetParameter(i, val, err);
+  return val;
 }
 
 /* Print the TFormula-style expression for a Gaussian, arranged so that
@@ -459,7 +549,7 @@ double lratsig(const double l1, const double l2)
 
 void findsigforarate(const int fnum)
 {
-  //return; // sometimes disable because it is slow
+  return; // sometimes disable because it is slow
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
@@ -976,6 +1066,20 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       print_results(eff, 1674, nev, nevelo, neveup,
                     sqrt(pow(0.00174438/0.0617006,2) + pow(0.03,2)));
     }
+    {
+      const double nev = getpar(31)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[7]/getpar(31)*nev;
+      const double nevelo = mn->fErn[7]/getpar(31)*nev;
+
+      print_results13(neff*eff, 953, nev, nevelo, neveup, 0);
+    }
+    {
+      const double nev = getpar(32)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[8]/getpar(32)*nev;
+      const double nevelo = mn->fErn[8]/getpar(32)*nev;
+
+      print_results13(neff*eff, 1674, nev, nevelo, neveup, 0);
+    }
   }
   else if(region == 1){
     {
@@ -996,6 +1100,20 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       const double nevelo = mn->fErn[5]/gg->GetParameter("n5")*nev;
 
       print_results(eff, 3759, nev, nevelo, neveup, 0.000441855/0.0258321);
+    }
+    {
+      const double nev = getpar(33)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[9]/getpar(33)*nev;
+      const double nevelo = mn->fErn[9]/getpar(33)*nev;
+
+      print_results13(neff*eff, 2621, nev, nevelo, neveup, 0);
+    }
+    {
+      const double nev = getpar(34)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[10]/getpar(34)*nev;
+      const double nevelo = mn->fErn[10]/getpar(34)*nev;
+
+      print_results13(neff*eff, 3759, nev, nevelo, neveup, 0);
     }
   }
   else if(region == 2 && gg->GetParameter("n6") != 0){
