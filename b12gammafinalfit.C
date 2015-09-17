@@ -96,6 +96,10 @@ const double b12ecutlow = 4;
 
 const double distcut = 400;
 
+// Will be set by the corrbgfit (a.k.a. Li-8 fit)
+// and used as pull terms
+double corrbgnorm_nom = -1, corrbgnorm_err = -1;
+
 double max(const double a, const double b)
 {
   return a > b ? a : b;
@@ -497,7 +501,12 @@ void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
     }
   }
   chi2 *= 2;
+
+  // pull term for neutron efficiency
   chi2 += pow((par[2] - neff)/neff_e, 2);
+
+  // pull term for "correlated background" (a.k.a. Li-8) component
+  chi2 += pow((par[26] - corrbgnorm_nom)/corrbgnorm_err, 2);
 }
 
 // call the function at the current value for the side effects, e.g.
@@ -599,12 +608,24 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     * fq_eff
   ;
 
+  const double li8eff = 1
+    * 0.981  // Subsequent muon veto efficiency 
+    * eff_eor_li8 // timeleft cut
+    * (b12ecutlow == 3?0.9057:
+       b12ecutlow == 4?0.8227:
+       (exit(1),1)) // energy cut
+    * (distcut == 400?wholedet_dist400eff:(exit(1),1))
+    * (exp(-li8lowt *log(2)/li8hl)
+      -exp(-li8hight*log(2)/li8hl)) // Li-8 beta decay time
+    * fq_eff
+  ;
   const double gammatimecut_eff = 
     (exp(-lowt/muClife)-exp(-hight/muClife));
   const double eff = b12eff * gammatimecut_eff;
 
   printtwice("Gamma time efficiency: %f%%\n", 1, 100*gammatimecut_eff);
-  printtwice("Efficiency: %f%%\n", 1, 100*eff);
+  printtwice("Efficiency for B-12 gammas: %f%%\n", 1, 100*eff);
+  printtwice("Efficiency for Li-8 gammas: %f%%\n", 1, 100*li8eff);
 
   const string gdndist = 
     // Gd-n distribution, normalized to 1, with a 
@@ -897,7 +918,12 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   fixat(mn, 1+13, 0);
   fixat(mn, 1+14,9.040);
 
-  fixat(mn, 1+26, max(0, corrbgfit->GetParameter(0)));
+
+  corrbgnorm_nom = max(0, corrbgfit->GetParameter(0));
+  corrbgnorm_err = corrbgfit->GetParError(0);
+  mn->Command(Form("SET PAR 27 %f", corrbgnorm_nom));
+  mn->Command(Form("set limits 27 0. %f",
+                   corrbgnorm_nom + 5*corrbgnorm_err));
   fixat(mn, 1+27, corrbgfit->GetParameter(1));
   fixat(mn, 1+28, corrbgfit->GetParameter(2));
 
@@ -1067,16 +1093,16 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
                     sqrt(pow(0.00174438/0.0617006,2) + pow(0.03,2)));
     }
     {
-      const double nev = getpar(31)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[7]/getpar(31)*nev;
-      const double nevelo = mn->fErn[7]/getpar(31)*nev;
+      const double nev = getpar(32)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[7]/getpar(32)*nev;
+      const double nevelo = mn->fErn[7]/getpar(32)*nev;
 
       print_results13(neff*eff, 953, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(32)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[8]/getpar(32)*nev;
-      const double nevelo = mn->fErn[8]/getpar(32)*nev;
+      const double nev = getpar(33)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[8]/getpar(33)*nev;
+      const double nevelo = mn->fErn[8]/getpar(33)*nev;
 
       print_results13(neff*eff, 1674, nev, nevelo, neveup, 0);
     }
@@ -1102,16 +1128,16 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       print_results(eff, 3759, nev, nevelo, neveup, 0.000441855/0.0258321);
     }
     {
-      const double nev = getpar(33)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[9]/getpar(33)*nev;
-      const double nevelo = mn->fErn[9]/getpar(33)*nev;
+      const double nev = getpar(34)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[9]/getpar(34)*nev;
+      const double nevelo = mn->fErn[9]/getpar(34)*nev;
 
       print_results13(neff*eff, 2621, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(34)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[10]/getpar(34)*nev;
-      const double nevelo = mn->fErn[10]/getpar(34)*nev;
+      const double nev = getpar(35)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[10]/getpar(35)*nev;
+      const double nevelo = mn->fErn[10]/getpar(35)*nev;
 
       print_results13(neff*eff, 3759, nev, nevelo, neveup, 0);
     }
