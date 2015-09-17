@@ -932,7 +932,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     const double hn_t = 179.;
 
     // from my own measurements of B-12n and Li-8n from C-13
-    const double Pn = 0.516 + 0.054 * b12hl/li8life;
+    const double Pn = 0.516 + 0.049 * b12hl/li8life;
     const double ntrueb12n = Nc13cap*Pn;
     const double nobsb12n = ntrueb12n*b12eff;
 
