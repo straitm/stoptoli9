@@ -12,7 +12,7 @@
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
-#define HP
+//#define HP
 
 using std::vector;
 
@@ -147,7 +147,7 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-const double li8eff_energy = 0.5888; // estimate from DOGS MC -- good 
+const double li8eff_energy = 0.7165; // estimate from DOGS MC -- good 
 const double li8eff_energy_e = 0.02; // made up!
 const double li8ferr_energy = li8eff_energy_e/li8eff_energy; // made up!
 
