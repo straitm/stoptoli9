@@ -2,7 +2,7 @@
 #include "TROOT.h"
 #include "consts.h"
 
-void li8cutefficiency_finalfit(const double cutlow = 4)
+void li8cutefficiency_finalfit(const double cutlow = 5)
 {
    TH1F *h = new TH1F("h","ctEvisID  {ctX[0]**2+ctX[1]**2 < 1650**2 && abs(ctX[2]) < 1700}",150,0,15);
    h->SetBinContent(1,135793);
@@ -158,10 +158,12 @@ void li8cutefficiency_finalfit(const double cutlow = 4)
    abeta->SetParameter(2, 1); // normalization
    abeta->SetParameter(0, 14); // Effective q_beta
 
-   h->Fit("abeta", "l", "", 1, 10);
+   h->Fit("abeta", "li", "", 1, 10);
 
    const double qb = abeta->GetParameter(0);
 
    const double eff = abeta->Integral(cutlow, qb)/abeta->Integral(0, qb);
+   printf("If your cut is not a multiple of %.2f, results are wrong\n",
+          h->GetBinWidth(1));
    printf("Li-8 MC efficiency for %fMeV is %.2f%%\n", cutlow, eff*100);
 }
