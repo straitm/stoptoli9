@@ -61,7 +61,7 @@ void mc()
   printf("MC Efficiency %.2f %%\n", 100*b12spec->Integral(9,40)/b12spec->Integral(1,40));
 }
 
-void b12cutefficiency_finalfit()
+void b12cutefficiency_finalfit(const double cutlow = 4)
 {
   norm();
   TFile *_file0 = TFile::Open(rootfile0up, "Read");
@@ -80,7 +80,7 @@ void b12cutefficiency_finalfit()
   mc();
   b12bgsubed->Draw("samee");
 
-  const double cutlow = 4, cuthigh = 15;
+  const double cuthigh = 15;
 
   double bb[4] = {0, cutlow, cuthigh, 16};
   TH1D * cuth = (TH1D *)b12bgsubed->Rebin(3, "cut", bb);
@@ -96,5 +96,4 @@ void b12cutefficiency_finalfit()
         );
   printf("Data Efficiency for %.1f-%.1f MeV cut for B-12+B-13: %.2f +- %.2f %%\n",
          cutlow, cuthigh, eff*100, error*100);
-
-};
+}
