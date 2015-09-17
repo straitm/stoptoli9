@@ -795,6 +795,7 @@ void li8finalfit(const char * const cut =
 
   mn->SetPrintLevel(0);
   mn->Command("MINOS 2000 4 5");
+  mn->Command("MINOS 2000 4"); // failed, so try again
   puts("");
   mn->Command("show min");
 
