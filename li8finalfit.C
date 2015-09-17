@@ -173,18 +173,20 @@ const double sub_muon_eff = 0.981;
 
 const double mich_eff = 0.9996;
 
-const double b12eff =
+const double b12likelihood_eff = 0.906; // For 0.02
+
+const double b12eff = b12likelihood_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
-const double b13eff =
+const double b13eff = b12likelihood_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff =
+const double li8eff = b12likelihood_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li8eff_energy;
 
-const double li9eff =
+const double li9eff = b12likelihood_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li9eff_energy;
 
 // Constant 1% absolute error assumed on neutron efficiency.
