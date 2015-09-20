@@ -37,7 +37,7 @@ void n12finalfit()
     * 0.981 // subsequent muons
     * 0.897 // delta r
     * 0.99709 // 10s from end of run
-    * 0.969 // energy
+    * 0.9481 // energy
     * neff
   ;
 
