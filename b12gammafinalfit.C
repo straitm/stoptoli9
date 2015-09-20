@@ -75,10 +75,10 @@ const double errcapprob13 = (1-(muClife+muC13life_err)/mulife)/2
   const double Nc13cap       = n_c13cap*livetime;
 #endif
 
-const double li8life = 839.9;
+const double li8hl = 839.9;
 
 // Possible background from li-8 gammas, particularly at 980.8keV
-const double li8lowt = 300, li8hight = 5*li8life;
+const double li8lowt = 300, li8hight = 5*li8hl;
 
 const double b12hl = 20.20; // b12 half life, ms
 
@@ -829,8 +829,8 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   // And scale the accidental-substracted version to the
   // expected amount in the signal window
   const double corrbgscale =
-    (exp(-b12lowt/li8life) - exp(-b12hight/li8life))/
-    (exp(-li8lowt/li8life) - exp(-li8hight/li8life))/eff_eor_li8;
+    (exp(-b12lowt/li8hl) - exp(-b12hight/li8hl))/
+    (exp(-li8lowt/li8hl) - exp(-li8hight/li8hl))/eff_eor_li8;
 
   TF1 * corrbgfit = new TF1("corrbgfit", "gaus(0)", 0.7, 2);
   corrbgfit->SetLineColor(kViolet);
@@ -932,7 +932,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     const double hn_t = 179.;
 
     // from my own measurements of B-12n and Li-8n from C-13
-    const double Pn = 0.516 + 0.049 * b12hl/li8life;
+    const double Pn = 0.516 + 0.049 * b12hl/li8hl;
     const double ntrueb12n = Nc13cap*Pn;
     const double nobsb12n = ntrueb12n*b12eff;
 
