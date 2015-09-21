@@ -469,7 +469,7 @@ string plaingaus(const string integral, const string mean,
                  const string sigma)
 {
   return integral + "/(" + sigma + "*sqrt(2*TMath::Pi()))"
-    "*exp(-(((x-" + mean + "*[1])/" + sigma + ")**2)/2)";
+    "*exp(-(((x-" + mean + ")/" + sigma + ")**2)/2)";
 }
 
 TF1 * drawpeak(const char * const peak)
@@ -656,7 +656,7 @@ double lratsig(const double l1, const double l2)
 
 void findsigforarate(const int fnum)
 {
-  return; // sometimes disable because it is slow
+  //return; // sometimes disable because it is slow
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
