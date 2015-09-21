@@ -213,8 +213,8 @@ TF1 * gdtime()
 // neup: the upper error on that
 // addsystf: additional symmetric fractional systematic error
 void print_results8(const double eff, const double energy,
-                    const double n, const double nelo, const double neup,
-                    const double addsystf)
+                    const double n, const double nelo,
+                    const double neup, const double addsystf)
 {
   printtwice("\n%.0fkeV Li-8 fitted number of events, raw: "
              "%f %f +%f\n", 1, energy, n, nelo, neup);
@@ -656,7 +656,7 @@ double lratsig(const double l1, const double l2)
 
 void findsigforarate(const int fnum)
 {
-  //return; // sometimes disable because it is slow
+  return; // sometimes disable because it is slow
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
@@ -949,7 +949,8 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   corrbg->Scale(corrbgscale);
 
   printf("Fitting correlated background...\n");
-  corrbg->Fit("corrbgfit", "i");
+  corrbg->Fit("corrbgfit", "ie");
+  gMinuit->Command("show min");
   corrbgfit->SetNpx(300);
 
   const char * ggpars[31] = { "accidentals", "energyscale", "neff",
@@ -1208,7 +1209,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       print_results13(neff*b12geff, 1674, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(26)/ehist->GetBinWidth(1);
+      const double nev = getpar(26)/ehist->GetBinWidth(1)/corrbgscale;
       const double neveup = geterr(26)/getpar(26)*nev;
       const double nevelo = geterr(26)/getpar(26)*nev;
 
