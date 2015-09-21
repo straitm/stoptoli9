@@ -460,6 +460,18 @@ string gaus(const string integral, const string mean,
     "*exp(-(((x-" + MEAN + "*[1])/" + width + ")**2)/2)";
 }
 
+/* Print the TFormula-style expression for a Gaussian, arranged so that
+ * the first parameter gives the integral, the second the mean, and
+ * the third sigma (as opposed to gaus(0), which is norm/mean/sigma).
+ * "starting" gives the number of the first parameter. Give, e.g.
+ * gaus("[0]", "[1]", "[2]") */
+string plaingaus(const string integral, const string mean,
+                 const string sigma)
+{
+  return integral + "/(" + sigma + "*sqrt(2*TMath::Pi()))"
+    "*exp(-(((x-" + mean + "*[1])/" + sigma + ")**2)/2)";
+}
+
 TF1 * drawpeak(const char * const peak)
 {
   const double a = gg->GetParameter("er_a");
@@ -919,7 +931,9 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     (exp(-b12lowt/li8hl) - exp(-b12hight/li8hl))/
     (exp(-li8lowt/li8hl) - exp(-li8hight/li8hl))/eff_eor_li8;
 
-  TF1 * corrbgfit = new TF1("corrbgfit", "gaus(0)", 0.7, 2);
+  TF1 * corrbgfit = new TF1("corrbgfit",
+    plaingaus("[0]", "[1]", "[2]").c_str(),
+    0.7, 2);
   corrbgfit->SetLineColor(kViolet);
   const double li8gamma = 0.9808
      + 4.40 / (13.0*0.2/*NT*/ + 17.4*0.8/*GC*/) /* quenched alpha */;
