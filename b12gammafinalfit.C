@@ -428,14 +428,14 @@ void print_results(const double eff, const double energy,
   puts("");
 }
 
-double getpar(int i) // zero indexed, I said, but, uh, I think it's one indexed
+double getpar(int i) // zero indexed, really!
 {
   double val, err;
   mn->GetParameter(i, val, err);
   return val;
 }
 
-double geterr(int i)
+double geterr(int i) // zero indexed!
 {
   double val, err;
   mn->GetParameter(i, val, err);
@@ -1180,25 +1180,25 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
                     sqrt(pow(0.00174438/0.0617006,2) + pow(0.03,2)));
     }
     {
-      const double nev = getpar(32)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[7]/getpar(32)*nev;
-      const double nevelo = mn->fErn[7]/getpar(32)*nev;
+      const double nev = getpar(31)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[8]/getpar(31)*nev;
+      const double nevelo = mn->fErn[8]/getpar(31)*nev;
 
       print_results13(neff*b12geff, 953, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(33)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[8]/getpar(33)*nev;
-      const double nevelo = mn->fErn[8]/getpar(33)*nev;
+      const double nev = getpar(32)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[9]/getpar(32)*nev;
+      const double nevelo = mn->fErn[9]/getpar(32)*nev;
 
       print_results13(neff*b12geff, 1674, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(27)/ehist->GetBinWidth(1);
-      const double neveup = geterr(27)/getpar(27)*nev;
-      const double nevelo = geterr(27)/getpar(27)*nev;
+      const double nev = getpar(26)/ehist->GetBinWidth(1);
+      const double neveup = geterr(26)/getpar(26)*nev;
+      const double nevelo = geterr(26)/getpar(26)*nev;
 
-      print_results8(neff*b12geff, 980, nev, nevelo, neveup, 0);
+      print_results8(neff*li8geff, 980, nev, nevelo, neveup, 0);
     }
   }
   else if(region == 1){
@@ -1222,16 +1222,16 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       print_results(b12geff, 3759, nev, nevelo, neveup, 0.000441855/0.0258321);
     }
     {
-      const double nev = getpar(34)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[9]/getpar(34)*nev;
-      const double nevelo = mn->fErn[9]/getpar(34)*nev;
+      const double nev = getpar(33)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[10]/getpar(33)*nev;
+      const double nevelo = mn->fErn[10]/getpar(33)*nev;
 
       print_results13(neff*b12geff, 2621, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(35)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[10]/getpar(35)*nev;
-      const double nevelo = mn->fErn[10]/getpar(35)*nev;
+      const double nev = getpar(34)/ehist->GetBinWidth(1);
+      const double neveup = mn->fErp[11]/getpar(34)*nev;
+      const double nevelo = mn->fErn[11]/getpar(34)*nev;
 
       print_results13(neff*b12geff, 3759, nev, nevelo, neveup, 0);
     }
@@ -1243,6 +1243,8 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
     const double neveup = mn->fErp[6]/gg->GetParameter("n6")*nev;
     const double nevelo = mn->fErn[6]/gg->GetParameter("n6")*nev;
 
+    puts("THE FOLLOWING WILL BE WRONG UNLESS YOU FIX THE CODE");
+    
     print_results(b12geff, 9040, nev, nevelo, neveup, 0);
   }
   gg->Draw("same");
