@@ -205,6 +205,85 @@ TF1 * gdtime()
   return f;
 }
 
+// For Li-8 gammas
+// eff: the efficiency
+// energy: the gamma line energy
+// n: the raw number of fitted events
+// nelo: the lower error on that
+// neup: the upper error on that
+// addsystf: additional symmetric fractional systematic error
+void print_results8(const double eff, const double energy,
+                    const double n, const double nelo, const double neup,
+                    const double addsystf)
+{
+  printtwice("\n%.0fkeV Li-8 fitted number of events, raw: "
+             "%f %f +%f\n", 1, energy, n, nelo, neup);
+
+  printf("Additional systematic: %f%%\n", 100*addsystf);
+
+  const double n_ec = n/eff, nelo_ec = nelo/eff,
+                             neup_ec = neup/eff;
+
+  const double p_li8_from_c12 = 0.0055;
+
+  const double li8syst_fup= sqrt(pow(0.04/0.55, 2) +pow(addsystf,2)),
+               li8syst_flo=-sqrt(pow(0.04/0.55, 2) +pow(addsystf,2));
+
+  const double
+    li8stat_lo = 100*nelo_ec/Nc12cap/p_li8_from_c12,
+    li8stat_up = 100*neup_ec/Nc12cap/p_li8_from_c12,
+    li8syst_lo = 100*n_ec/Nc12cap/p_li8_from_c12 * li8syst_flo,
+    li8syst_up = 100*n_ec/Nc12cap/p_li8_from_c12 * li8syst_fup;
+
+  const double percentval = 100*n_ec/Nc12cap/p_li8_from_c12;
+  printtwice("\n%.0fkeV per Li-8 production: "
+             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
+             percentval,
+             li8stat_lo, li8stat_up,
+             li8syst_lo, li8syst_up,
+             -sqrt(pow(li8stat_lo,2) + pow(li8syst_lo,2)),
+             sqrt(pow(li8stat_up,2) + pow(li8syst_up,2))
+            );
+
+  printtwice("\n%.0fkeV 90%% upper limit per Li-8 production: "
+             "%f%%\n", 1, energy,
+             /* See comments for rate limit, below */
+             (percentval + li8stat_up*1.2816)
+             *(1 + li8syst_up/percentval*0.17)
+            );
+
+  const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
+
+  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
+
+  const double
+    ratestat_lo = nelo_ec*ratemult,
+    ratestat_up = neup_ec*ratemult,
+    ratesyst = ratesyst_f*n_ec*ratemult;
+
+  const double rateval = n_ec*ratemult;
+  printtwice("\n%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
+             "%f +%f (tot) e-3\n", 3, energy,
+             rateval,
+             ratestat_lo, ratestat_up,
+             ratesyst, ratesyst,
+             -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
+             sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
+
+  printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
+  /* Lazy treatment of upper limit, assuming an untruncated Gaussian
+  likelihood. Bayesian treatment (as far as it goes) with a flat prior
+  in rate. */
+             (rateval + ratestat_up * 1.2816)
+  /* Kludgy accounting for rate systematic. I know that with 33%
+  denominator error, a limit expands by 5.5239%. I don't think this
+  scales linearly, but it is also a *tiny* effect, so just fudge it. */
+             *(1 + ratesyst/rateval*0.17));
+
+  puts("");
+}
+
+// For B12+n
 // eff: the efficiency
 // energy: the gamma line energy
 // n: the raw number of fitted events
@@ -251,7 +330,7 @@ void print_results13(const double eff, const double energy,
              *(1 + b12syst_up/percentval*0.17)
             );
 
-  const double ratemult = capprob13/(Nc13cap*muC13life)*1e6;
+  const double ratemult = capprob13/(Nc13cap*muClife)*1e6;
 
   const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
 
@@ -349,11 +428,18 @@ void print_results(const double eff, const double energy,
   puts("");
 }
 
-double getpar(int i) // zero indexed
+double getpar(int i) // zero indexed, I said, but, uh, I think it's one indexed
 {
   double val, err;
   mn->GetParameter(i, val, err);
   return val;
+}
+
+double geterr(int i)
+{
+  double val, err;
+  mn->GetParameter(i, val, err);
+  return err;
 }
 
 /* Print the TFormula-style expression for a Gaussian, arranged so that
@@ -1108,11 +1194,11 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       print_results13(neff*b12geff, 1674, nev, nevelo, neveup, 0);
     }
     {
-      const double nev = getpar(33)/ehist->GetBinWidth(1);
-      const double neveup = mn->fErp[8]/getpar(33)*nev;
-      const double nevelo = mn->fErn[8]/getpar(33)*nev;
+      const double nev = getpar(27)/ehist->GetBinWidth(1);
+      const double neveup = geterr(27)/getpar(27)*nev;
+      const double nevelo = geterr(27)/getpar(27)*nev;
 
-      print_results13(neff*b12geff, 1674, nev, nevelo, neveup, 0);
+      print_results8(neff*b12geff, 980, nev, nevelo, neveup, 0);
     }
   }
   else if(region == 1){
