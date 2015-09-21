@@ -1198,7 +1198,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
       const double neveup = geterr(26)/getpar(26)*nev;
       const double nevelo = geterr(26)/getpar(26)*nev;
 
-      print_results8(neff*li8geff, 980, nev, nevelo, neveup, 0);
+      print_results8(li8geff, 981, nev, nevelo, neveup, 0);
     }
   }
   else if(region == 1){
