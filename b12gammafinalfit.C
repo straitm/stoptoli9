@@ -6,6 +6,8 @@
 #include "TCanvas.h"
 #include "TMinuit.h"
 #include "TMath.h"
+#include "Math/QuantFuncMathCore.h" // for ROOT::Math
+#include "Math/ProbFuncMathCore.h" // for ROOT::Math
 #include "TTree.h"
 #include "TString.h"
 #include "TF1.h"
@@ -205,6 +207,20 @@ TF1 * gdtime()
   return f;
 }
 
+// Find the bayesian limit given a central value, lower error and upper
+// error, on a process that is bounded from 0-1, with a flat prior. This
+// assumes the likelihood has a gaussian shape on both sides, which of
+// course is only an approximation, and really you should do it properly
+// by evaluating the whole likelihood space.
+double bayeslimit(const double central, const double elo,
+                  const double ehi)
+{
+  const double a = ROOT::Math::gaussian_cdf(   central /fabs(elo), 1)-0.5;
+  const double b = ROOT::Math::gaussian_cdf((1-central)/fabs(ehi), 1)-0.5;
+  const double c = 0.9*(a+b) - a + 0.5;
+  return central + ROOT::Math::gaussian_quantile(c, 1) * fabs(ehi);
+}
+
 // For Li-8 gammas
 // eff: the efficiency
 // energy: the gamma line energy
@@ -236,6 +252,7 @@ void print_results8(const double eff, const double energy,
     li8syst_up = 100*n_ec/Nc12cap/p_li8_from_c12 * li8syst_fup;
 
   const double percentval = 100*n_ec/Nc12cap/p_li8_from_c12;
+
   printtwice("\n%.0fkeV per Li-8 production: "
              "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
              percentval,
@@ -245,10 +262,17 @@ void print_results8(const double eff, const double energy,
              sqrt(pow(li8stat_up,2) + pow(li8syst_up,2))
             );
 
+  const double fraclimit =
+         bayeslimit(percentval/100, li8stat_lo/100, li8stat_up/100)*100;
+
+  // To be applied to the rate limit below
+  const double bayescorrectionforrate = fraclimit/
+    (percentval + li8stat_up*ROOT::Math::gaussian_quantile(0.9, 1));
+
   printtwice("\n%.0fkeV 90%% upper limit per Li-8 production: "
              "%f%%\n", 1, energy,
+             bayeslimit(percentval, li8stat_lo, li8stat_up)
              /* See comments for rate limit, below */
-             (percentval + li8stat_up*1.2816)
              *(1 + li8syst_up/percentval*0.17)
             );
 
@@ -271,13 +295,9 @@ void print_results8(const double eff, const double energy,
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
   printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
-  /* Lazy treatment of upper limit, assuming an untruncated Gaussian
-  likelihood. Bayesian treatment (as far as it goes) with a flat prior
-  in rate. */
-             (rateval + ratestat_up * 1.2816)
-  /* Kludgy accounting for rate systematic. I know that with 33%
-  denominator error, a limit expands by 5.5239%. I don't think this
-  scales linearly, but it is also a *tiny* effect, so just fudge it. */
+  /* See comments in C-13 function below */
+       (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
+          * bayescorrectionforrate
              *(1 + ratesyst/rateval*0.17));
 
   puts("");
@@ -323,10 +343,17 @@ void print_results13(const double eff, const double energy,
              sqrt(pow(b12stat_up,2) + pow(b12syst_up,2))
             );
 
+  const double fraclimit =
+         bayeslimit(percentval/100, b12stat_lo/100, b12stat_up/100)*100;
+
+  // To be applied to the rate limit below
+  const double bayescorrectionforrate = fraclimit/
+    (percentval + b12stat_up*ROOT::Math::gaussian_quantile(0.9, 1));
+
   printtwice("\n%.0fkeV 90%% upper limit per B-12 + n production: "
              "%f%%\n", 1, energy,
-             /* See comments for rate limit, below */
-             (percentval + b12stat_up*1.2816)
+             bayeslimit(percentval, b12stat_lo, b12stat_up)
+             /* See comments for systematic on the rate limit, below */
              *(1 + b12syst_up/percentval*0.17)
             );
 
@@ -349,10 +376,10 @@ void print_results13(const double eff, const double energy,
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
   printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
-  /* Lazy treatment of upper limit, assuming an untruncated Gaussian
-  likelihood. Bayesian treatment (as far as it goes) with a flat prior
-  in rate. */
-             (rateval + ratestat_up * 1.2816)
+  /* Find upper limit as though there were no bounds, then correct that
+     given the bounds of 0-100% production, as found above. */
+       (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
+          * bayescorrectionforrate
   /* Kludgy accounting for rate systematic. I know that with 33%
   denominator error, a limit expands by 5.5239%. I don't think this
   scales linearly, but it is also a *tiny* effect, so just fudge it. */
