@@ -215,10 +215,17 @@ TF1 * gdtime()
 double bayeslimit(const double central, const double elo,
                   const double ehi)
 {
+  const double lim = 0.9;
   const double a = ROOT::Math::gaussian_cdf(   central /fabs(elo), 1)-0.5;
   const double b = ROOT::Math::gaussian_cdf((1-central)/fabs(ehi), 1)-0.5;
-  const double c = 0.9*(a+b) - a + 0.5;
-  return central + ROOT::Math::gaussian_quantile(c, 1) * fabs(ehi);
+  const double c = lim*(a+b) - a + 0.5;
+
+  if(a/(a+b) < lim)
+    return central + ROOT::Math::gaussian_quantile(c, 1) * fabs(ehi);
+  else {
+    fprintf(stderr, "unhandled case of limit below central value\n");
+    return 0;
+  }
 }
 
 // For Li-8 gammas
@@ -271,9 +278,8 @@ void print_results8(const double eff, const double energy,
 
   printtwice("\n%.0fkeV 90%% upper limit per Li-8 production: "
              "%f%%\n", 1, energy,
-             bayeslimit(percentval, li8stat_lo, li8stat_up)
              /* See comments for rate limit, below */
-             *(1 + li8syst_up/percentval*0.17)
+             fraclimit*(1 + li8syst_up/percentval*0.17)
             );
 
   const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
@@ -352,9 +358,8 @@ void print_results13(const double eff, const double energy,
 
   printtwice("\n%.0fkeV 90%% upper limit per B-12 + n production: "
              "%f%%\n", 1, energy,
-             bayeslimit(percentval, b12stat_lo, b12stat_up)
              /* See comments for systematic on the rate limit, below */
-             *(1 + b12syst_up/percentval*0.17)
+             fraclimit*(1 + b12syst_up/percentval*0.17)
             );
 
   const double ratemult = capprob13/(Nc13cap*muClife)*1e6;
