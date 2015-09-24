@@ -28,4 +28,4 @@ stoptoli9: stoptoli9.o search.o
 	g++ -o stoptoli9 stoptoli9.o search.o `root-config --libs`
 
 clean: 
-	rm -f stoptoli9 b12search nsearch fissionsearch microdst stoptoli9.o b12search.o search.o
+	rm -f stoptoli9 b12search nsearch fissionsearch microdst stoptoli9.o b12search.o search.o calibstudyntuple scramble
