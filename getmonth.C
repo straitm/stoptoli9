@@ -2,7 +2,7 @@
 
 int getmonth(int run)
 {
-  ifstream infile("b12months");
+  ifstream infile("run2month");
   int frun, month;
   while(infile >> frun >> month)
     if(frun == run){
