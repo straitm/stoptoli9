@@ -1,0 +1,9 @@
+root -b -q trigeff_neutron_finalfit.C+'(0, 60, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 1
+root -b -q trigeff_neutron_finalfit.C+'(100, 140, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 2
+root -b -q trigeff_neutron_finalfit.C+'(140, 180, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 3
+root -b -q trigeff_neutron_finalfit.C+'(180, 220, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 4
+root -b -q trigeff_neutron_finalfit.C+'(220, 260, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 5
+root -b -q trigeff_neutron_finalfit.C+'(260, 300, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 6
+root -b -q trigeff_neutron_finalfit.C+'(300, 340, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 7
+root -b -q trigeff_neutron_finalfit.C+'(340, 380, 25, "x**2 + y**2 < 1154**2 && abs(z) < 1232 + 0.03*(1150 - sqrt(x**2+y**2))")' > 8
+
