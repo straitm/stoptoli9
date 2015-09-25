@@ -1,6 +1,8 @@
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR     = "\033[m"    ; // clear
 
+const char * const rootfile3up_extended =
+  "/cp/s4/strait/fullfido-300s-3-25MeV-20150924-3rdpub+post3rdpub.root";
 const char * const rootfile3up =
   "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root";
 const char * const rootfile0up =
