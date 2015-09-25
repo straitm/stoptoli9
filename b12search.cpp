@@ -1221,6 +1221,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       bits.ctEvisID = bits.ctq/34e3;
     }
 
+    // NOTE-lungbloke: See comment at other.
     if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
 
@@ -1412,6 +1413,12 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     coinovbr->GetEntry(mi);
     fido_qivbr->GetEntry(mi);
 
+    // Note-lungbloke: Notice how this cut is slightly different from
+    // the other one at. In the tech note, the additional cut for > 60
+    // MeV in the ID isn't mentioned. Fortunately, it makes very close
+    // to no difference (3e-8 -- 0.04%, depending on run) since almost
+    // all events with > 60 MeV in the ID either have an OV coincidenece
+    // or some IV energy.
     if(parts.coinov || parts.fido_qiv > 5000){
       trgtimebr->GetEntry(mi);
       lastmuontime = parts.trgtime;
