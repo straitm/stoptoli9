@@ -4,5 +4,7 @@ run=$1
 
 live=$(root -b -q getrunlivetime.C'('$run')' 2> /dev/null | grep -vE '[*A-Z]|^$')
 dead=$(./getmuondeadtime.sh $run)
+halfdead=$(echo $dead | awk '{print $1}')
+onedead=$(echo $dead | awk '{print $2}')
 
-echo $run $live $dead $(dc <<< "9k$live $dead -p")
+echo $run $live $halfdead $onedead
