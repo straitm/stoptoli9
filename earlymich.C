@@ -29,7 +29,7 @@ void earlymich()
   TBranch * ptrigbr = pulse->GetBranch("trig");
 
   int lastpulse = 0;
-  bool earlymich;
+  bool earlymich = false;
   TBranch * earlymichbr = b12->Branch("earlymich", &earlymich, "earlymich/O");
 
   const int ent = b12->GetEntries();
