@@ -155,11 +155,11 @@ static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 // Subsequent muon veto efficiency (an efficiency on the isotope decay,
 // NOT on the muon), for the hard cut imposed on events in order to get
 // into the ntuples of 0.5ms.
-const double sub_muon_eff = 0.981;
+double sub_muon_eff = 0; // set by main function argument
 
 static const double mich_eff = 0.9996;
 
-static const double eff = mich_eff * eor_eff * sub_muon_eff * energyeff;
+static double eff = 0;
 static const double ferr_energy = energyeff_e/energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
@@ -190,8 +190,12 @@ void b12like_finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
-"e > 4 && e < 15 && dt < %f")
+"e > 4 && e < 15 && dt < %f",
+const double sub_muon_eff_in = 0.981,
+const double livetime = -1.0)
 {
+  sub_muon_eff = sub_muon_eff_in;
+  eff = mich_eff * eor_eff * sub_muon_eff * energyeff;
   printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
 
   TFile *_file0 = TFile::Open(rootfile3up);
@@ -233,6 +237,22 @@ void b12like_finalfit(const char * const cut =
   printtwice("\nStuff with b12 lifetime raw %f +- %f\n", 0,
          getpar(mn, 0), ferrorfit * getpar(mn, 0));
 
+
+  if(livetime > 0){
+    const double b12like_central = 1000*getpar(mn, 0)/eff/livetime;
+    const double staterr = ferrorfit*b12like_central;
+    const double muerr = mum_count_e/mum_count*b12like_central;
+    const double b12err = ferr_energy*b12like_central;
+    const double toterr = sqrt(pow(ferrorfit,2) +
+                                 pow(mum_count_e/mum_count,2) +
+                                 pow(ferr_energy, 2))*b12like_central;
+
+    printtwice("\nStuff with b12 lifetime raw with overall eff "
+         "corrected, per live kilosecond\n"
+         "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
+         3, b12like_central, staterr, muerr, b12err, toterr);
+  }
+
   const double b12like_central = getpar(mn, 0)/eff/mum_count * 100;
   const double staterr = ferrorfit*b12like_central;
   const double muerr = mum_count_e/mum_count*b12like_central;
@@ -240,10 +260,12 @@ void b12like_finalfit(const char * const cut =
   const double toterr = sqrt(pow(ferrorfit,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*b12like_central;
+
   printtwice("\nStuff with b12 lifetime raw with overall eff "
          "corrected, percent per mu- stop\n"
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
          3, b12like_central, staterr, muerr, b12err, toterr);
+
 
   const double b12like_central_percap = b12like_central/capprob;
   const double staterr_percap = staterr/capprob;
