@@ -198,7 +198,9 @@ const double livetime = -1.0)
   eff = mich_eff * eor_eff * sub_muon_eff * energyeff;
   printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
 
-  TFile *_file0 = TFile::Open(rootfile3up);
+  // XXX kludgy!
+  TFile *_file0 = TFile::Open(livetime<0?rootfile3up:rootfile3up_extended);
+
   TTree * t = (TTree *)_file0->Get("t");
  
   const int npar = 4;
