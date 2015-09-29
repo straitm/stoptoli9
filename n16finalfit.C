@@ -46,7 +46,7 @@ static double b12life = 0.0202/log(2.), // +- 0.00002 (0.02ms) (0.1%)
               be11life=13.81  /log(2.); // +- 0.08 (0.6%)
 
 static const double n16eff = 1
-  * 0.962 // subsequent muons, 1ms
+  * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.8 // delta r for 200mm near acrlyic, fudged down for 6.1MeV gammas
   * 0.9709 // 100s from end of run
   * 0.798 // energy, from MC, a bit rough
@@ -55,7 +55,7 @@ static const double n16eff = 1
 ;
 
 static const double be11eff = 1
-  * 0.962 // subsequent muons, 1ms
+  * sub_muon_eff10 // subsequent muons, 1ms
   * wholedet_dist200eff // delta r for 200mm
   * 0.9709 // 100s from end of run
   * 0.705 // energy, estimated from scaled b12 mc
@@ -64,7 +64,7 @@ static const double be11eff = 1
 ;
 
 static const double c15eff = 1
-  * 0.962 // subsequent muons, 1ms
+  * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.82 // delta r for 200mm near acrlyic, fudged down for 5.X MeV gammas
   * 0.9709 // 100s from end of run
   * 0.789 // energy, estimated from scaled n16 MC

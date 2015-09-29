@@ -41,6 +41,23 @@ const double mass_o16targ = 20.865041,
 
 const double gd_fraction = 0.851;
 
+
+// Subsequent muon veto efficiency (an efficiency on the isotope decay,
+// NOT on the muon), for the hard cut imposed on events in order to get
+// into the ntuples of 0.5ms.
+// 
+// This is seasonally dependent! But the variation is only
+// 0.9773-0.9780. XXX. The blessed value of Sept 2015 for this is 0.981, but
+// a more careful evaluation gets that range.  Hopefully I can update it
+// for the paper.  The DC3rdpub period average is 0.977614.
+const double sub_muon_eff05 = 0.981;
+//const double sub_muon_eff05 = 0.977614;
+
+// XXX. The more careful (but unblessed) value is 0.955744 for the
+// DC3rdpub period.
+const double sub_muon_eff10 = 0.962;
+//const double sub_muon_eff10 = 0.955744;
+
 // I made this up, with some studies to back it.
 const double f_neff_dt_error = 0.01;
 

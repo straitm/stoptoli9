@@ -727,7 +727,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
 #endif
 
   const double b12eff = 1
-    * 0.981  // Subsequent muon veto efficiency 
+    * sub_muon_eff05  // Subsequent muon veto efficiency 
     * eff_eor_b12 // timeleft cut
     * (b12ecutlow == 3?0.9251:
        b12ecutlow == 4?0.8504:
@@ -739,7 +739,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   ;
 
   const double li8eff = 1
-    * 0.981  // Subsequent muon veto efficiency 
+    * sub_muon_eff05  // Subsequent muon veto efficiency 
     * eff_eor_li8 // timeleft cut
     * (b12ecutlow == 3?0.9057:
        b12ecutlow == 4?0.8227:

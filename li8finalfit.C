@@ -166,28 +166,23 @@ const double li9eff_energy_e = 0.05;
 // time until end of run
 const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
-// Subsequent muon veto efficiency (an efficiency on the isotope decay,
-// NOT on the muon), for the hard cut imposed on events in order to get
-// into the ntuples of 0.5ms.
-const double sub_muon_eff = 0.981;
-
 const double mich_eff = 0.9996;
 
 const double b12likelihood_eff = 0.906; // For 0.02
 
 const double b12eff = b12likelihood_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b12energyeff;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
 const double b13eff = b12likelihood_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * b13energyeff;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
 const double li8eff = b12likelihood_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li8eff_energy;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
 
 const double li9eff = b12likelihood_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff * li9eff_energy;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
 // Constant 1% absolute error assumed on neutron efficiency.
 // Not a very rigourous model, but it's something.

@@ -191,7 +191,7 @@ void b12like_finalfit(const char * const cut =
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f",
-const double sub_muon_eff_in = 0.981,
+const double sub_muon_eff_in = sub_muon_eff05,
 const double livetime = -1.0)
 {
   sub_muon_eff = sub_muon_eff_in;
