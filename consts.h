@@ -9,6 +9,8 @@ const char * const rootfile0up =
   "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
 const char * const rootfilethru =
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
+const char * const rootfilemusic =
+  "/cp/s4/strait/DC_FD_Muon_Surface_Dist_Ecut_both.root";
 
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
