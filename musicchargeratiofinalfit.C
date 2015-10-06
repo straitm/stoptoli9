@@ -10,8 +10,8 @@
 // In PRD 83, 032011, eq(7) is the same, but it uses costheta-star.
 // Probably doesn't matter, since low-angle muons aren't very
 // important to us.
-static double chargeratio(const double energy, const double costheta, 
-   const double fpiplus, const double fkplus)
+static double chargeratio(const double energy, const double costheta,
+                          const double fpiplus, const double fkplus)
 {
   return
   (          fpiplus/(1+(1.1*energy * costheta)/115.)
@@ -23,9 +23,29 @@ static double chargeratio(const double energy, const double costheta,
 
 // Returns the fraction of mu- at a given surface energy and angle.
 static double fracmuminus(const double energy, const double costheta,
-const double fpiplus, const double fkplus)
+                          const double fpiplus, const double fkplus)
 {
   return 1/(chargeratio(energy, costheta, fpiplus, fkplus) + 1);
+}
+
+// Return an fpi and fk distributed as in MINOS-doc-5013
+void minos5013(double & fpi, double & fk)
+{
+  // Central values from text, errors from text, but shifted by half
+  // of their last digit so as to match the plot better and keep the
+  // correlation coefficient real when combined with phi below.
+  const double k = 0.7021, sk = 0.0105, pi = 0.5488, spi = 0.00165;
+
+  // Read off plot
+  const double phi = 3.1415926 - atan(0.075/0.011);
+
+  const double rho = tan(2*phi)*(spi*spi - sk*sk)/(2*spi*sk);
+ 
+  const double r1 = gRandom->Gaus(), r2 = gRandom->Gaus();
+
+  // See PDG 2014 on generating correlated gaussian numbers
+  fpi = pi + spi*r1;
+  fk = k + rho*sk*r1 + sqrt(1-rho*rho)*sk*r2;
 }
 
 
@@ -52,18 +72,19 @@ void musicchargeratiofinalfit()
     (1/pow(l3csyst,2))/(1/pow(minossyst,2)+1/pow(l3csyst,2)),
     1.0 };
 
-  for(int exper = 0; exper < 3; exper++){
+  for(int exper = 0; exper < 3; exper+=2){
     const double weight = weights[exper];
 
     TH1D results("results", "", 200, 0.43, 0.45);
 
     for(int trial = 0; trial < 10000; trial++){
-      // Since the MINOS papers don't quote errors, assume that we are
-      // in sig-fig territory -- equally likely between the posts. Sigh.
-      const double fpiplus = 0.545 + ran.Rndm()*0.01; 
-      const double fkplus  = ran.Rndm() < weight?
+      double fpiplus = 0.545 + ran.Rndm()*0.01; 
+      double fkplus  = ran.Rndm() < weight?
                            0.665 + ran.Rndm()*0.01:
                            0.695 + ran.Rndm()*0.01;
+
+      // If using the ND charge ratio paper, override.
+      if(exper == 0) minos5013(fpiplus, fkplus);
 
       double fracsum = 0;
 
@@ -77,10 +98,11 @@ void musicchargeratiofinalfit()
       results.Fill(frac);
     }
 
-    if     (exper == 0) printf("MINOS ND: ");
+    if     (exper == 0) printf("L3+C+MINOS ND+FD: ");
     else if(exper == 1) printf("Combined: ");
-    else                printf("L3+C:     ");
-    printf("%.4f +- %.4f (sig-figs) or +- %.4f (their systematic (shadier))\n",
+    else                printf("L3+C+MINOS FD:    ");
+    printf("%.4f +- %.4f (%s) or +- %.4f (their systematic (shadier))\n",
+           exper == 0?"minos5013":"sig-figs",
            results.GetMean(),
            results.GetRMS(),
            results.GetMean() * (exper == 0? minossyst:
