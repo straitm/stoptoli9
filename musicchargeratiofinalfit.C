@@ -77,7 +77,7 @@ void musicchargeratiofinalfit()
 
     TH1D results("results", "", 200, 0.43, 0.45);
 
-    for(int trial = 0; trial < 10000; trial++){
+    for(int trial = 0; trial < 50000; trial++){
       double fpiplus = 0.545 + ran.Rndm()*0.01; 
       double fkplus  = ran.Rndm() < weight?
                            0.665 + ran.Rndm()*0.01:
