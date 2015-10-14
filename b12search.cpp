@@ -1020,7 +1020,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     if(dt < max_micht){
-      fido_qivbr->GetEntry(i);
+      fido_qivbr->GetEntry(bits.trgId);
       if(bits.coinov){
          followingov = true;
          followingovtime = dt;
@@ -1119,6 +1119,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
+    trgIdbr->GetEntry(i);
 
     const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
@@ -1176,7 +1177,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // Ignore events above the end point + res
     if(bits.ctEvisID > maxenergy) goto end;
     
-    fido_qivbr->GetEntry(i);
+    fido_qivbr->GetEntry(bits.trgId);
     // No IV, OV energy
     if(bits.fido_qiv > (near?10000:1000)) goto end;
 
@@ -1240,8 +1241,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // so this only selects muons that cross the ID, which I think is
     // fine.
     if(coinovbr) coinovbr->GetEntry(i);
-    fido_qivbr->GetEntry(i);
-    fido_didfitbr->GetEntry(i);
+    fido_qivbr->GetEntry(bits.trgId);
+    fido_didfitbr->GetEntry(bits.trgId);
     get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
       ctqbr->GetEntry(i);
@@ -1265,17 +1266,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
        && bits.ctEvisID > 0.4)
       lastvalidtime = bits.trgtime;
 
-    fido_entrzbr->GetEntry(i);
-    fido_endzbr ->GetEntry(i);
-    nidtubesbr->GetEntry(i);
+    fido_entrzbr->GetEntry(bits.trgId);
+    fido_endzbr ->GetEntry(bits.trgId);
+    nidtubesbr->GetEntry(bits.trgId);
     if(bits.id_didfit && bits.nidtubes > 30 &&
        bits.id_entr_z > bits.id_end_z){
       lastgcmuontime = bits.trgtime;
 
-      fido_entrxbr->GetEntry(i);
-      fido_entrybr->GetEntry(i);
-      fido_endxbr ->GetEntry(i);
-      fido_endybr ->GetEntry(i);
+      fido_entrxbr->GetEntry(bits.trgId);
+      fido_entrybr->GetEntry(bits.trgId);
+      fido_endxbr ->GetEntry(bits.trgId);
+      fido_endybr ->GetEntry(bits.trgId);
 
       const double mutime = bits.trgtime;
 
@@ -1331,6 +1332,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
 
   const int whichname = !strcmp(chtree->GetName(), "GI");
   TBranch * const runbr     = chtree->GetBranch(run_name[whichname]);
+  TBranch * const trgIdbr   = chtree->GetBranch(trgId_name[whichname]);
   TBranch * const trgtimebr = chtree->GetBranch(trgtime_name[whichname]);
   TBranch * const coinovbr  = chtree->GetBranch(coinov_name[whichname]);
 
@@ -1355,6 +1357,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1 &&
                            mi < fitree->GetEntries()-1; mi++){
     runbr->GetEntry(mi);
+    trgIdbr->GetEntry(mi);
 
     if(parts.run != run){
       run = parts.run;
@@ -1362,7 +1365,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       eortime = geteortime(parts, chtree, mi);
     }
 
-    ids_didfitbr->GetEntry(mi);
+    ids_didfitbr->GetEntry(parts.trgId);
 
     // Must be possible that it's a stopper (or not for neutron search)
     if(!((search == neutron) ^ parts.ids_didfit)) goto end;
@@ -1373,20 +1376,20 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     // neutrons from the previous one as belonging to this one.
     if(parts.trgtime - lastmuontime < 500e3) goto end;
 
-    fido_qivbr->GetEntry(mi);
+    fido_qivbr->GetEntry(parts.trgId);
     if(parts.fido_qiv < 5000) goto end;
 
-    fido_qidbr->GetEntry(mi);
+    fido_qidbr->GetEntry(parts.trgId);
     if(parts.fido_qid/(near?13500:8300) > 700) goto end;
     if(parts.fido_qid/(near?13500:8300) < (search == neutron?1:60)) goto end;
   
-    nivtubesbr->GetEntry(mi);
-    nidtubesbr->GetEntry(mi);
+    nivtubesbr->GetEntry(parts.trgId);
+    nidtubesbr->GetEntry(parts.trgId);
 
     if(parts.nidtubes+parts.nivtubes <= 6) goto end;
  
     if(search != neutron){
-      ids_chi2br->GetEntry(mi);
+      ids_chi2br->GetEntry(parts.trgId);
       if(!near){
         if(parts.ids_chi2/(parts.nidtubes+parts.nivtubes-6) > 10) goto end;
       }
@@ -1394,44 +1397,44 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       // These correctly use the *uncorrected* position
       if(search == buffer){
         // Accept *only* if the muon clearly appears to be exiting
-        ids_end_xbr->GetEntry(mi);
-        ids_end_ybr->GetEntry(mi);
-        ids_end_zbr->GetEntry(mi);
+        ids_end_xbr->GetEntry(parts.trgId);
+        ids_end_ybr->GetEntry(parts.trgId);
+        ids_end_zbr->GetEntry(parts.trgId);
         if(pow(parts.ids_end_x,2)+pow(parts.ids_end_y,2)<pow(1708-35,2)
             &&
            parts.ids_end_z > -1786+(near?40:35)) goto end;
       }
       else{
         // Do *not* accept if the muon appears to be exiting
-        ids_end_xbr->GetEntry(mi);
-        ids_end_ybr->GetEntry(mi);
+        ids_end_xbr->GetEntry(parts.trgId);
+        ids_end_ybr->GetEntry(parts.trgId);
         if(pow(parts.ids_end_x,2)+pow(parts.ids_end_y,2)>pow(1708-35,2))
           goto end;
 
-        ids_end_zbr->GetEntry(mi);
+        ids_end_zbr->GetEntry(parts.trgId);
         if(parts.ids_end_z < -1786+(near?40:35)) goto end;
       }
 
-      ids_entr_zbr->GetEntry(mi);
-      id_ivlenbr->GetEntry(mi);
-      id_buflenbr->GetEntry(mi);
+      ids_entr_zbr->GetEntry(parts.trgId);
+      id_ivlenbr->GetEntry(parts.trgId);
+      id_buflenbr->GetEntry(parts.trgId);
       if(parts.ids_entr_z > 11500 -(near?37:62)*
          parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
-      id_chi2br->GetEntry(mi);
-      ids_chi2br->GetEntry(mi);
+      id_chi2br->GetEntry(parts.trgId);
+      ids_chi2br->GetEntry(parts.trgId);
       if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
 
-      id_entr_xbr->GetEntry(mi);
-      id_entr_ybr->GetEntry(mi);
-      ids_entr_xbr->GetEntry(mi);
-      ids_entr_ybr->GetEntry(mi);
+      id_entr_xbr->GetEntry(parts.trgId);
+      id_entr_ybr->GetEntry(parts.trgId);
+      ids_entr_xbr->GetEntry(parts.trgId);
+      ids_entr_ybr->GetEntry(parts.trgId);
       if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
          pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2)) goto end;
     }
 
     chtree->GetEntry(mi);
-    fitree->GetEntry(mi);
+    fitree->GetEntry(parts.trgId);
 
     searchfrommuon(parts, chtree, fitree, mi, search,
     // Record how much time is left to the end of the run so that we can
@@ -1441,7 +1444,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
 
     // See note above for same code.
     coinovbr->GetEntry(mi);
-    fido_qivbr->GetEntry(mi);
+    fido_qivbr->GetEntry(parts.trgId);
 
     // Note-lungbloke: Notice how this cut is slightly different from
     // the other one at. In the tech note, the additional cut for > 60

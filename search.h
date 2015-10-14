@@ -11,9 +11,13 @@ double bamacorrz (const double  z, const double e);
 struct dataparts{
   bool coinov;
   int run, trgId;
+  float deltaT;
   float ctmqtqall, ctrmsts;
+  double Qratio[2]; // incompatible type in JP tree
+  double RMSTstart; // ditto
   float fido_qiv, fido_qid;
-  double ctq, ctqIV;
+  double ctq0, ctq1, ctq;
+  double ctqIV0, ctqIV1, ctqIV;
   int nidtubes, nivtubes;
 
   int ids_didfit;
@@ -29,11 +33,12 @@ struct dataparts{
 
   bool id_didfit;
 
-  double deltaT;
   double trgtime;
   float ctX[3];
   float ctEvisID;
+  double EvisID; // incompatible type in JP tree
   float qrms, qdiff;
+  double QRMS, Qdiff; // incompatible type in JP tree
 };
 
 static const unsigned int noff = 92;
