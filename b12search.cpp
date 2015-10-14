@@ -1475,27 +1475,27 @@ int main(int argc, char ** argv)
   if(argc < 6 && argc%2 != 0){
     fprintf(stderr,
             "b12search maxtime[ms] minenergy maxenergy "
-            "[cheetah file, fido file]*\n\n");
+            "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To run the be12 search, looking for exactly two decays:\n"
             "be12search maxtime[ms] minenergy maxenergy "
-            "[cheetah file, fido file]*\n\n");
+            "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To accept throughgoing muons for neutron studies:\n"
             "neutronsearch maxtime[ms] minenergy maxenergy "
-            "[cheetah file, fido file]*\n\n");
+            "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To search for buffer stopping muons:\n"
             "buffersearch maxtime[ms] minenergy maxenergy "
-            "[cheetah file, fido file]*\n\n");
+            "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To check files only, use\n"
             "checkb12search foo foo foo "
-            "[cheetah file, fido file]*\n");
+            "[reduced or JP file, fido file]*\n");
 
     exit(1);
   }
@@ -1580,13 +1580,23 @@ int main(int argc, char ** argv)
       goto cleanup;
     }
 
-    if(chtree->GetEntries() != fitree->GetEntries()){
-      fprintf(stderr,
-              "\n%s,\n%s:\ncheetah has %ld entries, but fido has %ld\n",
-              argv[i], argv[i+1],
-              long(chtree->GetEntries()), long(fitree->GetEntries()));
-      errcode |= 0x10;
-      //goto cleanup;
+    if(!strcmp(chtree->GetName(), "data")){
+      if(chtree->GetEntries() != fitree->GetEntries()){
+        fprintf(stderr,
+          "\n%s,\n%s:\nreduced has %ld entries, fido %ld (expect same)\n",
+          argv[i], argv[i+1],
+          long(chtree->GetEntries()), long(fitree->GetEntries()));
+        errcode |= 0x10;
+      }
+    }
+    else{ // JP tree is expected to have fewer entries
+      if(chtree->GetEntries() > fitree->GetEntries()){
+        fprintf(stderr,
+          "\n%s,\n%s:\nJP has more entries (%ld) than fido (%ld)\n",
+          argv[i], argv[i+1],
+          long(chtree->GetEntries()), long(fitree->GetEntries()));
+        errcode |= 0x10;
+      }
     }
 
     if(!strcmp(basename(argv[0]), "checkb12search")) goto cleanup;
@@ -1605,17 +1615,9 @@ int main(int argc, char ** argv)
 
     memset(&parts, 0, sizeof(parts));
 
-    // if types are compatible, write to same part either way
-    #define cSBA(x,y) chtree->SetBranchAddress(\
-                        !strcmp(chtree->GetName(), "data")?#x:#y,\
-                        &parts.x);
-
-    // if types are incompatible, write to different parts
-    #define cSBA2(x,y) \
-      if(!strcmp(chtree->GetName(), "data")) \
-        chtree->SetBranchAddress(#x, &parts.x); \
-      else \
-        chtree->SetBranchAddress(#y, &parts.y);
+    /******************************************************************/
+    /*                   Set up FIDO trees for reading                */
+    /******************************************************************/
 
     #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
                     fitree->SetBranchAddress(#x, &parts.x); \
@@ -1655,6 +1657,23 @@ int main(int argc, char ** argv)
     fSBA(id_idexitqf);
     fSBA(id_ivqbal);
 
+    /******************************************************************/
+    /*   Set up reduced or JP trees for reading, whichever we have    */
+    /******************************************************************/
+
+    // if types are compatible, write to same part either way
+    #define cSBA(x,y) chtree->SetBranchAddress(\
+                        !strcmp(chtree->GetName(), "data")?#x:#y,\
+                        &parts.x);
+
+    // Usually have to write to different parts for reduced and JP
+    // since they are stored in incompatible types.
+    #define cSBA2(x,y) \
+      if(!strcmp(chtree->GetName(), "data")) \
+        chtree->SetBranchAddress(#x, &parts.x); \
+      else \
+        chtree->SetBranchAddress(#y, &parts.y);
+
     // In the JP trees, ChargeID and ChargeIV are arrays of length 3.
     // Arrange for the third element to be in ctq.
     chtree->SetBranchAddress(
@@ -1677,8 +1696,9 @@ int main(int argc, char ** argv)
 
     cSBA2(ctrmsts, RMSTstart);
 
+    // apparently just not in JP ntuples, but might be later
     if(!strcmp(chtree->GetName(), "data"))
-      cSBA(coinov, ALWAYSZERO); // apparently just not in JP ntuples
+      chtree->SetBranchAddress("coinov", &parts.coinov);
 
     cSBA2(ctEvisID, EvisID);
 
