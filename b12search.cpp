@@ -842,17 +842,44 @@ bool isnenergy(const double e, const double dt, const double me)
   return (corre > 1.8 && corre < 2.6) || (corre > 4.0 && corre < 10 );
 }
 
+static const char *qrms_name[2]      = { "qrms",      "QRMS"      };
+static const char *ctmqtqall_name[2] = { "ctmqtqall", "Qratio"    };
+static const char *ctrmsts_name[2]   = { "ctrmsts",   "RMSTstart" };
+static const char *qdiff_name[2]     = { "qdiff",     "Qdiff"     };
+static const char *ctEvisID_name[2]  = { "ctEvisID",  "EvisID"    };
+static const char *ctq_name[2]       = { "ctq",       "ChargeID"  };
+static const char *trgtime_name[2]   = { "trgtime",   "TrigTime"  };
+static const char *run_name[2]       = { "run",       "RunNumber" };
+static const char *coinov_name[2]    = { "coinov",    "NONONONO"  };
+static const char *trgId_name[2]     = { "trgId",     "TriggerID" };
+static const char *ctX_name[2]       = { "ctX",       "Vtx_BAMA"  };
+
+#define TRANS(old, new) \
+static inline void get_##old(TBranch * const br, const int i, \
+                             const int whichname, dataparts & bits) \
+{ \
+  br->GetEntry(i); \
+  if(whichname) bits.old = bits.new; \
+}
+
+TRANS(ctmqtqall, Qratio[0]); // or 1?
+TRANS(ctrmsts, RMSTstart);
+TRANS(ctEvisID, EvisID);
+TRANS(qrms, QRMS);
+TRANS(qdiff, Qdiff);
+
 static int nnaftermu(const unsigned int muoni, dataparts & bits,
                       TTree * const chtree)
 {
+  const int whichname = !strcmp(chtree->GetName(), "GI");
   TBranch 
-    * const qrmsbr     = chtree->GetBranch("qrms"),
-    * const ctmqtqallbr= chtree->GetBranch("ctmqtqall"),
-    * const ctrmstsbr  = chtree->GetBranch("ctrmsts"),
-    * const qdiffbr    = chtree->GetBranch("qdiff"),
-    * const ctEvisIDbr = chtree->GetBranch("ctEvisID"),
-    * const ctqbr      = chtree->GetBranch("ctq"),
-    * const trgtimebr  = chtree->GetBranch("trgtime");
+    * const qrmsbr     = chtree->GetBranch(qrms_name[whichname]),
+    * const ctmqtqallbr= chtree->GetBranch(ctmqtqall_name[whichname]),
+    * const ctrmstsbr  = chtree->GetBranch(ctrmsts_name[whichname]),
+    * const qdiffbr    = chtree->GetBranch(qdiff_name[whichname]),
+    * const ctEvisIDbr = chtree->GetBranch(ctEvisID_name[whichname]),
+    * const ctqbr      = chtree->GetBranch(ctq_name[whichname]),
+    * const trgtimebr  = chtree->GetBranch(trgtime_name[whichname]);
 
   const double mindtmu      = 1e6;//dt to look for prev neutrons/veto
 
@@ -865,16 +892,16 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
     const double dt = bits.trgtime - mutime;
     if(dt > mindtmu) break;
 
-    qrmsbr->GetEntry(i);
-    ctmqtqallbr->GetEntry(i);
-    ctrmstsbr->GetEntry(i);
-    qdiffbr->GetEntry(i);
+    get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
+    get_ctrmsts  (ctrmstsbr,   i, whichname, bits);
+    get_qdiff    (qdiffbr,     i, whichname, bits);
+    get_qrms     (qrmsbr,      i, whichname, bits);
 
     // pass light noise
     if(lightnoise(bits.qrms, bits.ctmqtqall,
                   bits.ctrmsts, bits.qdiff)) continue;
 
-    ctEvisIDbr->GetEntry(i);
+    get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
       ctqbr->GetEntry(i);
       bits.ctEvisID = bits.ctq/34e3;
@@ -928,7 +955,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double firstneutrontime = 0, firstneutronenergy = 0;
   float followingqiv = 0;
 
-
+  const int whichname = !strcmp(chtree->GetName(), "GI");
   TBranch 
     * const nidtubesbr      = fitree->GetBranch("nidtubes"),
     * const fido_qivbr      = fitree->GetBranch("fido_qiv"),
@@ -940,17 +967,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endybr     = fitree->GetBranch("id_end_y"),
     * const fido_endzbr     = fitree->GetBranch("id_end_z"),
     
-    * const runbr           = chtree->GetBranch("run"),
-    * const coinovbr        = chtree->GetBranch("coinov"),
-    * const trgIdbr         = chtree->GetBranch("trgId"),
-    * const ctXbr           = chtree->GetBranch("ctX"),
-    * const qrmsbr          = chtree->GetBranch("qrms"),
-    * const ctmqtqallbr     = chtree->GetBranch("ctmqtqall"),
-    * const ctrmstsbr       = chtree->GetBranch("ctrmsts"),
-    * const qdiffbr         = chtree->GetBranch("qdiff"),
-    * const ctEvisIDbr      = chtree->GetBranch("ctEvisID"),
-    * const ctqbr           = chtree->GetBranch("ctq"),
-    * const trgtimebr       = chtree->GetBranch("trgtime");
+    * const runbr           = chtree->GetBranch(run_name[whichname]),
+    * const coinovbr        = chtree->GetBranch(coinov_name[whichname]),
+    * const trgIdbr         = chtree->GetBranch(trgId_name[whichname]),
+    * const ctXbr           = chtree->GetBranch(ctX_name[whichname]),
+    * const qrmsbr          = chtree->GetBranch(qrms_name[whichname]),
+    * const ctmqtqallbr     = chtree->GetBranch(ctmqtqall_name[whichname]),
+    * const ctrmstsbr       = chtree->GetBranch(ctrmsts_name[whichname]),
+    * const qdiffbr         = chtree->GetBranch(qdiff_name[whichname]),
+    * const ctEvisIDbr      = chtree->GetBranch(ctEvisID_name[whichname]),
+    * const ctqbr           = chtree->GetBranch(ctq_name[whichname]),
+    * const trgtimebr       = chtree->GetBranch(trgtime_name[whichname]);
   
   const double max_micht = near?30000:5500;
   const double max_time_probably_a_mich = 5500;
@@ -962,7 +989,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
-    coinovbr->GetEntry(i);
+    if(coinovbr) coinovbr->GetEntry(i);
     const double dt = bits.trgtime - mutime;
 
     // For any uncut Michels or (hopefully) prompt gammas from muon
@@ -975,7 +1002,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // element of the count arrays (but not the first), so don't double
     // count by accident.  
     if(dt < max_micht && !bits.coinov){
-      ctEvisIDbr->GetEntry(i);
+      get_ctEvisID(ctEvisIDbr, i, whichname, bits);
       if(bits.ctEvisID == 0){
         ctqbr->GetEntry(i);
         bits.ctEvisID = bits.ctq/34e3;
@@ -1010,16 +1037,16 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // Not more than ~4 nH lifetimes
     if(dt > 800e3) break;
 
-    qrmsbr->GetEntry(i);
-    ctmqtqallbr->GetEntry(i);
-    ctrmstsbr->GetEntry(i);
-    qdiffbr->GetEntry(i);
+    get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
+    get_ctrmsts  (ctrmstsbr,   i, whichname, bits);
+    get_qdiff    (qdiffbr,     i, whichname, bits);
+    get_qrms     (qrmsbr,      i, whichname, bits);
 
     // pass light noise
     if(lightnoise(bits.qrms, bits.ctmqtqall,
                   bits.ctrmsts, bits.qdiff)) continue;
 
-    ctEvisIDbr->GetEntry(i);
+    get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
       ctqbr->GetEntry(i);
       bits.ctEvisID = bits.ctq/34e3;
@@ -1137,7 +1164,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     if(dt_ms < 1) goto end; // Go past all H neutron captures
 
-    ctEvisIDbr->GetEntry(i);
+    get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
       ctqbr->GetEntry(i);
       bits.ctEvisID = bits.ctq/34e3;
@@ -1153,13 +1180,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // No IV, OV energy
     if(bits.fido_qiv > (near?10000:1000)) goto end;
 
-    coinovbr->GetEntry(i);
+    if(coinovbr) coinovbr->GetEntry(i);
     if(bits.coinov) goto end;
 
-    qrmsbr->GetEntry(i);
-    ctmqtqallbr->GetEntry(i);
-    ctrmstsbr->GetEntry(i);
-    qdiffbr->GetEntry(i);
+    get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
+    get_ctrmsts  (ctrmstsbr,   i, whichname, bits);
+    get_qdiff    (qdiffbr,     i, whichname, bits);
+    get_qrms     (qrmsbr,      i, whichname, bits);
 
     // pass light noise
     if(!near){ // XXX
@@ -1212,10 +1239,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // my microdsts, only events with ID energy are in the input files,
     // so this only selects muons that cross the ID, which I think is
     // fine.
-    coinovbr->GetEntry(i);
+    if(coinovbr) coinovbr->GetEntry(i);
     fido_qivbr->GetEntry(i);
     fido_didfitbr->GetEntry(i);
-    ctEvisIDbr->GetEntry(i);
+    get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
       ctqbr->GetEntry(i);
       bits.ctEvisID = bits.ctq/34e3;
@@ -1227,10 +1254,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     // Note the time of this even if it is valid, which for me means
     // not light noise and at least 0.4 MeV
-    qrmsbr->GetEntry(i);
-    ctmqtqallbr->GetEntry(i);
-    ctrmstsbr->GetEntry(i);
-    qdiffbr->GetEntry(i);
+    get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
+    get_ctrmsts  (ctrmstsbr,   i, whichname, bits);
+    get_qdiff    (qdiffbr,     i, whichname, bits);
+    get_qrms     (qrmsbr,      i, whichname, bits);
+
     trgtimebr->GetEntry(i);
 
     if(!lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff)
@@ -1271,8 +1299,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 static double geteortime(dataparts & parts, TTree * const chtree,
                          const unsigned int start)
 {
-  TBranch * const runbr = chtree->GetBranch("run");
-  TBranch * const timbr = chtree->GetBranch("trgtime");
+  const int whichname = !strcmp(chtree->GetName(), "GI");
+  TBranch * const runbr = chtree->GetBranch(run_name[whichname]);
+  TBranch * const timbr = chtree->GetBranch(trgtime_name[whichname]);
 
   runbr->GetEntry(start);
   const int run = parts.run;
@@ -1300,12 +1329,13 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
   double eortime = 0;
   int run = 0;
 
-  TBranch * const runbr           = chtree->GetBranch("run");
-  TBranch * const trgtimebr       = chtree->GetBranch("trgtime");
-  TBranch * const coinovbr        = chtree->GetBranch("coinov");
-  TBranch * const nidtubesbr = fitree->GetBranch("nidtubes");
-  TBranch * const nivtubesbr = fitree->GetBranch("nivtubes");
+  const int whichname = !strcmp(chtree->GetName(), "GI");
+  TBranch * const runbr     = chtree->GetBranch(run_name[whichname]);
+  TBranch * const trgtimebr = chtree->GetBranch(trgtime_name[whichname]);
+  TBranch * const coinovbr  = chtree->GetBranch(coinov_name[whichname]);
 
+  TBranch * const nidtubesbr   = fitree->GetBranch("nidtubes");
+  TBranch * const nivtubesbr   = fitree->GetBranch("nivtubes");
   TBranch * const fido_qivbr   = fitree->GetBranch("fido_qiv");
   TBranch * const fido_qidbr   = fitree->GetBranch("fido_qid");
   TBranch * const ids_didfitbr = fitree->GetBranch("ids_didfit");
@@ -1513,8 +1543,9 @@ int main(int argc, char ** argv)
     }
 
     chtree = (TTree *)chfile->Get("data");
+    if(!chtree) chtree = (TTree *)chfile->Get("GI");
     if(!chtree){
-      fprintf(stderr, "\n%s lacks a \"data\" tree!\n", argv[i]);
+      fprintf(stderr,"\n%s lacks a \"data\" or \"GI\" tree!\n",argv[i]);
       errcode |= 2;
       goto cleanup;
     }
@@ -1559,7 +1590,19 @@ int main(int argc, char ** argv)
     chtree->AddBranchToCache("*");
 
     memset(&parts, 0, sizeof(parts));
-    #define cSBA(x) chtree->SetBranchAddress(#x, &parts.x);
+
+    // if types are compatible, write to same part either way
+    #define cSBA(x,y) chtree->SetBranchAddress(\
+                        !strcmp(chtree->GetName(), "data")?#x:#y,\
+                        &parts.x);
+
+    // if types are incompatible, write to different parts
+    #define cSBA2(x,y) \
+      if(!strcmp(chtree->GetName(), "data")) \
+        chtree->SetBranchAddress(#x, &parts.x); \
+      else \
+        chtree->SetBranchAddress(#y, &parts.y);
+
     #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
                     fitree->SetBranchAddress(#x, &parts.x); \
                     fitree->AddBranchToCache(#x);
@@ -1598,20 +1641,37 @@ int main(int argc, char ** argv)
     fSBA(id_idexitqf);
     fSBA(id_ivqbal);
 
-    cSBA(ctq);
-    cSBA(ctqIV);
-    cSBA(deltaT);
-    cSBA(trgtime);
-    cSBA(run);
-    cSBA(trgId);
-    cSBA(ctmqtqall);
-    cSBA(ctrmsts);
-    cSBA(coinov);
-    cSBA(ctEvisID);
-    cSBA(qrms);
-    cSBA(qdiff);
-    if(chtree->SetBranchAddress("ctX", parts.ctX) < 0)
-      chtree->SetBranchAddress("ctX[3]", parts.ctX);
+    // In the JP trees, ChargeID and ChargeIV are arrays of length 3.
+    // Arrange for the third element to be in ctq.
+    chtree->SetBranchAddress(
+      !strcmp(chtree->GetName(), "data")?"ctq":"ChargeID",
+      !strcmp(chtree->GetName(), "data")?&parts.ctq:&parts.ctq0);
+    chtree->SetBranchAddress(
+      !strcmp(chtree->GetName(), "data")?"ctq":"ChargeIV",
+      !strcmp(chtree->GetName(), "data")?&parts.ctqIV:&parts.ctqIV0);
+
+    cSBA(trgtime, TrigTime);
+    cSBA(run, RunNumber);
+    cSBA(trgId, TriggerID);
+
+    cSBA2(ctmqtqall, Qratio);
+    cSBA2(ctrmsts, RMSTstart);
+
+    if(!strcmp(chtree->GetName(), "data"))
+      cSBA(coinov, ALWAYSZERO); // apparently just not in JP ntuples
+
+    cSBA2(ctEvisID, EvisID);
+
+    cSBA2(qrms, QRMS);
+    cSBA2(qdiff, Qdiff);
+
+    if(!strcmp(chtree->GetName(), "data")){
+      if(chtree->SetBranchAddress("ctX", parts.ctX) < 0)
+        chtree->SetBranchAddress("ctX[3]", parts.ctX);
+    }
+    else{
+      chtree->SetBranchAddress("Vtx_BAMA", parts.ctX);
+    }
 
     searchforamuon(parts, chtree, fitree, search);
 
