@@ -9,15 +9,22 @@ double bamacorrxy(const double xy, const double e);
 double bamacorrz (const double  z, const double e);
 
 struct dataparts{
-  bool coinov;
+  bool coinov; // not in JP tree at all
+
   int run, trgId;
+  unsigned int RunNumber, TriggerID; // incompatible type in JP tree
+
   float deltaT;
+
   float ctmqtqall, ctrmsts;
   double Qratio[2]; // incompatible type in JP tree
   double RMSTstart; // ditto
+
   float fido_qiv, fido_qid;
-  double ctq0, ctq1, ctq;
-  double ctqIV0, ctqIV1, ctqIV;
+
+  double ctq0, ctq1, ctq; // trickery to match up with JP tree
+  double ctqIV0, ctqIV1, ctqIV; // trickery to match up with JP tree
+
   int nidtubes, nivtubes;
 
   int ids_didfit;
@@ -33,8 +40,10 @@ struct dataparts{
 
   bool id_didfit;
 
-  double trgtime;
+  double trgtime; // actually compatible -- only one!
+
   float ctX[3];
+  double Vtx_BAMA[3]; // incompatible type in JP tree
   float ctEvisID;
   double EvisID; // incompatible type in JP tree
   float qrms, qdiff;

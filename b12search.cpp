@@ -867,6 +867,17 @@ TRANS(ctrmsts, RMSTstart);
 TRANS(ctEvisID, EvisID);
 TRANS(qrms, QRMS);
 TRANS(qdiff, Qdiff);
+TRANS(run, RunNumber);
+TRANS(trgId, TriggerID);
+
+static inline void get_ctX(TBranch * const br, const int i,
+                           const int whichname, dataparts & bits)
+{
+  br->GetEntry(i);
+  if(whichname)
+    for(int i = 0; i < 3; i++)
+      bits.ctX[i] = bits.Vtx_BAMA[i];
+}
 
 static int nnaftermu(const unsigned int muoni, dataparts & bits,
                       TTree * const chtree)
@@ -1007,7 +1018,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         ctqbr->GetEntry(i);
         bits.ctEvisID = bits.ctq/34e3;
       }
-      ctXbr->GetEntry(i);
+      get_ctX(ctXbr, i, whichname, bits);
       if(bits.ctEvisID > michele){
         michele = bits.ctEvisID, michelt = dt;
         michelx = bamacorrxy(bits.ctX[0], bits.ctEvisID);
@@ -1054,7 +1065,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // right energy for a neutron capture
     if(!isnenergy(bits.ctEvisID, dt, mufqid/8300)) continue;
 
-    ctXbr->GetEntry(i);
+    get_ctX(ctXbr, i, whichname, bits);
 
     // Note, not 1000mm, but 800mm.
     const bool nnear =
@@ -1119,7 +1130,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
-    trgIdbr->GetEntry(i);
+    get_trgId(trgIdbr, i, whichname, bits);
 
     const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
@@ -1195,7 +1206,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         goto end;
     }
 
-    ctXbr->GetEntry(i);
+    get_ctX(ctXbr, i, whichname, bits);
 
     ix[got] = bamacorrxy(bits.ctX[0], bits.ctEvisID),
     iy[got] = bamacorrxy(bits.ctX[1], bits.ctEvisID),
@@ -1211,8 +1222,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       // And they must be near each other.
       //if(dist > 800) goto end; 
 
-      trgIdbr->GetEntry(i);
-      runbr->GetEntry(i);
+      get_run(runbr, i, whichname, bits);
+      get_trgId(trgIdbr, i, whichname, bits);
 
       const twolike b12like =
         lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
@@ -1304,12 +1315,12 @@ static double geteortime(dataparts & parts, TTree * const chtree,
   TBranch * const runbr = chtree->GetBranch(run_name[whichname]);
   TBranch * const timbr = chtree->GetBranch(trgtime_name[whichname]);
 
-  runbr->GetEntry(start);
+  get_run(runbr, start, whichname, parts);
   const int run = parts.run;
   double eortime = 0;
 
   for(int e = start; e < chtree->GetEntries(); e++){
-    runbr->GetEntry(e);
+    get_run(runbr, e, whichname, parts);
     if(run == parts.run){
       timbr->GetEntry(e);
       eortime = parts.trgtime;
@@ -1356,8 +1367,8 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
 
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1 &&
                            mi < fitree->GetEntries()-1; mi++){
-    runbr->GetEntry(mi);
-    trgIdbr->GetEntry(mi);
+    get_run(runbr, mi, whichname, parts);
+    get_trgId(trgIdbr, mi, whichname, parts);
 
     if(parts.run != run){
       run = parts.run;
@@ -1443,7 +1454,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     end:
 
     // See note above for same code.
-    coinovbr->GetEntry(mi);
+    if(coinovbr) coinovbr->GetEntry(mi);
     fido_qivbr->GetEntry(parts.trgId);
 
     // Note-lungbloke: Notice how this cut is slightly different from
@@ -1654,10 +1665,16 @@ int main(int argc, char ** argv)
       !strcmp(chtree->GetName(), "data")?&parts.ctqIV:&parts.ctqIV0);
 
     cSBA(trgtime, TrigTime);
-    cSBA(run, RunNumber);
-    cSBA(trgId, TriggerID);
 
-    cSBA2(ctmqtqall, Qratio);
+    cSBA2(run, RunNumber);
+    cSBA2(trgId, TriggerID);
+
+    // Can't use cSBA2 because one is an array and the other isn't
+    if(!strcmp(chtree->GetName(), "data"))
+      chtree->SetBranchAddress("ctmqtqall", &parts.ctmqtqall);
+    else
+      chtree->SetBranchAddress("Qratio", parts.Qratio);
+
     cSBA2(ctrmsts, RMSTstart);
 
     if(!strcmp(chtree->GetName(), "data"))
@@ -1673,7 +1690,7 @@ int main(int argc, char ** argv)
         chtree->SetBranchAddress("ctX[3]", parts.ctX);
     }
     else{
-      chtree->SetBranchAddress("Vtx_BAMA", parts.ctX);
+      chtree->SetBranchAddress("Vtx_BAMA", parts.Vtx_BAMA);
     }
 
     searchforamuon(parts, chtree, fitree, search);
