@@ -868,7 +868,20 @@ TRANS(ctEvisID, EvisID);
 TRANS(qrms, QRMS);
 TRANS(qdiff, Qdiff);
 TRANS(run, RunNumber);
-TRANS(trgId, TriggerID);
+
+static void get_trgId(TBranch * br, const int i,
+                      const int whichname, dataparts & bits,
+                      const TTree * const fidotree)
+{
+  br->GetEntry(i);
+  if(whichname) bits.trgId = bits.TriggerID;
+
+  if(bits.trgId >= fidotree->GetEntries()){
+    fprintf(stderr, "%s indexed FIDO entry %d, but only have %lld\n",
+      whichname==0?"reduced":"JP", bits.trgId, fidotree->GetEntries());
+    exit(1);
+  }
+}
 
 static inline void get_ctX(TBranch * const br, const int i,
                            const int whichname, dataparts & bits)
@@ -1031,6 +1044,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     if(dt < max_micht){
+      get_trgId(trgIdbr, i, whichname, bits, fitree);
+
       fido_qivbr->GetEntry(bits.trgId);
       if(bits.coinov){
          followingov = true;
@@ -1130,7 +1145,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
-    get_trgId(trgIdbr, i, whichname, bits);
+    get_trgId(trgIdbr, i, whichname, bits, fitree);
 
     const double itime = bits.trgtime;
     const double dt_ms = (itime - mutime)/1e6;
@@ -1223,7 +1238,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       //if(dist > 800) goto end; 
 
       get_run(runbr, i, whichname, bits);
-      get_trgId(trgIdbr, i, whichname, bits);
+      get_trgId(trgIdbr, i, whichname, bits, fitree);
 
       const twolike b12like =
         lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
@@ -1368,7 +1383,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1 &&
                            mi < fitree->GetEntries()-1; mi++){
     get_run(runbr, mi, whichname, parts);
-    get_trgId(trgIdbr, mi, whichname, parts);
+    get_trgId(trgIdbr, mi, whichname, parts, fitree);
 
     if(parts.run != run){
       run = parts.run;
