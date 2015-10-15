@@ -18,7 +18,7 @@ using std::vector;
 enum searchtype{ b12, be12, neutron, buffer };
 
 // True if we are processing ND data.
-static const bool near = false;
+static const bool near = true;
 
 static double maxtime = 1000;
 static double minenergy = 4;
@@ -958,10 +958,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const int mutrgid = bits.trgId;
   const int murun = bits.run;
   const bool mucoinov = bits.coinov;
+  const float mudchi2 = bits.ids_chi2 - bits.id_chi2;
   const float murchi2 =
     bits.ids_chi2/(bits.nidtubes+bits.nivtubes-6);
-  const float muivdedx = bits.ids_ivlen?
-    bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen): 0;
+  const float muivdedx = bits.id_ivlen?
+    bits.fido_qiv/(bits.id_ivlen-bits.id_buflen): 0;
 
   const float mufqid = bits.fido_qid,
               mufqiv = bits.fido_qiv,
@@ -1156,14 +1157,14 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      // NOTE-luckplan
      #define LATEFORM \
      "%d %d %d " \
-     "%f %f %f %f %f " \
+     "%f %f %f %f %f %f " \
      "%d %d %d %d %d %d %d %d " \
      "%lf %.1f %.1f %.1f %.0lf %f %f %f %f %.0f " \
      "%f %f %f %f %f %f %f %f %d %f %f %f %d %f %f %f %f %f %f"
 
      #define LATEVARS \
      murun, mutrgid, mucoinov, \
-     mux, muy, muz, murchi2, muivdedx, \
+     mux, muy, muz, mudchi2, murchi2, muivdedx, \
      ngdneutronnear[0], ngdneutronanydist[0], \
      nneutronnear[0],  nneutronanydist[0], \
      ngdneutronnear[1], ngdneutronanydist[1], \
@@ -1534,7 +1535,7 @@ int main(int argc, char ** argv)
   else printf(
     "trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
     "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
-    "chi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
+    "dchi2/F:rchi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
     "latengd/I:latennear/I:laten/I:miche/F:"
     "michx/F:michy/F:michz/F:micht/F:gclen/F:"
     "fex/F:fey/F:fez/F:"
@@ -1548,7 +1549,7 @@ int main(int argc, char ** argv)
     printf(
       ":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
       "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
-      "chi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
+      "dchi2/F:rchi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
       "latengd2/I:latennear2/I:laten2/I:miche2/F:"
       "michx2/F:michy2/F:michz2/F:micht2/F:gclen2/F:"
       "fex2/F:fey2/F:fez2/F:"
