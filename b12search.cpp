@@ -1216,8 +1216,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     get_qdiff    (qdiffbr,     i, whichname, bits);
     get_qrms     (qrmsbr,      i, whichname, bits);
 
-    // pass light noise
-    if(!near){ // XXX
+    // XXX disable for now for ND, but probably want to put back later
+    if(!near){
       if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
         goto end;
     }
@@ -1448,16 +1448,24 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       if(parts.ids_entr_z > 11500 -(near?37:62)*
          parts.fido_qiv/(parts.id_ivlen-parts.id_buflen)) goto end;
 
-      id_chi2br->GetEntry(parts.trgId);
-      ids_chi2br->GetEntry(parts.trgId);
-      if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+      // disable for now for ND. Do I want to put it back? Currently, it
+      // looks like this has no power to tell a good event from a bad
+      // one, but, well, I'm writing it out so I can always look again.
+      if(!near){
+        id_chi2br->GetEntry(parts.trgId);
+        ids_chi2br->GetEntry(parts.trgId);
+        if(parts.ids_chi2-parts.id_chi2 > 800) goto end;
+      }
 
-      id_entr_xbr->GetEntry(parts.trgId);
-      id_entr_ybr->GetEntry(parts.trgId);
-      ids_entr_xbr->GetEntry(parts.trgId);
-      ids_entr_ybr->GetEntry(parts.trgId);
-      if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
-         pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2)) goto end;
+      // XXX disable experimentally for ND
+      if(!near){
+        id_entr_xbr->GetEntry(parts.trgId);
+        id_entr_ybr->GetEntry(parts.trgId);
+        ids_entr_xbr->GetEntry(parts.trgId);
+        ids_entr_ybr->GetEntry(parts.trgId);
+        if(pow(parts.id_entr_x, 2)+pow(parts.id_entr_y, 2) < pow(1000, 2) &&
+           pow(parts.ids_entr_x,2)+pow(parts.ids_entr_y,2) > pow(2758, 2)) goto end;
+      }
     }
 
     chtree->GetEntry(mi);
