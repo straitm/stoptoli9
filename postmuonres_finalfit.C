@@ -17,7 +17,7 @@ void print()
   printf("Gd: %f %f +%f\n", MINUIT->fU[4], MINUIT->fErn[4], MINUIT->fErp[4]);
 }
 
-void postmuonres_finalfit(double emin = 60)
+void postmuonres_finalfit(const double emin = 60, const double emax = 110)
 {
   TFile * f = new TFile(rootfilethru, "read");
   TTree * t = (TTree *)f->Get("t");
@@ -43,9 +43,8 @@ void postmuonres_finalfit(double emin = 60)
 
   const float halfw = 25;
   {
-    const int i = 1;
-    const float e = emin + i*halfw*2 + halfw;
-    g->SetParameters(20, 2.223 + 0.001*e, 0.055*2.223, 10, 8, 0.4, 0);
+    const float emean = emin + (emax - emin)/2;
+    g->SetParameters(20, 2.223 + 0.001*emean, 0.055*2.223, 10, 8, 0.4, 0);
 
     g->SetParLimits(0, 1, 100);
     g->SetParLimits(3, 1, 100);
@@ -56,7 +55,7 @@ void postmuonres_finalfit(double emin = 60)
     g->FixParameter(9,0.005373248);
     g->FixParameter(10,0.855553);
 
-    g->SetParLimits(5, 0.04, 0.4+0.002*e);
+    g->SetParLimits(5, 0.04, 0.4+0.002*emean);
 
     g->SetParLimits(11, 0, 10000);
     g->SetParameter(11, 1000);
@@ -67,8 +66,8 @@ void postmuonres_finalfit(double emin = 60)
     g->SetParLimits(2, 0.03*2.223, 0.12*2.223);
 
     t->Draw("miche >> ehist", Form("ndecay == 0 && michd < 2000 && "
-      "latennear > 0 && fq/8300 < %f && fq/8300 > %f",
-      e+halfw, e-halfw), "e");
+      "latennear > 0 && fq/8300 < %f && fq/8300 > %f && micht < 3000",
+      emax, emin), "e");
     ehist->Fit("g", "liq", "");
     MINUIT->Command("MINOS 10000 2");
     MINUIT->Command("MINOS 10000 3");
@@ -81,17 +80,17 @@ void postmuonres_finalfit(double emin = 60)
     bg->Draw("same");
 
     c1->Update(); c1->Modified();
-    egd->SetPoint(i, e, g->GetParameter(4));
-    eh ->SetPoint(i, e, g->GetParameter(1));
-    wgd->SetPoint(i, e, fabs(g->GetParameter(5)/7.95));
-    wh ->SetPoint(i, e, fabs(g->GetParameter(2)/2.223));
+    egd->SetPoint(0, emean, g->GetParameter(4));
+    eh ->SetPoint(0, emean, g->GetParameter(1));
+    wgd->SetPoint(0, emean, fabs(g->GetParameter(5)/7.95));
+    wh ->SetPoint(0, emean, fabs(g->GetParameter(2)/2.223));
 
 
     const double xerr = halfw*2/sqrt(12);
-    eh ->SetPointError(i, xerr, xerr, -MINUIT->fErn[1], MINUIT->fErp[1]);
-    wh ->SetPointError(i, xerr, xerr, min(wh->GetY()[i], fabs(MINUIT->fErn[2])/2.223), MINUIT->fErp[2]/2.223);
-    egd->SetPointError(i, xerr, xerr, -MINUIT->fErn[4], MINUIT->fErp[4]);
-    wgd->SetPointError(i, xerr, xerr, -MINUIT->fErn[5]/7.95, MINUIT->fErp[5]/7.95);
+    eh ->SetPointError(0, xerr, xerr, -MINUIT->fErn[1], MINUIT->fErp[1]);
+    wh ->SetPointError(0, xerr, xerr, min(wh->GetY()[0], fabs(MINUIT->fErn[2])/2.223), MINUIT->fErp[2]/2.223);
+    egd->SetPointError(0, xerr, xerr, -MINUIT->fErn[4], MINUIT->fErp[4]);
+    wgd->SetPointError(0, xerr, xerr, -MINUIT->fErn[5]/7.95, MINUIT->fErp[5]/7.95);
 
     print();
   }
