@@ -40,6 +40,8 @@ void c9finalfit(const char elem = 'o')
   const double eff = 1
     * exp(-1.*log(2)/127.00) // half-life and 1ms veto
     * (1-exp(-1000.*log(2)/127.00)) // up to 1s
+    * light_noise_eff
+    * mich_eff
     * sub_muon_eff05 // subsequent muons
     * (elem=='o'?0.897:0.9405) // delta r
     * 0.99709 // 100s from end of run

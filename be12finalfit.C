@@ -6,6 +6,8 @@ void be12finalfit()
       0.894 // Energy over 3MeV
     * wholedet_dist400eff 
     * (exp(-1*log(2)/21.3) - exp(-100*log(2)/21.3)) // 1-100ms
+    * light_noise_eff
+    * mich_eff
     * sub_muon_eff05 // subsequent muons
   ;
 
@@ -14,6 +16,8 @@ void be12finalfit()
       0.9251 // Energy over 3 MeV
     * 0.97 // dist2: from doc-5679 -- conservative given higher energies here
     * (exp(-1*log(2)/20.2) - exp(-150*log(2)/20.2))  // After 1ms
+    * light_noise_eff
+    * mich_eff
     * sub_muon_eff05 // subsequent muons
    ;
 

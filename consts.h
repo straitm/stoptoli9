@@ -43,6 +43,11 @@ const double mass_o16targ = 20.865041,
 
 const double gd_fraction = 0.851;
 
+const double mich_eff = 0.9996;
+
+// Light noise efficiency, based on DC3rdPub's 0.0124+-0.0008% for
+// delayed coincidences.
+const double light_noise_eff = 0.999938;
 
 // Subsequent muon veto efficiency (an efficiency on the isotope decay,
 // NOT on the muon), for the hard cut imposed on events in order to get

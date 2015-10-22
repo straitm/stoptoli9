@@ -183,17 +183,15 @@ const double li9eff_energy_e = 0.05; // made up!
 // time until end of run
 const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
-const double mich_eff = 0.9996;
-
-const double b12eff = mich_eff * eor_eff * sub_muon_eff05 * b12energyeff;
+const double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
-const double b13eff = mich_eff * eor_eff * sub_muon_eff05 * b13energyeff;
+const double b13eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff = mich_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
+const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
 
-const double li9eff = mich_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
+const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
 // Constant 1% absolute error assumed on neutron efficiency.
 // Not a very rigourous model, but it's something.

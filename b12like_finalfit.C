@@ -157,8 +157,6 @@ static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 // into the ntuples of 0.5ms.
 double sub_muon_eff = 0; // set by main function argument
 
-static const double mich_eff = 0.9996;
-
 static double eff = 0;
 static const double ferr_energy = energyeff_e/energyeff;
 
@@ -195,7 +193,7 @@ const double sub_muon_eff_in = sub_muon_eff05,
 const double livetime = -1.0)
 {
   sub_muon_eff = sub_muon_eff_in;
-  eff = mich_eff * eor_eff * sub_muon_eff * energyeff;
+  eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
   printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
 
   // XXX kludgy!

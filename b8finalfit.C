@@ -15,6 +15,8 @@ void b8finalfit(const int nn = 4)
     *tf*neff_dr_800_targ;
 
   const double eff = 1
+    * light_noise_eff
+    * mich_eff
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
     * 0.9709 // 100s from end of run

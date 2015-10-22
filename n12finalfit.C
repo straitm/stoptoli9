@@ -34,6 +34,8 @@ void n12finalfit()
   const double eff = 1
     * exp(-1.*log(2)/11.00) // n12 half-life and 1ms veto
     * (1 - exp(-100.*log(2)/11.00)) // 100ms window
+    * light_noise_eff
+    * mich_eff
     * sub_muon_eff05 // subsequent muons
     * 0.897 // delta r
     * 0.99709 // 10s from end of run
