@@ -18,11 +18,17 @@ using std::vector;
 enum searchtype{ b12, be12, neutron, buffer };
 
 // True if we are processing ND data.
-static const bool near = true;
+static bool near = true;
 
 static double maxtime = 1000;
 static double minenergy = 4;
 static double maxenergy = 14;
+
+// Note change, used to cut events on 1000 and define muons at 5000.
+// With both at 5000, the event-by-event cut has no additional
+// efficiency impact once we evaluate the subsequent muon veto
+// efficiency.
+const double fido_qiv_muon_def = 5000;
 
 struct cart{
   double x, y, z;
@@ -1206,7 +1212,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     
     fido_qivbr->GetEntry(bits.trgId);
     // No IV, OV energy
-    if(bits.fido_qiv > (near?10000:1000)) goto end;
+    if(bits.fido_qiv > fido_qiv_muon_def) goto end;
 
     if(coinovbr) coinovbr->GetEntry(i);
     if(bits.coinov) goto end;
@@ -1245,9 +1251,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
       if(search != neutron)
         // NOTE-luckplan
-        printf("%d %lf %f %f %f %f %f %f %f " LATEFORM "%c",
+        printf("%d %lf %f %f %f %f %f %f %f %f " LATEFORM "%c",
                bits.trgId, dt_ms, dist,
-               bits.ctEvisID, ix[got], iy[got], iz[got],
+               bits.ctEvisID, bits.fido_qiv, ix[got], iy[got], iz[got],
                b12like.like, b12like.altlike,
                LATEVARS,
                search == be12?' ':'\n');
@@ -1277,7 +1283,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     // NOTE-lungbloke: See comment at other.
-    if(bits.coinov || bits.fido_qiv > 5000 || bits.ctEvisID > 60)
+    if(bits.coinov || bits.fido_qiv > fido_qiv_muon_def
+      || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
 
     // Note the time of this even if it is valid, which for me means
@@ -1313,9 +1320,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
     }
 
+    // NOTE-luckplan
     // at EOR, be sure to print muon info
     if(search != neutron && i == chtree->GetEntries()-1 && printed == 0)
-      printf("0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
+      printf("0 0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
   }
   if(got){
     if(search != neutron) printf("\n");
@@ -1404,7 +1412,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     if(parts.trgtime - lastmuontime < 500e3) goto end;
 
     fido_qivbr->GetEntry(parts.trgId);
-    if(parts.fido_qiv < 5000) goto end;
+    if(parts.fido_qiv < fido_qiv_muon_def) goto end;
 
     fido_qidbr->GetEntry(parts.trgId);
     if(parts.fido_qid/(near?13500:8300) > 700) goto end;
@@ -1487,7 +1495,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     // to no difference (3e-8 -- 0.04%, depending on run) since almost
     // all events with > 60 MeV in the ID either have an OV coincidenece
     // or some IV energy.
-    if(parts.coinov || parts.fido_qiv > 5000){
+    if(parts.coinov || parts.fido_qiv > fido_qiv_muon_def){
       trgtimebr->GetEntry(mi);
       lastmuontime = parts.trgtime;
     }
@@ -1496,37 +1504,44 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
 
 int main(int argc, char ** argv)
 {
-  if(argc < 6 && argc%2 != 0){
+  if(argc < 7 && argc%2 != 0){
     fprintf(stderr,
-            "b12search maxtime[ms] minenergy maxenergy "
+            "b12search (near|far) maxtime[ms] minenergy maxenergy "
             "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To run the be12 search, looking for exactly two decays:\n"
-            "be12search maxtime[ms] minenergy maxenergy "
+            "be12search (near|far) maxtime[ms] minenergy maxenergy "
             "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To accept throughgoing muons for neutron studies:\n"
-            "neutronsearch maxtime[ms] minenergy maxenergy "
+            "neutronsearch (near|far) maxtime[ms] minenergy maxenergy "
             "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To search for buffer stopping muons:\n"
-            "buffersearch maxtime[ms] minenergy maxenergy "
+            "buffersearch (near|far) maxtime[ms] minenergy maxenergy "
             "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
             "To check files only, use\n"
-            "checkb12search foo foo foo "
+            "checkb12search (near|far) foo foo foo "
             "[reduced or JP file, fido file]*\n");
 
     exit(1);
   }
 
-  maxtime = atof(argv[1]);
-  minenergy = atof(argv[2]);
-  maxenergy = atof(argv[3]);
+  if(!strcmp(argv[1], "near")) near = true;
+  else if(!strcmp(argv[1], "far")) near = false;
+  else{
+    fprintf(stderr, "Give \"near\" or \"far\" as the first argument\n");
+    exit(1);
+  }
+
+  maxtime = atof(argv[2]);
+  minenergy = atof(argv[3]);
+  maxenergy = atof(argv[4]);
 
   const searchtype search = 
     !strcmp(basename(argv[0]),    "be12search")? be12:
@@ -1537,11 +1552,11 @@ int main(int argc, char ** argv)
   gErrorIgnoreLevel = kFatal;
   int errcode = 0;
 
-  // NOTE-luckplan
   if(search == neutron)
     printf("i/I:nn/I:fq/F:t/F:e/F:ov/I:fqiv/F:x/F:y/F:z/F");
+  // NOTE-luckplan
   else printf(
-    "trig/I:dt/F:dist/F:e/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
+    "trig/I:dt/F:dist/F:e/F:eiv/F:dx/F:dy/F:dz/F:b12like/F:b12altlike/F:"
     "run/I:mutrig/I:ovcoin/I:mx/F:my/F:mz/F:"
     "dchi2/F:rchi2/F:ivdedx/F:ngdnear/I:ngd/I:nnear/I:n/I:latengdnear/I:"
     "latengd/I:latennear/I:laten/I:miche/F:"
@@ -1555,7 +1570,7 @@ int main(int argc, char ** argv)
   if(search == be12) // same as above with 2s appended to each name
                      // some are dumb, since, i.e., mutrig === mutrig2
     printf(
-      ":trig2/I:dt2/F:dist2/F:e2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
+      ":trig2/I:dt2/F:dist2/F:e2/F:eiv2/F:dx2/F:dy2/F:dz2/F:b12like2/F:b12altlike2/F:"
       "run2/I:mutrig2/I:ovcoin2/I:mx2/F:my2/F:mz2/F:"
       "dchi2/F:rchi22/F:ivdedx2/F:ngdnear2/I:ngd2/I:nnear2/I:n2/I:latengdnear2/I:"
       "latengd2/I:latennear2/I:laten2/I:miche2/F:"
@@ -1568,7 +1583,7 @@ int main(int argc, char ** argv)
       "idexitqf2/F:ivqbal2/F");
   printf("\n");
 
-  for(int i = 4; i < argc; i+=2){
+  for(int i = 5; i < argc; i+=2){
     TFile * const chfile = new TFile(argv[i], "read");
     TFile * const fifile = new TFile(argv[i+1], "read");
     dataparts parts;
