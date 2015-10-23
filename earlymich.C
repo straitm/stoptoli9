@@ -3,6 +3,7 @@
 #include "TBranch.h"
 #include "TObject.h"
 #include <iostream>
+#include "consts.h"
 using namespace std;
 
 void earlymich()
@@ -11,7 +12,7 @@ void earlymich()
   TTree * pulse = (TTree *)_file1->Get("t");
   pulse->SetName("pulse");
 
-  TFile *_file0 = TFile::Open("/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root", "update");
+  TFile *_file0 = TFile::Open(rootfile3up, "update");
   TTree * b12 = (TTree *)_file0->Get("t");
   b12->SetName("b12");
   cout << b12->GetEntries() << " entries" << endl;
