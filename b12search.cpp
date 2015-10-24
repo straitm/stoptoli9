@@ -967,8 +967,18 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const float mudchi2 = bits.ids_chi2 - bits.id_chi2;
   const float murchi2 =
     bits.ids_chi2/(bits.nidtubes+bits.nivtubes-6);
-  const float muivdedx = bits.id_ivlen?
-    bits.fido_qiv/(bits.id_ivlen-bits.id_buflen): 0;
+
+  // This will get used for the high-purity cut in downstream anslysis.
+  // Note that this uses the ids_ variables, which is *different*
+  // from the cut used to select in searchforamuon(), i.e. the
+  // loose cut. This is aesthetically unpleasing, but perfectly
+  // valid statistically. Changing them both to be one or the other
+  // (and therefore aesthetically pleasing) and then retuning the
+  // high-purity cuts would not give a better result, but it would give
+  // a *different* result, and the current methods and results are
+  // already blessed.
+  const float muivdedx = bits.ids_ivlen?
+    bits.fido_qiv/(bits.ids_ivlen-bits.ids_buflen): 0;
 
   const float mufqid = bits.fido_qid,
               mufqiv = bits.fido_qiv,
@@ -1241,8 +1251,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
-      // And they must be near each other.
-      //if(dist > 800) goto end; 
+      // And they must be near each other. XXX I only want this for the
+      // He-6 search. Really it should be a command line switch.
+      //if(dist > 400) goto end;
 
       get_run(runbr, i, whichname, bits);
       get_trgId(trgIdbr, i, whichname, bits, fitree);
