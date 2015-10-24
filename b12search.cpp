@@ -20,6 +20,7 @@ enum searchtype{ b12, be12, neutron, buffer };
 // True if we are processing ND data.
 static bool near = true;
 
+static double distcut = 0;
 static double maxtime = 1000;
 static double minenergy = 4;
 static double maxenergy = 14;
@@ -1251,9 +1252,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(mux  -ix[0],2)+pow(muy  -iy[0],2)+pow(muz  -iz[0],2)):
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
-      // And they must be near each other. XXX I only want this for the
-      // He-6 search. Really it should be a command line switch.
-      //if(dist > 400) goto end;
+      // And, optionally, they must be near each other.
+      if(distcut != 0 && dist > distcut) goto end;
 
       get_run(runbr, i, whichname, bits);
       get_trgId(trgIdbr, i, whichname, bits, fitree);
@@ -1515,30 +1515,32 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
 
 int main(int argc, char ** argv)
 {
-  if(argc < 7 && argc%2 != 0){
+  if(argc < 8 || argc%2 != 0){
     fprintf(stderr,
-            "b12search (near|far) maxtime[ms] minenergy maxenergy "
-            "[reduced or JP file, fido file]*\n\n");
+      "b12search (near|far) distcut maxtime[ms] minenergy maxenergy "
+      "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
-            "To run the be12 search, looking for exactly two decays:\n"
-            "be12search (near|far) maxtime[ms] minenergy maxenergy "
-            "[reduced or JP file, fido file]*\n\n");
+      "To run the be12 search, looking for exactly two decays:\n"
+      "be12search (near|far) distcut maxtime[ms] minenergy maxenergy "
+      "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
-            "To accept throughgoing muons for neutron studies:\n"
-            "neutronsearch (near|far) maxtime[ms] minenergy maxenergy "
-            "[reduced or JP file, fido file]*\n\n");
+      "To accept throughgoing muons for neutron studies:\n"
+      "neutronsearch (near|far) distcut maxtime[ms] minenergy maxenergy "
+      "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
-            "To search for buffer stopping muons:\n"
-            "buffersearch (near|far) maxtime[ms] minenergy maxenergy "
-            "[reduced or JP file, fido file]*\n\n");
+      "To search for buffer stopping muons:\n"
+      "buffersearch (near|far) distcut maxtime[ms] minenergy maxenergy "
+      "[reduced or JP file, fido file]*\n\n");
 
     fprintf(stderr,
-            "To check files only, use\n"
-            "checkb12search (near|far) foo foo foo "
-            "[reduced or JP file, fido file]*\n");
+      "To check files only, use\n"
+      "checkb12search (near|far) 0 foo foo foo "
+      "[reduced or JP file, fido file]*\n");
+
+    fprintf(stderr, "\nA distcut of zero means unlimited\n");
 
     exit(1);
   }
@@ -1550,9 +1552,10 @@ int main(int argc, char ** argv)
     exit(1);
   }
 
-  maxtime = atof(argv[2]);
-  minenergy = atof(argv[3]);
-  maxenergy = atof(argv[4]);
+  distcut = atof(argv[2]);
+  maxtime = atof(argv[3]);
+  minenergy = atof(argv[4]);
+  maxenergy = atof(argv[5]);
 
   const searchtype search = 
     !strcmp(basename(argv[0]),    "be12search")? be12:
@@ -1594,7 +1597,7 @@ int main(int argc, char ** argv)
       "idexitqf2/F:ivqbal2/F");
   printf("\n");
 
-  for(int i = 5; i < argc; i+=2){
+  for(int i = 6; i < argc; i+=2){
     TFile * const chfile = new TFile(argv[i], "read");
     TFile * const fifile = new TFile(argv[i+1], "read");
     dataparts parts;
