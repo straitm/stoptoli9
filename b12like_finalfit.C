@@ -352,24 +352,24 @@ void loosecaptures_finalfit()
   puts("");
 
   printtwice("Atomic carbon captures/day on C-12: %f +- %f\n",
-    4, answer/livetime*(1-f13), error/livetime*(1-f13);
+    4, answer/livetime*(1-f13), error/livetime*(1-f13));
 
   printtwice("*Nuclear* carbon captures/day on C-12: %f +- %f\n",
     4, answer/livetime*(1-f13) * capprob12,
     answer*sqrt(
       pow(error/answer,2)+ // fractional stat error
-      pow(errcapprob12/caprob12,2) // fractional capture error
-    )/livetime*(1-f13);
+      pow(errcapprob12/capprob12,2) // fractional capture error
+    )/livetime*(1-f13));
 
   puts("");
 
   printtwice("Atomic carbon captures/day on C-13: %f +- %f\n",
-    4, answer/livetime*f13, error/livetime*f13;
+    4, answer/livetime*f13, error/livetime*f13);
 
   printtwice("*Nuclear* carbon captures/day on C-13: %f +- %f\n",
     4, answer/livetime*f13 * capprob13,
     answer*sqrt(
       pow(error/answer,2)+ // fractional stat error
-      pow(errcapprob13/caprob13,2) // fractional capture error
-    )/livetime*f13;
+      pow(errcapprob13/capprob13,2) // fractional capture error
+    )/livetime*f13);
 }
