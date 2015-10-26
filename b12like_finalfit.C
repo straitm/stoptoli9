@@ -200,7 +200,7 @@ ve b12like_finalfit(const char * const cut =
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f",
 const double sub_muon_eff_in = sub_muon_eff05,
-const double livetime = -1.0)
+const double mylivetime = -1.0)
 {
   printtwice("mu- count is %f %f\n", 4, mum_count, mum_count_e);
 
@@ -209,7 +209,7 @@ const double livetime = -1.0)
   printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
 
   // XXX kludgy!
-  TFile *_file0 = TFile::Open(livetime<0?rootfile3up:rootfile3up_extended);
+  TFile *_file0 = TFile::Open(mylivetime<0?rootfile3up:rootfile3up_extended);
 
   TTree * t = (TTree *)_file0->Get("t");
  
@@ -257,8 +257,8 @@ const double livetime = -1.0)
              result_for_ratio.val, result_for_ratio.err);
 
 
-  if(livetime > 0){
-    const double b12like_central = 1000*getpar(mn, 0)/eff/livetime;
+  if(mylivetime > 0){
+    const double b12like_central = 1000*getpar(mn, 0)/eff/mylivetime;
     const double staterr = ferrorfit*b12like_central;
     const double muerr = mum_count_e/mum_count*b12like_central;
     const double b12err = ferr_energy*b12like_central;
@@ -348,4 +348,28 @@ void loosecaptures_finalfit()
 
   printtwice("Atomic carbon captures in the loose sample: %f +- %f\n",
     4, answer, error);
+
+  puts("");
+
+  printtwice("Atomic carbon captures/day on C-12: %f +- %f\n",
+    4, answer/livetime*(1-f13), error/livetime*(1-f13);
+
+  printtwice("*Nuclear* carbon captures/day on C-12: %f +- %f\n",
+    4, answer/livetime*(1-f13) * capprob12,
+    answer*sqrt(
+      pow(error/answer,2)+ // fractional stat error
+      pow(errcapprob12/caprob12,2) // fractional capture error
+    )/livetime*(1-f13);
+
+  puts("");
+
+  printtwice("Atomic carbon captures/day on C-13: %f +- %f\n",
+    4, answer/livetime*f13, error/livetime*f13;
+
+  printtwice("*Nuclear* carbon captures/day on C-13: %f +- %f\n",
+    4, answer/livetime*f13 * capprob13,
+    answer*sqrt(
+      pow(error/answer,2)+ // fractional stat error
+      pow(errcapprob13/caprob13,2) // fractional capture error
+    )/livetime*f13;
 }
