@@ -190,7 +190,11 @@ static double getpar(TMinuit * mn, int i)
   return answer;
 }
 
-void b12like_finalfit(const char * const cut =
+struct ve{
+  double val, err;
+};
+
+ve b12like_finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
@@ -242,8 +246,15 @@ const double livetime = -1.0)
 
   const double ferrorfit = (mn->fErp[0]-mn->fErn[0])/2/getpar(mn, 0);
 
+  // The "stuff with b12 lifetime raw" result is the one we need
+  // to find the ratio between high-purity and loose selections
+  // that is used to find the denominator for the loose selection.
+  ve result_for_ratio;
+  result_for_ratio.val = getpar(mn, 0);
+  result_for_ratio.err = ferrorfit * getpar(mn, 0);
+
   printtwice("\nStuff with b12 lifetime raw %f +- %f\n", 0,
-         getpar(mn, 0), ferrorfit * getpar(mn, 0));
+             result_for_ratio.val, result_for_ratio.err);
 
 
   if(livetime > 0){
@@ -308,4 +319,33 @@ const double livetime = -1.0)
          b12like_central_rate, staterr_rate, muerr_rate,
          b12err_rate, lifetimeerr_rate, toterr_rate);
   puts("");
+
+  return result_for_ratio;
+}
+
+void loosecaptures_finalfit()
+{
+  const char * const HPcut =
+    "mx**2+my**2 < 1050**2 && mz > -1175 && "
+    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+
+  const char * const othercuts =
+    "timeleft > %f && miche < 12 && !earlymich && "
+    "e > 4 && e < 15 && dt < %f";
+
+  const ve hpresult =
+    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts));
+
+  const ve antihpresult =
+    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts));
+
+  const double rat = antihpresult.val/hpresult.val;
+  const double answer = (1+rat)*mum_count;
+  const double error = sqrt(
+    pow(rat*mum_count/hpresult.val *     hpresult.err,2) +
+    pow(    mum_count/hpresult.val * antihpresult.err,2)
+  );
+
+  printtwice("Atomic carbon captures in the loose sample: %f +- %f\n",
+    4, answer, error);
 }
