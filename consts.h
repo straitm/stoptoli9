@@ -1,13 +1,13 @@
 const char * const RED     = "\033[31;1m"; // bold red
 const char * const CLR     = "\033[m"    ; // clear
 
-const char * const rootfile3up_extended =
+const char * const rootfile3up_extended = // XXX now out of date
   "/cp/s4/strait/fullfido-300s-3-25MeV-20150924-3rdpub+post3rdpub.root";
 const char * const rootfile3up =
-  "/cp/s4/strait/fullfido-300s-3-25MeV-20150219.root";
+  "/cp/s4/strait/fullfido-300s-3-25MeV-20151023.root";
 const char * const rootfile0up =
-  "/cp/s4/strait/fullfido-100s-0-25MeV-20150219.root";
-const char * const rootfilethru =
+  "/cp/s4/strait/fullfido-100s-0-25MeV-20151023.root";
+const char * const rootfilethru = // XXX now out of date -- but doesn't matter, since it is only for energy calibration
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 const char * const rootfilemusic =
   "/cp/s4/strait/DC_FD_Muon_Surface_Dist_Ecut_both.root";
