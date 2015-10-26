@@ -1,6 +1,8 @@
 all: stoptoli9 b12search
 
-analysis: loosecaptures_finalfit_out.h
+analysis: c9_finalfit.out
+
+c9_finalfit.out: c9finalfit.C loosecaptures_finalfit_out.h
 
 loosecaptures_finalfit_out.h: consts.h mucountfinalfit.C b12like_finalfit.C
 	./run_analysis_b12like.sh

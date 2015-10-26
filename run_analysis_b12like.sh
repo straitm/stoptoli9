@@ -7,6 +7,7 @@
 # loosecaptures_finalfit_out.h
 
 root -b -q loosecaptures_finalfit.C+ | \
-  tee loosecaptures_finalfit.out | \
-  tee /dev/stderr | \
-  grep 'const double' > loosecaptures_finalfit_out.h
+  tee loosecaptures_finalfit.out
+
+grep '^const ' loosecaptures_finalfit.out > loosecaptures_finalfit_out.h
+grep TECHNOTE loosecaptures_finalfit.out > loosecaptures_finalfit_out.technote

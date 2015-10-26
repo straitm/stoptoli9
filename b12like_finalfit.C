@@ -401,8 +401,8 @@ void loosecaptures_finalfit()
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap, n_c12cap_err);
 
-  printf("const double n_c12cap     = %f\n", n_c12cap);
-  printf("const double n_c12cap_err = %f\n", n_c12cap_err);
+  printf("const double n_c12cap     = %f;\n", n_c12cap);
+  printf("const double n_c12cap_err = %f;\n", n_c12cap_err);
 
   puts("");
 
@@ -419,8 +419,8 @@ void loosecaptures_finalfit()
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-13: %f +- %f\n",
     2, n_c13cap, n_c13cap_err);
 
-  printf("const double n_c13cap     = %f\n", n_c13cap);
-  printf("const double n_c13cap_err = %f\n", n_c13cap_err);
+  printf("const double n_c13cap     = %f;\n", n_c13cap);
+  printf("const double n_c13cap_err = %f;\n", n_c13cap_err);
 
   puts("");
   puts("");
@@ -442,8 +442,8 @@ void loosecaptures_finalfit()
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap_hp, n_c12cap_hp_err);
 
-  printf("const double n_c12cap_hp     = %f\n", n_c12cap_hp);
-  printf("const double n_c12cap_hp_err = %f\n", n_c12cap_hp_err);
+  printf("const double n_c12cap_hp     = %f;\n", n_c12cap_hp);
+  printf("const double n_c12cap_hp_err = %f;\n", n_c12cap_hp_err);
 
   puts("");
 
@@ -459,6 +459,6 @@ void loosecaptures_finalfit()
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-13: %f +- %f\n",
     3, n_c13cap_hp, n_c13cap_hp_err);
 
-  printf("const double n_c13cap_hp     = %f\n", n_c13cap_hp);
-  printf("const double n_c13cap_hp_err = %f\n", n_c13cap_hp_err);
+  printf("const double n_c13cap_hp     = %f;\n", n_c13cap_hp);
+  printf("const double n_c13cap_hp_err = %f;\n", n_c13cap_hp_err);
 }

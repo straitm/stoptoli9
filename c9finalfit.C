@@ -170,8 +170,10 @@ void c9finalfit(const char elem = 'o')
       RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
   }
 
-  printf("%sIf no events and no background: <%.2f%%%s\n", 
-      RED, 2.3026*toprob*lim_inflation_for_obeta*100, CLR);
+  printf("%sTECHNOTE results.tex %s: "
+         "If no events and no background: <%.2f%%%s\n", 
+      RED, elem=='o'?"probNineCfromSixteenO":"probNineCfromFourteenN",
+      2.3026*toprob*lim_inflation_for_obeta*100, CLR);
 
   printf("This is for %c captures.\n", elem=='o'?'O':'N');
 

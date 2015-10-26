@@ -23,5 +23,6 @@ foo*
 seq?.ntuple
 seq?.ntuple.root
 *ACLiC*
-loosecaptures_finalfit_out.h
-loosecaptures_finalfit.out
+*_out.h
+*.out
+*.technote
