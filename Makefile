@@ -16,4 +16,5 @@ stoptoli9: stoptoli9.o search.o
 	g++ -o stoptoli9 stoptoli9.o search.o `root-config --libs`
 
 clean: 
-	rm -f stoptoli9 b12search stoptoli9.o b12search.o search.o 
+	rm -f stoptoli9 b12search stoptoli9.o b12search.o search.o \
+      *_C.d *_C.so  AutoDict*cxx*
