@@ -844,7 +844,7 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
   TTree * seltree = t->CopyTree(Form(
          #ifdef HP
           "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
          #endif
          "!earlymich && "
          "e > %f && e < 15 && "
@@ -1081,13 +1081,13 @@ void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double tar
           "abs(mz) < 1229+4+0.03*(1154-sqrt(mx**2+my**2)) && "
         #ifdef HP
           "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
         #endif
          "ndecay == 0 && fq < %f", fq_per_mev*highfq)))/
       t->GetEntries(Form(
         #ifdef HP
           "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
         #endif
          "ndecay == 0 && fq < %f", fq_per_mev*highfq));
     printf("neutron Target fraction: %f\n", targfrac);

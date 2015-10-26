@@ -158,7 +158,7 @@ void he6finalfit(const int nreq_ = 0,
   snprintf(cutnoncut, 999, 
 #ifdef HP
   "mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 #endif
     BASICMUONCUT
     "dist < %f && b12like < 0.4 && ttlastvalid > 0.1 && ttlastmuon>1"
@@ -231,7 +231,7 @@ void he6finalfit(const int nreq_ = 0,
         // except that it can't make any mention of decays
         #ifdef HP
           "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
         #endif
         BASICMUONCUT
         "ndecay == 0");

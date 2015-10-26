@@ -165,7 +165,7 @@ void n16finalfit()
 #endif
 #if defined(LP) || defined(HP)
   "(mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2) && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2) && "
 #endif
     "!earlymich && latennear == 0 && miche < 12 && dist < 200 && "
     "ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 ";

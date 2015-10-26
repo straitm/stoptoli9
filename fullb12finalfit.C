@@ -737,9 +737,9 @@ void fullb12finalfit(const char * const cut =
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
 #endif
 #ifdef LESSCHI2
-"chi2 < 1.25 && "
+"rchi2 < 1.25 && "
 #else
-"chi2 < 2 && "
+"rchi2 < 2 && "
 #endif
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f && laten <= 2")

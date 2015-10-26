@@ -689,7 +689,7 @@ double b13limit()
 void li8finalfit(const char * const cut =
 #ifdef HP
   "mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 #endif
 "b12like < 0.02 && timeleft > %f && miche < 12 && !earlymich && "
 "e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2")

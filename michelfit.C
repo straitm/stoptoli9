@@ -2,7 +2,7 @@ void michelfit()
 {
   TH1D * mt = new TH1D("mt", "", 80, 0, 5120);
   t->Draw("micht >> mt",
-    "ndecay == 0 && mz > -1175 && mx**2+my**2 < 1050**2 && miche > 20 && miche < 80 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2", "e")
+    "ndecay == 0 && mz > -1175 && mx**2+my**2 < 1050**2 && miche > 20 && miche < 80 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", "e")
 
 TF1 * mf2 = new TF1("mf2", "[0]*(3*(x/52.72)^2 - 2*(x/52.72)^3)*((1-(x/52.72))/(3*x/52.72/7))^(2/137.036/3.14159 *(log(105.658*x/52.72/0.510999)-1))", 0, 52.72);
   mf2->SetParameter(0, 1);
