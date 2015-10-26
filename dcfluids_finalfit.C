@@ -10,10 +10,27 @@
  * of knowing how to do an automatic conversion.
  */
 
+#include "consts.h"
+
+const double f13 = 0.010921;
+
 const double hydrogenmass = 1.008;
 const double carbonmass = 12.011;
 const double nitrogenmass = 14.007;
 const double oxygenmass = 15.999;
+
+const double mulife = 2196.9811e-6;
+
+const double lifetime_c12 = 2028.e-6;
+const double lifetime_c13 = 2037.e-6;
+
+const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
+const double capprob_c = 1-lifetime_c/mulife;
+
+const double lifetime_o16 = 1796.e-6;
+const double capprob_o16 = 1-lifetime_o16/mulife;
+
+const double probrat = capprob_o16/capprob_c;
 
 
 double looseE28();
@@ -48,7 +65,6 @@ double looseI16();
 double looseI17();
 double looseB23();
 double looseI13();
-double looseI11();
 double looseC10();
 double looseC4();
 double looseD6();
@@ -57,10 +73,7 @@ double looseD7();
 double looseF4();
 double looseH4();
 double looseC3();
-double looseD3();
 double looseH3();
-double looseB8();
-double looseA8();
 double looseB10();
 double looseF2();
 double looseH2();
@@ -89,6 +102,12 @@ const double nt_inner_r = 1150;
 const double nt_inner_h = 1229;
 const double lidslope = 0.03;
 const double mass_immersed_acrylic = 432.; // in kg
+const double kg_oxygen_ppo_nt = 75.25;
+const double mass_halfimmersed_acrylic = 814; // in kg
+
+// XXX needs to be generated in loosecaptures_finalfit.C
+const double n_c12cap_target = 129.979327;
+
 
 double looseE26(){ return looseD26()*2.*0.85; }
 
@@ -100,11 +119,11 @@ double looseC17(){ return TMath::Pi()*2.*gc_inner_r*gc_inner_h*2.; }
 
 double looseC18(){ return (0.9*looseC17()+looseC16())/(2.*looseC16()+looseC17()); }
 
-double looseD20(){ return looseC18()*814.*(oxygenmass*2./(oxygenmass*2.+carbonmass*5.+8.*hydrogenmass)); }
+double looseD20(){ return looseC18()*mass_halfimmersed_acrylic*(oxygenmass*2./(oxygenmass*2.+carbonmass*5.+8.*hydrogenmass)); }
 
 double looseD21(){ return looseD20()/((looseC10()+looseC11())*12./14.1); }
 
-double looseD22(){ return looseD21()*looseI11(); }
+double looseD22(){ return looseD21()*probrat; }
 
 double looseD24(){ return looseD22()*looseD23(); }
 
@@ -116,7 +135,7 @@ double looseB20(){ return mass_immersed_acrylic*(oxygenmass*2./(oxygenmass*2+car
 
 double looseB21(){ return looseB20()/((looseC10()+looseC11())*12./14.1); }
 
-double looseB22(){ return looseB21()*looseI11(); }
+double looseB22(){ return looseB21()*probrat; }
 
 double looseB24(){ return looseB22()*looseB23(); }
 
@@ -128,26 +147,23 @@ double looseD8(){  return gc_inner_h-nt_inner_h; }
 
 double looseC8(){  return gc_inner_r-nt_inner_r; }
 
-double looseB11() { return ((looseA8()+looseC8())*(looseA8()+looseC8())*(looseB8()+looseD8())*2*TMath::Pi()
-             + 2./3. * (looseA8()+looseC8())*lidslope*(looseA8()+looseC8())*(looseA8()+looseC8())*TMath::Pi())
+double looseB11() { return ((nt_inner_r+looseC8())*(nt_inner_r+looseC8())*(nt_inner_h+looseD8())*2*TMath::Pi()
+             + 2./3. * (nt_inner_r+looseC8())*lidslope*(nt_inner_r+looseC8())*(nt_inner_r+looseC8())*TMath::Pi())
              /1000000.-looseB10(); }
 
 double looseC11() { return looseD5()*looseB11(); }
 
-double looseE3()  { return 120.-looseD3(); }
+double looseE3()  { return 120.-kg_oxygen_ppo_nt; }
 
 double looseI3()  { return looseE3()*looseC3()*1000.; }
 
 double looseI16() { return looseI3()/(looseC11() * 12./14.1)/1000. * carbonmass/oxygenmass; }
 
-double looseI17() { return looseI16()*looseI11(); }
+double looseI17() { return looseI16()*probrat; }
 
 double looseB23() { return 358.8; }
 
-double looseI13() { return looseB23()*129.979327/353.192; }
-
-double looseI11() { return (102.5/(102.5 + 1./0.002197))/
-                        (37.9/(37.9 + 1./0.002197)); }
+double looseI13() { return looseB23()*n_c12cap_target/n_c12cap; }
 
 double looseC10() { return looseB10()*looseD5(); }
 
@@ -165,16 +181,10 @@ double looseH4() { return looseF4()*looseB10(); }
 
 double looseC3() { return oxygenmass/(oxygenmass + nitrogenmass + 11.*hydrogenmass+15*carbonmass); }
 
-double looseD3() { return 75.25; }
+double looseH3() { return kg_oxygen_ppo_nt*looseC3()*1000.; }
 
-double looseH3() { return looseD3()*looseC3()*1000.; }
-
-double looseB8() { return 1229.; }
-
-double looseA8() { return 1150.; }
-
-double looseB10(){ return (looseA8()*looseA8()*looseB8()*2*TMath::Pi()
-         + 2./3. * looseA8()*0.03*looseA8()*looseA8()*TMath::Pi())/1000000; }
+double looseB10(){ return (nt_inner_r*nt_inner_r*nt_inner_h*2*TMath::Pi()
+         + 2./3. * nt_inner_r*0.03*nt_inner_r*nt_inner_r*TMath::Pi())/1000000; }
 
 double looseF2(){ return 0.99 * 6.*oxygenmass/157.25;}
 
@@ -184,7 +194,7 @@ double looseH5(){ return looseH2() + looseH3() + looseH4(); }
 
 double looseI10(){ return looseH5()/(looseC10() * 12./14.1) * carbonmass/oxygenmass / 1000.; }
 
-double looseI12(){ return looseI10()*looseI11(); }
+double looseI12(){ return looseI10()*probrat; }
 
 double looseI14(){ return looseI12() * looseI13(); }
 
