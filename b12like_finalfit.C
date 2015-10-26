@@ -341,14 +341,11 @@ void loosecaptures_finalfit()
     "timeleft > %f && miche < 12 && !earlymich && "
     "e > 4 && e < 15 && dt < %f";
 
-  //const ve hpresult =
-  //  b12like_finalfit(Form("  %s  && %s", HPcut, othercuts));
+  const ve hpresult =
+    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts));
 
-  //const ve antihpresult =
-  //  b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts));
-
-  ve hpresult; hpresult.val = 7899.832130; hpresult.err = 94.831961;
-  ve antihpresult;antihpresult.val=17610.083701;antihpresult.err=147.709373;
+  const ve antihpresult =
+    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts));
 
   const double rat = antihpresult.val/hpresult.val;
   const double answer = (1+rat)*mumc_count;
