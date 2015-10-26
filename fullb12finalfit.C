@@ -71,6 +71,59 @@ void printfr(const char * const msg, ...)
   printf(CLR);
 }
 
+/*
+ * Prints the message once with the requested floating point precision
+ * and in RED, then again with all digits in the default color, starting
+ * with the first floating point number.
+ */
+void printtwice(const char * const msg, const int digits, ...)
+{
+  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
+
+  // Just for fun...
+  char * pmp = pmsg;
+  char * bmp = bmsg;
+  bool gotone = false;
+  for(unsigned int i = 0; i <= strlen(msg); i++){
+    switch(msg[i]){
+      case '\0':
+        *pmp++ = '\0';
+        *bmp++ = '\0';
+        break;
+      case '%':
+        switch(msg[i+1]){
+          case 'e': case 'E': case 'f': case 'F':
+          case 'g': case 'G': case 'a': case 'A':
+            gotone = true;
+            *pmp++ = '%';
+            *bmp++ = '%';
+            *pmp++ = '.';
+            *pmp++ = digits+'0';
+            break;
+          default:
+            *pmp++ = msg[i];
+            if(gotone) *bmp++ = msg[i];
+        }
+        break;
+      default:
+        *pmp++ = msg[i];
+        if(gotone) *bmp++ = msg[i];
+        break;
+    }
+  }
+
+  va_list ap;
+  va_start(ap, digits);
+  printf(RED);
+  vprintf(pmsg, ap);
+  printf(CLR);
+
+  va_start(ap, digits);
+  vprintf(bmsg, ap);
+}
+
+
 int reactorpowerbin(const int run)
 {
   bool inited = false;
@@ -91,32 +144,45 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
+/**********************************************************************/
+
+#include "mucountfinalfit.C"
+
 #define STD
 
-// mu- counts from mucountfinalfit.C
 #ifdef STD
-const double mum_count =   720489.755185;
-const double mum_count_e =   5419.470070;
+const char * const countcut = 
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+const double mum_count   = mucountfinalfit_cut(countcut, false);
+const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSPOS
-// positions < 900
-const double mum_count = 490227.816935;
-const double mum_count_e = 3687.456986;
+const char * const countcut = 
+  "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+const double mum_count   = mucountfinalfit_cut(countcut, false);
+const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSSLANT
-// slantdiff < 600
-const double mum_count = 557470.114841;
-const double mum_count_e = 4193.248524;
+const char * const countcut = 
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2";
+const double mum_count   = mucountfinalfit_cut(countcut, false);
+const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSCHI2
-//chi2 < 1.25
-const double mum_count = 584201.682288;
-const double mum_count_e = 4394.321375;
+const char * const countcut = 
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25";
+const double mum_count   = mucountfinalfit_cut(countcut, false);
+const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
+/**********************************************************************/
 
 // Weighted average of T and GC measurements for the HP region
 const double f13 = 0.010921;
@@ -201,59 +267,6 @@ const double neff_err = 0.01;
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* neutrons, so don't apply efficiency to them.
 const double paccn = 1.1e-4;
-
-/*
- * Prints the message once with the requested floating point precision
- * and in RED, then again with all digits in the default color, starting
- * with the first floating point number.
- */
-void printtwice(const char * const msg, const int digits, ...)
-{
-  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
-  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
-
-  // Just for fun...
-  char * pmp = pmsg;
-  char * bmp = bmsg;
-  bool gotone = false;
-  for(unsigned int i = 0; i <= strlen(msg); i++){
-    switch(msg[i]){
-      case '\0':
-        *pmp++ = '\0';
-        *bmp++ = '\0';
-        break;
-      case '%':
-        switch(msg[i+1]){
-          case 'e': case 'E': case 'f': case 'F':
-          case 'g': case 'G': case 'a': case 'A':
-            gotone = true;
-            *pmp++ = '%';
-            *bmp++ = '%';
-            *pmp++ = '.';
-            *pmp++ = digits+'0';
-            break;
-          default:
-            *pmp++ = msg[i];
-            if(gotone) *bmp++ = msg[i];
-        }
-        break;
-      default:
-        *pmp++ = msg[i];
-        if(gotone) *bmp++ = msg[i];
-        break;
-    }
-  }
-
-  va_list ap;
-  va_start(ap, digits);
-  printf(RED);
-  vprintf(pmsg, ap);
-  printf(CLR);
-
-  va_start(ap, digits);
-  vprintf(bmsg, ap);
-}
-
 
 bool isibd(const int in_run, const int in_trig)
 {
@@ -744,6 +757,8 @@ void fullb12finalfit(const char * const cut =
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f && laten <= 2")
 {
+  printtwice("mu- count is %f %f\n", 4, mum_count, mum_count_e);
+
   printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
   printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
   printtwice("Li-8 selection efficiency is %f%%\n", 2, li8eff*100);

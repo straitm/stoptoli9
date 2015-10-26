@@ -135,9 +135,14 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
-// mu- count from mucountfinalfit.C
-const double mum_count =   720489.755185;
-const double mum_count_e =   5419.470070;
+#include "mucountfinalfit.C"
+
+const double mum_count = mucountfinalfit_cut(
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", false);
+const double mum_count_e =  mucountfinalfit_cut(
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", true);
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
@@ -193,6 +198,8 @@ void b12like_finalfit(const char * const cut =
 const double sub_muon_eff_in = sub_muon_eff05,
 const double livetime = -1.0)
 {
+  printtwice("mu- count is %f %f\n", 4, mum_count, mum_count_e);
+
   sub_muon_eff = sub_muon_eff_in;
   eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
   printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
