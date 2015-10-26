@@ -94,26 +94,26 @@ int reactorpowerbin(const int run)
 #define STD
 
 #ifdef STD
-const double mum_count =   7.16322e5;
-const double mum_count_e = 0.05388e5;
-#endif
-
-#ifdef LESSCHI2
-//chi2 < 1.25
-const double mum_count = 580803.176822;
-const double mum_count_e = 4368.758071;
+const double mum_count =   720489.755185;
+const double mum_count_e =   5419.470070;
 #endif
 
 #ifdef LESSPOS
 // positions < 900
-const double mum_count = 487379.457734;
-const double mum_count_e = 3666.031841;
+const double mum_count = 490227.816935;
+const double mum_count_e = 3687.456986;
 #endif
 
 #ifdef LESSSLANT
 // slantdiff < 600
-const double mum_count = 554298.088453;
-const double mum_count_e = 4169.388778;
+const double mum_count = 557470.114841;
+const double mum_count_e = 4193.248524;
+#endif
+
+#ifdef LESSCHI2
+//chi2 < 1.25
+const double mum_count = 584201.682288;
+const double mum_count_e = 4394.321375;
 #endif
 
 

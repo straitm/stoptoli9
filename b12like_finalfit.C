@@ -135,8 +135,8 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
-const double mum_count =   7.16322e5;
-const double mum_count_e = 0.05388e5;
+const double mum_count =   720489.755185;
+const double mum_count_e =   5419.470070;
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
@@ -186,7 +186,7 @@ static double getpar(TMinuit * mn, int i)
 
 void b12like_finalfit(const char * const cut =
 "mx**2+my**2 < 1050**2 && mz > -1175 && "
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2 && "
+"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f",
 const double sub_muon_eff_in = sub_muon_eff05,
