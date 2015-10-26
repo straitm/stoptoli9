@@ -1,198 +1,235 @@
-/* Terrible name, dcfluids_finalfit is, but what it does is finds
+/*
+ * Terrible name, dcfluids_finalfit is, but what it does is finds
  * the number of nitrogen and oxygen captures like the spreadsheet
- * dcfluids.ods used to.  It depends a lot on the fluid compositions,
- * so maybe it isn't that bad of a name.  Well, it really depends more
- * on the acrylic composition and wild guesses, but whatever.
+ * dcfluids.ods used to. It depends a lot on the fluid compositions, so
+ * maybe it isn't that bad of a name. Well, it really depends more on
+ * the acrylic composition and wild guesses, but whatever.
+ *
+ * This code is a direct translation from the spreadsheet. Please
+ * consider it machine-generated even though I did it by hand for lack
+ * of knowing how to do an automatic conversion.
  */
 
-double E26();
-double D23();
-double C16();
-double C17();
-double C18();
-double D20();
-double D21();
-double D22();
-double D24();
-double D25();
-double D26();
-double B20();
-double B21();
-double B22();
-double B24();
-double B25();
-double I18();
-double D8();
-double C8();
-double B11();
-double C11();
-double E3();
-double I3();
-double I16();
-double I17();
-double B23();
-double I13();
-double I11();
-double C10();
-double C4();
-double D6();
-double D5();
-double D7();
-double F4();
-double H4();
-double C3();
-double D3();
-double H3();
-double B8();
-double A8();
-double B10();
-double F2();
-double H2();
-double H5();
-double I10();
-double I12();
-double I14();
-double I19();
-double J14();
-double J19();
-double B26();
-double D27();
-double C26();
-double E27();
-double G49();
-double H49();
-double I49();
+const double hydrogenmass = 1.008;
+const double carbonmass = 12.011;
+const double nitrogenmass = 14.007;
+const double oxygenmass = 15.999;
+
+
+double looseE28();
+double looseH50();
+double looseD28();
+double looseI50();
+double looseG50();
+double looseE26();
+double looseD23();
+double looseC16();
+double looseC17();
+double looseC18();
+double looseD20();
+double looseD21();
+double looseD22();
+double looseD24();
+double looseD25();
+double looseD26();
+double looseB20();
+double looseB21();
+double looseB22();
+double looseB24();
+double looseB25();
+double looseI18();
+double looseD8();
+double looseC8();
+double looseB11();
+double looseC11();
+double looseE3();
+double looseI3();
+double looseI16();
+double looseI17();
+double looseB23();
+double looseI13();
+double looseI11();
+double looseC10();
+double looseC4();
+double looseD6();
+double looseD5();
+double looseD7();
+double looseF4();
+double looseH4();
+double looseC3();
+double looseD3();
+double looseH3();
+double looseB8();
+double looseA8();
+double looseB10();
+double looseF2();
+double looseH2();
+double looseH5();
+double looseI10();
+double looseI12();
+double looseI14();
+double looseI19();
+double looseJ14();
+double looseJ19();
+double looseB26();
+double looseD27();
+double looseC26();
+double looseE27();
+double looseG49();
+double looseH49();
+double looseI49();
 
 
 
 
 
+const double gc_inner_r = 1708;
+const double gc_inner_h = 1786;
+const double nt_inner_r = 1150;
+const double nt_inner_h = 1229;
+const double lidslope = 0.03;
+const double mass_immersed_acrylic = 432.; // in kg
 
+double looseE26(){ return looseD26()*2.*0.85; }
 
-double E26(){ return D26()*2.*0.85; }
+double looseD23(){ return looseB23(); }
 
-double D23(){ return B23(); }
+double looseC16(){ return TMath::Pi() * gc_inner_r*gc_inner_r; }
 
-double C16(){ return 3.14159 * 1708*1708; }
+double looseC17(){ return TMath::Pi()*2.*gc_inner_r*gc_inner_h*2.; }
 
-double C17(){ return 3.14159*2.*1708.*1786.*2.; }
+double looseC18(){ return (0.9*looseC17()+looseC16())/(2.*looseC16()+looseC17()); }
 
-double C18(){ return (0.9*C17()+C16())/(2.*C16()+C17()); }
+double looseD20(){ return looseC18()*814.*(oxygenmass*2./(oxygenmass*2.+carbonmass*5.+8.*hydrogenmass)); }
 
-double D20(){ return C18()*814.*(15.999*2./(15.999*2.+12.011*5.+8.*1.008)); }
+double looseD21(){ return looseD20()/((looseC10()+looseC11())*12./14.1); }
 
-double D21(){ return D20()/((C10()+C11())*12./14.1); }
+double looseD22(){ return looseD21()*looseI11(); }
 
-double D22(){ return D21()*I11(); }
+double looseD24(){ return looseD22()*looseD23(); }
 
-double D24(){ return D22()*D23(); }
+double looseD25(){ return looseD24()*0.4; }
 
-double D25(){ return D24()*0.4; }
+double looseD26(){ return looseD25()*0.75; }
 
-double D26(){ return D25()*0.75; }
+double looseB20(){ return mass_immersed_acrylic*(oxygenmass*2./(oxygenmass*2+carbonmass*5.+8.*hydrogenmass)); } 
 
-double B20(){ return 432.*(15.999*2./(15.999*2+12.011*5.+8.*1.008)); } 
+double looseB21(){ return looseB20()/((looseC10()+looseC11())*12./14.1); }
 
-double B21(){ return B20()/((C10()+C11())*12./14.1); }
+double looseB22(){ return looseB21()*looseI11(); }
 
-double B22(){ return B21()*I11(); }
+double looseB24(){ return looseB22()*looseB23(); }
 
-double B24(){ return B22()*B23(); }
+double looseB25(){ return looseB24(); }
 
-double B25(){ return B24(); }
+double looseI18(){ return looseB23()-looseI13(); }
 
-double I18(){ return B23()-I13(); }
+double looseD8(){  return gc_inner_h-nt_inner_h; }
 
-double D8(){  return 1786-1229; }
+double looseC8(){  return gc_inner_r-nt_inner_r; }
 
-double C8(){  return 1708-1150; }
+double looseB11() { return ((looseA8()+looseC8())*(looseA8()+looseC8())*(looseB8()+looseD8())*2*TMath::Pi()
+             + 2./3. * (looseA8()+looseC8())*lidslope*(looseA8()+looseC8())*(looseA8()+looseC8())*TMath::Pi())
+             /1000000.-looseB10(); }
 
-double B11() { return ((A8()+C8())*(A8()+C8())*(B8()+D8())*2*3.14159
-             + 2./3. * (A8()+C8())*0.03*(A8()+C8())*(A8()+C8())*3.14159)
-             /1000000.-B10(); }
+double looseC11() { return looseD5()*looseB11(); }
 
-double C11() { return D5()*B11(); }
+double looseE3()  { return 120.-looseD3(); }
 
-double E3()  { return 120.-D3(); }
+double looseI3()  { return looseE3()*looseC3()*1000.; }
 
-double I3()  { return E3()*C3()*1000.; }
+double looseI16() { return looseI3()/(looseC11() * 12./14.1)/1000. * carbonmass/oxygenmass; }
 
-double I16() { return I3()/(C11() * 12./14.1)/1000. * 12./16.; }
+double looseI17() { return looseI16()*looseI11(); }
 
-double I17() { return I16()*I11(); }
+double looseB23() { return 358.8; }
 
-double B23() { return 358.8; }
+double looseI13() { return looseB23()*129.979327/353.192; }
 
-double I13() { return B23()*129.979327/353.192; }
-
-double I11() { return (102.5/(102.5 + 1./0.002197))/
+double looseI11() { return (102.5/(102.5 + 1./0.002197))/
                         (37.9/(37.9 + 1./0.002197)); }
 
-double C10() { return B10()*D5(); }
+double looseC10() { return looseB10()*looseD5(); }
 
-double C4() { return 15.999/(15.999 + 8*1.008 + 4.*12.011); }
+double looseC4() { return oxygenmass/(oxygenmass + 8*hydrogenmass + 4.*carbonmass); }
 
-double D6() { return 0.5; }
+double looseD6() { return 0.5; }
 
-double D5() { return 0.804; }
+double looseD5() { return 0.804; }
 
-double D7() { return D5()*D6()/100.*1000.; }
+double looseD7() { return looseD5()*looseD6()/100.*1000.; }
 
-double F4() { return D7()*C4(); }
+double looseF4() { return looseD7()*looseC4(); }
 
-double H4() { return F4()*B10(); }
+double looseH4() { return looseF4()*looseB10(); }
 
-double C3() { return 15.999/(15.999 + 14.007 + 11.*1.008+15*12.011); }
+double looseC3() { return oxygenmass/(oxygenmass + nitrogenmass + 11.*hydrogenmass+15*carbonmass); }
 
-double D3() { return 75.25; }
+double looseD3() { return 75.25; }
 
-double H3() { return D3()*C3()*1000.; }
+double looseH3() { return looseD3()*looseC3()*1000.; }
 
-double B8() { return 1229.; }
+double looseB8() { return 1229.; }
 
-double A8() { return 1150.; }
+double looseA8() { return 1150.; }
 
-double B10(){ return (A8()*A8()*B8()*2*3.14159
-         + 2./3. * A8()*0.03*A8()*A8()*3.14159)/1000000; }
+double looseB10(){ return (looseA8()*looseA8()*looseB8()*2*TMath::Pi()
+         + 2./3. * looseA8()*0.03*looseA8()*looseA8()*TMath::Pi())/1000000; }
 
-double F2(){ return 0.99 * 6.*15.999/157.25;}
+double looseF2(){ return 0.99 * 6.*oxygenmass/157.25;}
 
-double H2(){ return F2()*B10(); }
+double looseH2(){ return looseF2()*looseB10(); }
 
-double H5(){ return H2() + H3() + H4(); }
+double looseH5(){ return looseH2() + looseH3() + looseH4(); }
 
-double I10(){ return H5()/(C10() * 12./14.1) * 12./16. / 1000.; }
+double looseI10(){ return looseH5()/(looseC10() * 12./14.1) * carbonmass/oxygenmass / 1000.; }
 
-double I12(){ return I10()*I11(); }
+double looseI12(){ return looseI10()*looseI11(); }
 
-double I14(){ return I12() * I13(); }
+double looseI14(){ return looseI12() * looseI13(); }
 
-double I19(){ return I17() * I18(); }
+double looseI19(){ return looseI17() * looseI18(); }
 
-double J14(){ return I14() * 2.; }
+double looseJ14(){ return looseI14() * 2.; }
 
-double J19(){ return I19()*2.; }
+double looseJ19(){ return looseI19()*2.; }
 
-double B26(){ return B25()*0.85; }
+double looseB26(){ return looseB25()*0.85; }
 
-double D27(){ return D26()*0.43;}
+double looseD27(){ return looseD26()*0.43;}
 
-double C26(){ return B25()*2*0.95;}
+double looseC26(){ return looseB25()*2*0.95;}
 
-double E27(){ return E26()*0.47;}
+double looseE27(){ return looseE26()*0.47;}
 
-double G49(){ return I14() + I19() + B26() + D27(); }
+double looseG49(){ return looseI14() + looseI19() + looseB26() + looseD27(); }
 
-double H49(){ return J14() + J19() + C26() + E27(); }
+double looseH49(){ return looseJ14() + looseJ19() + looseC26() + looseE27(); }
 
-double I49(){ return (G49() + H49())/2.; }
+double looseI49(){ return (looseG49() + looseH49())/2.; }
+
+double looseI50(){ return (looseG50()+looseH50())/2; }
+
+double looseE28(){ return looseE27()*0.47; }
+
+double looseH50(){ return looseJ14() + looseJ19() + looseC26() + looseE28(); }
+
+double looseD28(){ return looseD27()*0.43; }
+
+double looseG50() { return looseI14() + looseI19() + looseB26() + looseD28(); }
 
 void dcfluids_finalfit()
 {
-  const double n_o16cap_beta = I49();
+  const double n_o16cap_beta = looseI49();
+  const double n_o16cap_betan = looseI50();
 
-  printf("%f\n", C10());
+  printf("TECHNOTE 5.3: Gaussian central value of number of effective "
+    "beta O-16 captures per day: %.1f\n", n_o16cap_beta);
+  printf("TECHNOTE 5.3: Gaussian central value of number of effective "
+    "beta-n O-16 captures per day: %.1f\n", n_o16cap_betan);
 
-  printf("TECHNOTE 5.3: Gaussian central value of number of O-16 "
-    "captures per day: %.8f\n", n_o16cap_beta);
+  printf("const double n_o16cap_beta  = %f;\n", n_o16cap_beta);
+  printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
+
+  
 }
