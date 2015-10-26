@@ -346,15 +346,17 @@ void loosecaptures_finalfit()
     pow(    mum_count/hpresult.val * antihpresult.err,2)
   );
 
+  puts("The following go into consts.h, AND into section 5.1+5.2");
+  puts("of the tech note, AND into dcfluids.ods");
   printtwice("Atomic carbon captures in the loose sample: %f +- %f\n",
     4, answer, error);
 
   puts("");
 
-  printtwice("Atomic carbon captures/day on C-12: %f +- %f\n",
+  printtwice("Atomic captures/day on C-12: %f +- %f\n",
     4, answer/livetime*(1-f13), error/livetime*(1-f13));
 
-  printtwice("*Nuclear* carbon captures/day on C-12: %f +- %f\n",
+  printtwice("*Nuclear* captures/day on C-12: %f +- %f\n",
     3, answer/livetime*(1-f13) * capprob12,
     answer*sqrt(
       pow(error/answer,2)+ // fractional stat error
@@ -363,13 +365,48 @@ void loosecaptures_finalfit()
 
   puts("");
 
-  printtwice("Atomic carbon captures/day on C-13: %f +- %f\n",
+  printtwice("Atomic captures/day on C-13: %f +- %f\n",
     3, answer/livetime*f13, error/livetime*f13);
 
-  printtwice("*Nuclear* carbon captures/day on C-13: %f +- %f\n",
+  printtwice("*Nuclear* captures/day on C-13: %f +- %f\n",
     3, answer/livetime*f13 * capprob13,
     answer*sqrt(
       pow(error/answer,2)+ // fractional stat error
       pow(errcapprob13/capprob13,2) // fractional capture error
     )/livetime*f13);
+
+  puts("");
+  puts("");
+
+  puts("These numbers go into section 6.1 in the tech note AND ");
+  puts("consts.h AND dcfluids.ods.");
+  puts("They don't depend on the above fits, but I'm putting them");
+  puts("in this order in the output to mirror the technote.");
+  printtwice("Atomic carbon captures in the high-purity sample: %f +- %f\n",
+    4, mum_count, mum_count_e);
+
+  puts("");
+
+  printtwice("Atomic captures/day on C-12: %f +- %f\n",
+    4, mum_count/livetime*(1-f13), mum_count_e/livetime*(1-f13));
+
+  printtwice("*Nuclear* captures/day on C-12: %f +- %f\n",
+    3, mum_count/livetime*(1-f13) * capprob12,
+    mum_count_e*sqrt(
+      pow(mum_count/mum_count_e,2)+ // fractional stat error
+      pow(errcapprob12/capprob12,2) // fractional capture error
+    )/livetime*(1-f13));
+
+  puts("");
+
+  printtwice("Atomic captures/day on C-13: %f +- %f\n",
+    3, mum_count/livetime*f13, mum_count_e/livetime*f13);
+
+  printtwice("*Nuclear* captures/day on C-13: %f +- %f\n",
+    3, mum_count/livetime*f13 * capprob13,
+    mum_count*sqrt(
+      pow(mum_count_e/mum_count,2)+ // fractional stat error
+      pow(errcapprob13/capprob13,2) // fractional capture error
+    )/livetime*f13);
+
 }
