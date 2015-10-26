@@ -49,11 +49,10 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
-void mucountfinalfit(const char * const cut =
-"ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && chi2 < 2")
+double mucountfinalfit_cut(const char * const cut,
+                           const bool returnerr = false)
 {
-  TFile *_file0 = TFile::Open(rootfile3up);
+  TFile *_file0 = TFile::Open(rootfile3up, "read");
   TTree * t = (TTree *)_file0->Get("t");
 
   const int rawcount = t->GetEntries(cut);
@@ -64,12 +63,36 @@ void mucountfinalfit(const char * const cut =
                contamination = 0.0028,
                contamination_err = 0.0019;
 
-  printtwice("Translated to mu-: %f +- %f\n", 0,
-    rawcount*mum_frac, rawcount*mum_frac_err);
+  const double val = rawcount*mum_frac*(1-contamination);
+  const double err = sqrt(pow(rawcount*mum_frac_err,2)
+                         +pow(rawcount*mum_frac*contamination_err,2));
+  printtwice("Translated to mu- & corrected for contamination: %f +- %f\n", 0,
+    val, err);
 
-  printtwice("Corrected for contamination-: %f +- %f\n", 0,
-    rawcount*mum_frac*(1-contamination),
-    sqrt(pow(rawcount*mum_frac_err,2)
-        +pow(rawcount*mum_frac*contamination_err,2)));
- 
+  return returnerr? err: val;
+}
+
+void mucountfinalfit()
+{
+  mucountfinalfit_cut(
+    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
+
+  puts("LESSPOS:");
+
+  mucountfinalfit_cut(
+    "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
+    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
+
+  puts("LESSSLANT:");
+
+  mucountfinalfit_cut(
+    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+    "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2");
+
+  puts("LESSCHI2:");
+
+  mucountfinalfit_cut(
+    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25");
 }
