@@ -21,6 +21,15 @@
 
 //#define HP
 
+// H efficiency is lower than GC efficiency by a little 
+// because some H is in the Target.
+const double neff_dt_h = 
+  (
+  (n_c12cap - n_c12captarget)      * neff_dt_gc
++ n_c12captarget * (1-gd_fraction) * neff_dt_targ
+  )/
+  (n_c12cap - gd_fraction*n_c12captarget);
+
 static const double li9t = 0.257233,
                     he8t = 0.171825,
                     n17t = 6.020366,

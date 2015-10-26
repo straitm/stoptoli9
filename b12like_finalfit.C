@@ -218,7 +218,7 @@ const double mylivetime = -1.0)
 {
   if(verbose){
     printtwice("TECHNOTE 3.5: Number of mu- stops is %f +- %f\n", 0,
-               mumc_count, mumc_count_e);
+               mum_count, mum_count_e);
     printtwice("TECHNOTE 3.5: Number of mu- atomic captures, any C "
                "isotope is %f +- %f\n", 0, mumc_count, mumc_count_e);
   }
@@ -226,8 +226,8 @@ const double mylivetime = -1.0)
   sub_muon_eff = sub_muon_eff_in;
   eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
   if(verbose)
-    printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f percent\n",
-      2, eff*100);
+    printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f +- %f %%\n",
+      2, eff*100, ferr_energy*eff*100);
 
   // XXX kludgy!
   TFile *_file0 = TFile::Open(mylivetime<0?rootfile3up:rootfile3up_extended);
@@ -304,7 +304,7 @@ const double mylivetime = -1.0)
 
   if(verbose)
     printtwice("\nTECHNOTE 4.2: Stuff with b12 lifetime raw with overall eff "
-         "corrected, percent per mu- stop\n"
+         "corrected, percent per mu- stop: "
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
          3, b12like_central, staterr, muerr, b12err, toterr);
 
@@ -320,7 +320,7 @@ const double mylivetime = -1.0)
                                     pow(b12err_percap,2)+
                                     pow(capfracerr_percap,2));
   if(verbose)
-    printtwice("\nTECHNOTE 4.2: Or percent per mu- capture\n"
+    printtwice("\nTECHNOTE 4.2: Or percent per mu- capture: "
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff) +-%f(cap frac), "
          "%f(total)\n", 2, 
          b12like_central_percap, staterr_percap, muerr_percap,
@@ -339,7 +339,7 @@ const double mylivetime = -1.0)
 
   if(verbose)
     printtwice("\nTECHNOTE 4.2: Or 10^3/s: %f +- %f(fit) "
-         "+- %f(mu count) +- %f(B-12 eff),\n"
+         "+- %f(mu count) +- %f(B-12 eff), "
          "+- %f(lifetime) %f(total)\n", 2,
          b12like_central_rate, staterr_rate, muerr_rate,
          b12err_rate, lifetimeerr_rate, toterr_rate);

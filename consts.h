@@ -94,18 +94,6 @@ const double n2of4eff_dt_targ        = 0.2870;
 const double n2of4eff_dt_targ_wearly = 0.2606;
 const double n2of4eff_dt_gc          = 0.0590;
 
-// H efficiency is lower than GC efficiency by a little 
-// because some H is in the Target.
-const double neff_dt_h = 
-  (
-  (n_c12cap - n_c12captarget)      * neff_dt_gc
-+ n_c12captarget * (1-gd_fraction) * neff_dt_targ
-  )/
-  (n_c12cap - gd_fraction*n_c12captarget);
-
-const double neff_dt_avg = ((n_c12cap - n_c12captarget)*neff_dt_gc
-                            + n_c12captarget * neff_dt_targ)/n_c12cap;
-
 // Taking the plot from doc-4807, slide 3, corrected by MC correction
 // factor from doc-4450, slide 8.
 const double neff_dr_800_gd =  0.991*0.993;
@@ -119,18 +107,6 @@ const double neff_dr_800_targ = neff_dr_800_gd*gd_fraction +
                                 neff_dr_800_h*(1-gd_fraction);
 const double neff_dr_1000_targ = neff_dr_1000_gd*gd_fraction +
                                 neff_dr_1000_h*(1-gd_fraction);
-
-const double neff_dr_800_avg =
-  (
-  (n_c12cap - n_c12captarget*gd_fraction) * neff_dr_800_h
-  +           n_c12captarget*gd_fraction  * neff_dr_800_gd
-  )/n_c12cap;
-
-const double neff_dr_1000_avg =
-  (
-  (n_c12cap - n_c12captarget*gd_fraction) * neff_dr_1000_h
-  +           n_c12captarget*gd_fraction  * neff_dr_1000_gd
-  )/n_c12cap;
 
 // Using the method of CDF memo 5928, particularly section 3.5
 // TF1 hey("hey", "ROOT::Math::inc_gamma(1, x*[0])", 0, 10)

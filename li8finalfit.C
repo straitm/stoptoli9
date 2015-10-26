@@ -14,6 +14,12 @@
 
 //#define HP
 
+const double neff_dr_800_avg =
+  (
+  (n_c12cap - n_c12captarget*gd_fraction) * neff_dr_800_h
+  +           n_c12captarget*gd_fraction  * neff_dr_800_gd
+  )/n_c12cap;
+
 using std::vector;
 
 bool unitarity = true;
