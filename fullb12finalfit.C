@@ -93,6 +93,7 @@ int reactorpowerbin(const int run)
 
 #define STD
 
+// mu- counts from mucountfinalfit.C
 #ifdef STD
 const double mum_count =   720489.755185;
 const double mum_count_e =   5419.470070;

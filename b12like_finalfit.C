@@ -135,6 +135,7 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
+// mu- count from mucountfinalfit.C
 const double mum_count =   720489.755185;
 const double mum_count_e =   5419.470070;
 
