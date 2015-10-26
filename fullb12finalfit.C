@@ -154,6 +154,8 @@ int reactorpowerbin(const int run)
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+// The number of mu- stopping, regardless of what they atomicly or
+// nuclearly capture on
 const double mum_count   = mucountfinalfit_cut(countcut, false);
 const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif

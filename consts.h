@@ -12,6 +12,11 @@ const char * const rootfilethru = // XXX now out of date -- but doesn't matter, 
 const char * const rootfilemusic =
   "/cp/s4/strait/DC_FD_Muon_Surface_Dist_Ecut_both.root";
 
+const double mum_frac = 0.4410,
+             mum_frac_err = 0.0032,
+             mum_contamination = 0.0028,
+             mum_contamination_err = 0.0019;
+
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 

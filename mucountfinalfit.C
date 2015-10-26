@@ -9,14 +9,9 @@ double mucountfinalfit_cut(const char * const cut,
   const int rawcount = t->GetEntries(cut);
   printf("Raw count: %d\n", rawcount);
 
-  const double mum_frac = 0.4410,
-               mum_frac_err = 0.0032,
-               contamination = 0.0028,
-               contamination_err = 0.0019;
-
-  const double val = rawcount*mum_frac*(1-contamination);
+  const double val = rawcount*mum_frac*(1-mum_contamination);
   const double err = sqrt(pow(rawcount*mum_frac_err,2)
-                         +pow(rawcount*mum_frac*contamination_err,2));
+                         +pow(rawcount*mum_frac*mum_contamination_err,2));
   printf("Translated to mu- & corrected for contamination: %f +- %f\n",
     val, err);
 
