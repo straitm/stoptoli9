@@ -20,12 +20,8 @@ const double mum_frac = 0.4410,
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 
-// From loosecaptures_finalfit.C
-const double n_c12cap =   358.8, n_c13cap =     3.75;
-const double n_c12cap_err = 6.5, n_c13cap_err = 0.19;
-
-const double n_c12cap_hp =   111.1, n_c13cap_hp =     1.6;
-const double n_c12cap_hp_err = 1.161, n_c13cap_hp_err = 0.059;
+// c12 and c13 captures per day
+#include "loosecaptures_finalfit_out.h"
 
 // From dcfluids.ods
 const double n_o16cap_beta  = 9.8; // after acrylic eff - central value

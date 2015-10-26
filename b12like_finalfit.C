@@ -135,21 +135,27 @@ static void printtwice(const char * const msg, const int digits, ...)
   vprintf(bmsg, ap);
 }
 
+/**********************************************************************/
 #include "mucountfinalfit.C"
+
+// The number of stopping mu-.
+const double mum_count = mucountfinalfit_cut(
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", false);
+const double mum_count_e = mucountfinalfit_cut(
+  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", true);
 
 // The number of mu- stopping and entering atomic orbitals of
 // any isotope of carbon.  Subtly different from the number of
 // stopping mu-!
-const double mumc_count = c_atomic_capture_prob*mucountfinalfit_cut(
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", false);
+const double mumc_count = c_atomic_capture_prob*mum_count;
 const double mumc_count_e =  c_atomic_capture_prob*
 sqrt(
-  pow(mucountfinalfit_cut(
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", true),2)
+  pow(mum_count_e, 2)
   + mumc_count*pow(c_atomic_capture_prob_err/c_atomic_capture_prob,2)
 );
+/**********************************************************************/
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
@@ -206,15 +212,22 @@ ve b12like_finalfit(const char * const cut =
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f",
+const bool verbose = true,
 const double sub_muon_eff_in = sub_muon_eff05,
 const double mylivetime = -1.0)
 {
-  printtwice("Number of mu- atomicly capturing in any carbon isotope "
-             "is %f %f\n", 4, mumc_count, mumc_count_e);
+  if(verbose){
+    printtwice("TECHNOTE 3.5: Number of mu- stops is %f +- %f\n", 0,
+               mumc_count, mumc_count_e);
+    printtwice("TECHNOTE 3.5: Number of mu- atomic captures, any C "
+               "isotope is %f +- %f\n", 0, mumc_count, mumc_count_e);
+  }
 
   sub_muon_eff = sub_muon_eff_in;
   eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
-  printtwice("B-12 selection efficiency is %f percent\n", 2, eff*100);
+  if(verbose)
+    printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f percent\n",
+      2, eff*100);
 
   // XXX kludgy!
   TFile *_file0 = TFile::Open(mylivetime<0?rootfile3up:rootfile3up_extended);
@@ -261,7 +274,8 @@ const double mylivetime = -1.0)
   result_for_ratio.val = getpar(mn, 0);
   result_for_ratio.err = ferrorfit * getpar(mn, 0);
 
-  printtwice("\nStuff with b12 lifetime raw %f +- %f\n", 0,
+  // Always print since this is needed for both HP and anti-HP samples
+  printtwice("\nTECHNOTE 5.1: Stuff with b12 lifetime raw %f +- %f\n", 0,
              result_for_ratio.val, result_for_ratio.err);
 
 
@@ -288,7 +302,8 @@ const double mylivetime = -1.0)
                                pow(mumc_count_e/mumc_count,2) +
                                pow(ferr_energy, 2))*b12like_central;
 
-  printtwice("\nStuff with b12 lifetime raw with overall eff "
+  if(verbose)
+    printtwice("\nTECHNOTE 4.2: Stuff with b12 lifetime raw with overall eff "
          "corrected, percent per mu- stop\n"
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
          3, b12like_central, staterr, muerr, b12err, toterr);
@@ -304,8 +319,8 @@ const double mylivetime = -1.0)
                                     pow(muerr_percap,2)+
                                     pow(b12err_percap,2)+
                                     pow(capfracerr_percap,2));
-
-  printtwice("\nOr percent per mu- capture\n"
+  if(verbose)
+    printtwice("\nTECHNOTE 4.2: Or percent per mu- capture\n"
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff) +-%f(cap frac), "
          "%f(total)\n", 2, 
          b12like_central_percap, staterr_percap, muerr_percap,
@@ -322,7 +337,9 @@ const double mylivetime = -1.0)
                                   pow(b12err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nOr 10^3/s: %f +- %f(fit) +- %f(mu count) +- %f(B-12 eff),\n"
+  if(verbose)
+    printtwice("\nTECHNOTE 4.2: Or 10^3/s: %f +- %f(fit) "
+         "+- %f(mu count) +- %f(B-12 eff),\n"
          "+- %f(lifetime) %f(total)\n", 2,
          b12like_central_rate, staterr_rate, muerr_rate,
          b12err_rate, lifetimeerr_rate, toterr_rate);
@@ -342,10 +359,10 @@ void loosecaptures_finalfit()
     "e > 4 && e < 15 && dt < %f";
 
   const ve hpresult =
-    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts));
+    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts), true);
 
   const ve antihpresult =
-    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts));
+    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts), false);
 
   const double rat = antihpresult.val/hpresult.val;
   const double answer = (1+rat)*mumc_count;
@@ -356,7 +373,7 @@ void loosecaptures_finalfit()
 
   puts("The following go into consts.h, AND into section 5.1+5.2");
   puts("of the tech note, AND into dcfluids.ods");
-  printtwice("Atomic carbon captures in the loose sample: %g +- %g\n",
+  printtwice("TECHNOTE 5.1: Atomic carbon captures in the loose sample: %g +- %g\n",
     4, answer,
     answer * sqrt(
       pow(error/answer,2)
@@ -364,35 +381,46 @@ void loosecaptures_finalfit()
     )
   );
 
-  printf("Error due to B-12-like statistics: %.1f%%\n",
+  printf("TECHNOTE 5.2: Error due to B-12-like statistics: %.1f%%\n",
          error/answer * 100);
 
   puts("");
 
-  printtwice("Atomic captures/day on C-12: %f +- %f\n",
+  printtwice("TECHNOTE 5.2: Atomic captures/day on C-12: %f +- %f\n",
     0, answer/livetime*(1-f13),
         error/livetime*(1-f13));
 
-  printtwice("*Nuclear* captures/day on C-12: %f +- %f\n",
-    1, answer/livetime*(1-f13) * capprob12,
+  const double n_c12cap = answer/livetime*(1-f13) * capprob12;
+  const double n_c12cap_err = 
     answer*sqrt(
       pow(error/answer,2) // fractional stat error
       +pow(errcapprob12/capprob12,2) // fractional capture error
       +pow(mumc_count_e/mumc_count,2)
-    )/livetime*(1-f13)*capprob12);
+    )/livetime*(1-f13)*capprob12;
+
+  printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-12: %f +- %f\n",
+    1, n_c12cap, n_c12cap_err);
+
+  printf("const double n_c12cap     = %f\n", n_c12cap);
+  printf("const double n_c12cap_err = %f\n", n_c12cap_err);
 
   puts("");
 
-  printtwice("Atomic captures/day on C-13: %f +- %f\n",
+  printtwice("TECHNOTE 5.2: Atomic captures/day on C-13: %f +- %f\n",
     2, answer/livetime*f13, error/livetime*f13);
 
-  printtwice("*Nuclear* captures/day on C-13: %f +- %f\n",
-    2, answer/livetime*f13 * capprob13,
-    answer*sqrt(
+  const double n_c13cap = answer/livetime*f13 * capprob13;
+  const double n_c13cap_err = answer*sqrt(
       pow(error/answer,2) // fractional stat error
       +pow(errcapprob13/capprob13,2) // fractional capture error
       +pow(mumc_count_e/mumc_count,2)
-    )/livetime*f13*capprob13);
+    )/livetime*f13*capprob13;
+
+  printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-13: %f +- %f\n",
+    2, n_c13cap, n_c13cap_err);
+
+  printf("const double n_c13cap     = %f\n", n_c13cap);
+  printf("const double n_c13cap_err = %f\n", n_c13cap_err);
 
   puts("");
   puts("");
@@ -401,26 +429,36 @@ void loosecaptures_finalfit()
   puts("consts.h AND dcfluids.ods.");
   puts("They don't depend on the above fits, but I'm putting them");
   puts("in this order in the output to mirror the technote.");
-  printtwice("Atomic captures/day on C-12: %f +- %f\n",
+  printtwice("TECHNOTE 6.1: Atomic captures/day on C-12: %f +- %f\n",
     0, mumc_count/livetime*(1-f13),
     mumc_count_e/livetime*(1-f13));
 
-  printtwice("*Nuclear* captures/day on C-12: %f +- %f\n",
-    1, mumc_count/livetime*(1-f13) * capprob12,
-    mumc_count*sqrt(
+  const double n_c12cap_hp = mumc_count/livetime*(1-f13) * capprob12;
+  const double n_c12cap_hp_err = mumc_count*sqrt(
       pow(mumc_count_e/mumc_count,2) // fractional stat error
       +pow(errcapprob12/capprob12,2) // fractional capture error
-    )/livetime*(1-f13)*capprob12);
+    )/livetime*(1-f13)*capprob12;
+
+  printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-12: %f +- %f\n",
+    1, n_c12cap_hp, n_c12cap_hp_err);
+
+  printf("const double n_c12cap_hp     = %f\n", n_c12cap_hp);
+  printf("const double n_c12cap_hp_err = %f\n", n_c12cap_hp_err);
 
   puts("");
 
-  printtwice("Atomic captures/day on C-13: %f +- %f\n",
+  printtwice("TECHNOTE 6.1: Atomic captures/day on C-13: %f +- %f\n",
     2, mumc_count/livetime*f13, mumc_count_e/livetime*f13);
 
-  printtwice("*Nuclear* captures/day on C-13: %f +- %f\n",
-    3, mumc_count/livetime*f13 * capprob13,
-    mumc_count*sqrt(
+  const double n_c13cap_hp = mumc_count/livetime*f13 * capprob13;
+  const double n_c13cap_hp_err = mumc_count*sqrt(
       pow(mumc_count_e/mumc_count,2) // fractional stat error
       +pow(errcapprob13/capprob13,2) // fractional capture error
-    )/livetime*f13*capprob13);
+    )/livetime*f13*capprob13;
+
+  printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-13: %f +- %f\n",
+    3, n_c13cap_hp, n_c13cap_hp_err);
+
+  printf("const double n_c13cap_hp     = %f\n", n_c13cap_hp);
+  printf("const double n_c13cap_hp_err = %f\n", n_c13cap_hp_err);
 }

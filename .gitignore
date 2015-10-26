@@ -22,3 +22,6 @@ stoptoli9
 foo*
 seq?.ntuple
 seq?.ntuple.root
+*ACLiC*
+loosecaptures_finalfit_out.h
+loosecaptures_finalfit.out
