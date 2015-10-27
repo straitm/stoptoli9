@@ -102,6 +102,7 @@ const double THF_fraction_by_weight = 0.005;
 const double scint_carbon_mass_fraction = 12/(12 + 1.92);
 const double g_per_l_gd = 0.99;
 const double g_per_l_oxygen_in_target = g_per_l_gd * 6.*oxygenmass/gdmass;
+const double kg_ppo_mass_total = 120.;
 const double muon_selection_efficiency_at_gc_vessel = 0.4;
 
 // XXX needs to be generated in loosecaptures_finalfit.C
@@ -113,6 +114,7 @@ const double halfimmersed_acrlyic_low_guess_energy_efficiency = 0.75,
              halfimmersed_acrlyic_high_guess_energy_efficiency = 0.85;
 const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
              halfimmersed_acrlyic_high_guess_dir_efficiency = 0.47;
+const double portion_of_useful_gc_wall = 0.9;
 
 double looseE26(){ return looseD26()*2.*halfimmersed_acrlyic_high_guess_energy_efficiency; }
 
@@ -120,7 +122,7 @@ double looseC16(){ return TMath::Pi() * gc_inner_r*gc_inner_r; }
 
 double looseC17(){ return TMath::Pi()*2.*gc_inner_r*gc_inner_h*2.; }
 
-double looseC18(){ return (0.9*looseC17()+looseC16())/(2.*looseC16()+looseC17()); }
+double looseC18(){ return (portion_of_useful_gc_wall*looseC17()+looseC16())/(2.*looseC16()+looseC17()); }
 
 double looseD20(){ return looseC18()*mass_halfimmersed_acrylic*(oxygenmass*2./(oxygenmass*2.+carbonmass*5.+8.*hydrogenmass)); }
 
@@ -132,7 +134,7 @@ double looseD24(){ return looseD22()*n_c12cap; }
 
 double looseD25(){ return looseD24()*muon_selection_efficiency_at_gc_vessel; }
 
-double looseD26(){ return looseD25()*0.75; }
+double looseD26(){ return looseD25()*halfimmersed_acrlyic_low_guess_energy_efficiency; }
 
 double looseB20(){ return mass_immersed_acrylic*(oxygenmass*2./(oxygenmass*2+carbonmass*5.+8.*hydrogenmass)); } 
 
@@ -156,7 +158,7 @@ double looseB11() { return ((nt_inner_r+looseC8())*(nt_inner_r+looseC8())*(nt_in
 
 double looseC11() { return scint_density*looseB11(); }
 
-double looseE3()  { return 120.-kg_oxygen_ppo_nt; }
+double looseE3()  { return kg_ppo_mass_total-kg_oxygen_ppo_nt; }
 
 double looseI3()  { return looseE3()*looseC3()*1000.; }
 
