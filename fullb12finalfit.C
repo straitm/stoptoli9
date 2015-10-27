@@ -629,7 +629,7 @@ void results(const char * const iname, const int mni,
   printtwice("\nTECHNOTE 4.3 and results.tex %s: Or percent per nuclear mu- capture on this isotope "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total),  +%f -%f (non-fit)\n",
-         newnucprobcommandname, prec2,
+         prec2, newnucprobcommandname,
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -655,7 +655,7 @@ void results(const char * const iname, const int mni,
 
   printtwice("\nTECHNOTE 4.3 and XXX should go out to constants for ground state result XXX: Or 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
-         newratecommandname, prec3,
+         prec3,
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
          toterr_ratelo,
