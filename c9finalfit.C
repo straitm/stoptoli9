@@ -83,99 +83,109 @@ void c9finalfit(const char elem = 'o')
 
   if(nsel > 0){
 
-  t->Draw(Form("dt/1000 >> hfit%d(1000, 0.001, 10)", nncut), cut);
-  TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
+    t->Draw(Form("dt/1000 >> hfit%d(1000, 0.001, 10)", nncut), cut);
+    TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
 
-  TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
-               "[1]*exp(-x*log(2)/[2]) + "
-               "[3]*exp(-x*log(2)/7.13) + "
-               "[4]", 0, 100);
+    TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
+                 "[1]*exp(-x*log(2)/[2]) + "
+                 "[3]*exp(-x*log(2)/7.13) + "
+                 "[4]", 0, 100);
 
-  ee->SetParameters(1, 1, 0.7700, 1, 1);
-  ee->FixParameter(3, 0);
-  ee->FixParameter(2, 0.1270);
+    ee->SetParameters(1, 1, 0.7700, 1, 1);
+    ee->FixParameter(3, 0);
+    ee->FixParameter(2, 0.1270);
 
-  ee->SetParLimits(1, 0, 10);
-  if(nncut >= 3){
-    ee->SetParLimits(0, 0, 10);
-    ee->SetParLimits(4, 0, 10);
-  }
-  int p0isfixed = 0;
-  if(nncut >= 4){
-    p0isfixed = 1;
-    ee->FixParameter(0, 0);
-    ee->FixParameter(4, 0);
-  }
+    ee->SetParLimits(1, 0, 10);
+    if(nncut >= 3){
+      ee->SetParLimits(0, 0, 10);
+      ee->SetParLimits(4, 0, 10);
+    }
+    int p0isfixed = 0;
+    if(nncut >= 4){
+      p0isfixed = 1;
+      ee->FixParameter(0, 0);
+      ee->FixParameter(4, 0);
+    }
 
-  hfit->Fit(Form("ee%d", nncut), "le");
-
-  if(ee->GetParameter(0) < 1e-6){
-    p0isfixed = 1;
-    ee->FixParameter(0, 0);
     hfit->Fit(Form("ee%d", nncut), "le");
-  }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(20, 0.001, 10.01)", nncut), cut, "hist");
-  TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
-  if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
+    if(ee->GetParameter(0) < 1e-6){
+      p0isfixed = 1;
+      ee->FixParameter(0, 0);
+      hfit->Fit(Form("ee%d", nncut), "le");
+    }
 
-  TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
-  eedisp->SetNpx(400);
-  eedisp->SetLineColor(kRed);
+    t->Draw(Form("dt/1000 >> hdisp%d(20, 0.001, 10.01)", nncut), cut, "hist");
+    TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
+    if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
-  int tomult[4] = { 0, 1, 3, 4};
-  const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
-  for(int i = 0; i < 4; i++)
-    eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
-  eedisp->Draw("same");
+    TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
+    eedisp->SetNpx(400);
+    eedisp->SetLineColor(kRed);
 
-  TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-  TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
-  TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
+    int tomult[4] = { 0, 1, 3, 4};
+    const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
+    for(int i = 0; i < 4; i++)
+      eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
+    eedisp->Draw("same");
 
-  b12->SetNpx(400);
-  b8->SetNpx(400);
+    TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
+    TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
+    TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
 
-  TF1 * parts[3] = { b12, b8, acc };
+    b12->SetNpx(400);
+    b8->SetNpx(400);
 
-  b12->SetParameter(0, eedisp->GetParameter(0));
-  b8 ->SetParameter(0, eedisp->GetParameter(1));
-  b8 ->SetParameter(1, eedisp->GetParameter(2));
-  acc->SetParameter(0, eedisp->GetParameter(4));
+    TF1 * parts[3] = { b12, b8, acc };
 
-  for(int i = 0; i < 3; i++){
-    parts[i]->SetLineStyle(7);
-    parts[i]->SetLineWidth(2);
-    parts[i]->Draw("Same");
-  } 
+    b12->SetParameter(0, eedisp->GetParameter(0));
+    b8 ->SetParameter(0, eedisp->GetParameter(1));
+    b8 ->SetParameter(1, eedisp->GetParameter(2));
+    acc->SetParameter(0, eedisp->GetParameter(4));
 
-  const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
-  double Nerrup, Nerrlo;
-  char * errtype = NULL;
-  if(hfit->GetEntries() < 3){
-    errtype = "HESSE";
-    Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
-    Nerrlo = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+    for(int i = 0; i < 3; i++){
+      parts[i]->SetLineStyle(7);
+      parts[i]->SetLineWidth(2);
+      parts[i]->Draw("Same");
+    } 
+
+    const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
+    double Nerrup, Nerrlo;
+    char * errtype = NULL;
+    if(hfit->GetEntries() < 3){
+      errtype = "HESSE";
+      Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+      Nerrlo = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+    }
+    else{
+      errtype = "MINOS";
+      Nerrup = Nfound * gMinuit->fErp[1-p0isfixed]/ee->GetParameter(1);
+      Nerrlo = Nfound * gMinuit->fErn[1-p0isfixed]/ee->GetParameter(1);
+    }
+
+    printf("%sN found: %f +%f %f %s%s\n",
+           RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
+
+    printf("%sProb: %g +%g %g%s\n", 
+        RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+
+    printf("TECHNOTE: c9 error.  Some events selected, so you may need"
+      " to rewrite c9finalfit.C\n");
   }
   else{
-    errtype = "MINOS";
-    Nerrup = Nfound * gMinuit->fErp[1-p0isfixed]/ee->GetParameter(1);
-    Nerrlo = Nfound * gMinuit->fErn[1-p0isfixed]/ee->GetParameter(1);
+    if(elem == 'o')
+      printf("%sTECHNOTE results.tex %s: "
+           "If no events and no background: <%.2f%%%s\n", 
+        RED, "probNineCfromSixteenO",
+        2.3026*toprob*lim_inflation_for_obeta*100, CLR);
+
+    else 
+      printf("%sTECHNOTE results.tex %s: "
+           "If no events and no background: < %.1f%%%s\n", 
+        RED, "probNineCfromFourteenN",
+        2.3026*toprob*lim_inflation_for_obeta*100, CLR);
   }
 
-  printf("%sN found: %f +%f %f %s%s\n",
-         RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
-
-  printf("%sProb: %g +%g %g%s\n", 
-      RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
-  }
-
-  printf("%sTECHNOTE results.tex %s: "
-         "If no events and no background: <%.2f%%%s\n", 
-      RED, elem=='o'?"probNineCfromSixteenO":"probNineCfromFourteenN",
-      2.3026*toprob*lim_inflation_for_obeta*100, CLR);
-
-  printf("This is for %c captures.\n", elem=='o'?'O':'N');
 
 /*  TF1 gaus("gaus", "gaus(0)", 0, 20);
   gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);
