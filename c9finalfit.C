@@ -1,5 +1,5 @@
 #include "consts.h"
-#include "dcfluids_finalfit_out.h" // for n14, o16 rates
+#include "noncarbondenominators_finalfit_out.h"
 
 void c9finalfit(const char elem = 'o')
 {

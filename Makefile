@@ -1,21 +1,44 @@
 all: stoptoli9 b12search
 
-analysis: fullb12_finalfit.out c9_finalfit.out li8_finalfit.out
+analysis: \
+  fullb12_finalfit.out \
+  c9_finalfit.out \
+  li8_finalfit.out
 
-c9_finalfit.out: c9finalfit.C loosecaptures_finalfit_out.h dcfluids_finalfit_out.h
+c9_finalfit.out: \
+  consts.h \
+  noncarbondenominators_finalfit_out.h \
+  run_analysis_c9.sh \
+  c9finalfit.C
 	./run_analysis_c9.sh
 
-li8_finalfit.out: li8finalfit.C loosecaptures_finalfit_out.h
+li8_finalfit.out: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_li8.sh \
+  li8finalfit.C
 	./run_analysis_li8.sh
 
-fullb12_finalfit.out: fullb12finalfit.C loosecaptures_finalfit_out.h
+fullb12_finalfit.out: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_fullb12.sh \
+  fullb12finalfit.C
 	./run_analysis_fullb12.sh
 
-loosecaptures_finalfit_out.h: consts.h mucountfinalfit.C b12like_finalfit.C
-	./run_analysis_b12like.sh
+carbondenominators_finalfit_out.h: \
+  consts.h \
+  run_analysis_carbondenominators.sh \
+  mucountfinalfit.C \
+  carbondenominators_finalfit.C
+	./run_analysis_carbondenominators.sh
 
-dcfluids_finalfit_out.h: dcfluids_finalfit.C consts.h loosecaptures_finalfit_out.h
-	./run_dcfluids.sh
+noncarbondenominators_finalfit_out.h: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_noncarbondenominators.sh \
+  noncarbondenominators_finalfit.C \
+	./run_analysis_noncarbondenominators.sh
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -lm
@@ -37,4 +60,4 @@ clean:
       *_C.d *_C.so  AutoDict*cxx*
 
 analysisclean: 
-	rm *.out *_out.h *.technote
+	rm -f *.out *_out.h *.technote

@@ -1,17 +1,13 @@
 /*
- * Terrible name, dcfluids_finalfit is, but what it does is finds
- * the number of nitrogen and oxygen captures like the spreadsheet
- * dcfluids.ods used to. It depends a lot on the fluid compositions, so
- * maybe it isn't that bad of a name. Well, it really depends more on
- * the acrylic composition and wild guesses, but whatever.
+ * Finds the number of nitrogen and oxygen captures.
  *
- * This code is a direct translation from the spreadsheet. Please
+ * This code was born as a direct translation from a spreadsheet. Please
  * consider it machine-generated even though I did it by hand for lack
  * of knowing how to do an automatic conversion.
  */
 
 #include "consts.h"
-#include "loosecaptures_finalfit_out.h" // c12, c13 per day
+#include "carbondenominators_finalfit_out.h" // c12, c13 per day
 
 const double f13 = 0.010921;
 

@@ -349,7 +349,7 @@ const double mylivetime = -1.0)
   return result_for_ratio;
 }
 
-void loosecaptures_finalfit()
+void carbondenominators_finalfit()
 {
   const char * const HPcut =
     "mx**2+my**2 < 1050**2 && mz > -1175 && "

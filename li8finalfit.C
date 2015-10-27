@@ -1,6 +1,6 @@
 #include <fstream>
 #include "consts.h"
-#include "loosecaptures_finalfit_out.h" // for c12, c13 rates
+#include "carbondenominators_finalfit_out.h"
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
