@@ -35,10 +35,7 @@ const double probrat = capprob_o16/capprob_c;
 
 
 double gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
-double looseH50();
 double gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
-double looseI50();
-double looseG50();
 double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies();
 double gc_base_area();
 double gc_wall_area();
@@ -57,32 +54,35 @@ double n_c12capgc();
 double liters_in_gc();
 double kg_in_gc();
 double kg_ppo_mass_gc();
-double looseI3();
-double looseI16();
-double looseI17();
+double g_ppo_gc();
+double o_over_c_count_gc();
+double o_over_c_rate_gc();
 double kg_in_target();
-double looseC4();
-double looseD7();
-double looseF4();
-double looseH4();
-double looseC3();
-double looseH3();
+double oxygen_fraction_in_thf();
+double THF_fraction_by_volume();
+double g_oxygen_in_thf_per_liter();
+double g_oxygen_in_thf();
+double oxygen_fraction_ppo();
+double g_oxygen_in_target_ppo();
 double liters_in_target();
-double looseH2();
-double looseH5();
-double looseI10();
-double looseI12();
-double looseI14();
-double looseI19();
-double looseJ14();
-double looseJ19();
-double looseB26();
+double g_oxygen_in_gdcomplex();
+double g_oxygen_in_target();
+double o_over_c_count_targ();
+double o_over_c_rate_targ();
+double o_rate_targ_low_guess();
+double o_rate_gc_low_guess();
+double o_rate_targ_high_guess();
+double o_rate_gc_high_guess();
+double immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency();
 double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
-double looseC26();
+double immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency();
 double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
-double looseG49();
-double looseH49();
-double looseI49();
+double beta_total_low();
+double betan_total_low();
+double beta_total_high();
+double betan_total_high();
+double beta_total_central();
+double betan_total_central();
 
 
 const double gc_inner_r = 1708;
@@ -109,13 +109,29 @@ const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
              halfimmersed_acrlyic_high_guess_dir_efficiency = 0.47;
 const double portion_of_useful_gc_wall = 0.9;
 
-double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()*2.*halfimmersed_acrlyic_high_guess_energy_efficiency; }
+double
+gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()
+{
+  return
+    gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()
+    * 2. * halfimmersed_acrlyic_high_guess_energy_efficiency;
+}
 
-double gc_base_area(){ return TMath::Pi() * gc_inner_r*gc_inner_r; }
+double gc_base_area()
+{
+  return TMath::Pi() * gc_inner_r * gc_inner_r;
+}
 
-double gc_wall_area(){ return TMath::Pi()*2.*gc_inner_r*gc_inner_h*2.; }
+double gc_wall_area()
+{
+  return TMath::Pi() * 2. * gc_inner_r * gc_inner_h * 2.;
+}
 
-double gc_useful_vessel_fraction(){ return (portion_of_useful_gc_wall*gc_wall_area()+gc_base_area())/(2.*gc_base_area()+gc_wall_area()); }
+double gc_useful_vessel_fraction()
+{
+  return (portion_of_useful_gc_wall * gc_wall_area() +
+          gc_base_area()) / (2. * gc_base_area() + gc_wall_area());
+}
 
 double oxygen_mass_halfimmersed()
 {
@@ -125,37 +141,57 @@ double oxygen_mass_halfimmersed()
 
 double halfimmersed_acrylic_o_over_c_number_ratio()
 {
-  return oxygen_mass_halfimmersed()/ // XXX missing carbonmass/oxygenmass, right?
+  return oxygen_mass_halfimmersed() * carbonmass/oxygenmass/ // carbonmass/oxygenmass not there before
     ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
 }
 
-double halfimmersed_acrylic_o_over_all_scint_c_capture_ratio(){ return halfimmersed_acrylic_o_over_c_number_ratio()*probrat; }
+double halfimmersed_acrylic_o_over_all_scint_c_capture_ratio()
+{
+  return halfimmersed_acrylic_o_over_c_number_ratio() * probrat;
+}
 
-double halfimmersed_acrlyic_preefficiency_captures_low_guess(){ return halfimmersed_acrylic_o_over_all_scint_c_capture_ratio()*n_c12cap; }
+double halfimmersed_acrlyic_preefficiency_captures_low_guess()
+{
+  return halfimmersed_acrylic_o_over_all_scint_c_capture_ratio() * n_c12cap;
+}
 
-double gc_vessel_beta_count_low_guess_with_mu_selection(){ return halfimmersed_acrlyic_preefficiency_captures_low_guess()*muon_selection_efficiency_at_gc_vessel; }
+double gc_vessel_beta_count_low_guess_with_mu_selection()
+{
+  return halfimmersed_acrlyic_preefficiency_captures_low_guess() *
+      muon_selection_efficiency_at_gc_vessel;
+}
 
-double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection()*halfimmersed_acrlyic_low_guess_energy_efficiency; }
-
+double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()
+{
+  return gc_vessel_beta_count_low_guess_with_mu_selection() *
+      halfimmersed_acrlyic_low_guess_energy_efficiency;
+}
 double oxygen_mass_immersed_in_acrylic()
 {
   return mass_immersed_acrylic*
-    (oxygenmass*2./(oxygenmass*2+carbonmass*5.+8.*hydrogenmass));
+    (oxygenmass*2/(oxygenmass*2+carbonmass*5+hydrogenmass*8));
 } 
 
 double immersed_acrylic_o_over_c_number_ratio()
 {
-  return oxygen_mass_immersed_in_acrylic() // XXX missing carbonmass/oxygenmass, right?
-    /((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
+  return oxygen_mass_immersed_in_acrylic()*carbonmass/oxygenmass/ // carbonmass/oxygenmass not there before
+    ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
 }
 
-double immersed_acrylic_o_over_all_scint_c_capture_ratio(){
-  return immersed_acrylic_o_over_c_number_ratio()*probrat; }
+double immersed_acrylic_o_over_all_scint_c_capture_ratio()
+{
+  return immersed_acrylic_o_over_c_number_ratio() * probrat;
+}
 
-double immersed_acrlyic_preefficiency_captures_low_guess(){
-  return immersed_acrylic_o_over_all_scint_c_capture_ratio()*n_c12cap; }
+double immersed_acrlyic_preefficiency_captures_low_guess()
+{
+  return immersed_acrylic_o_over_all_scint_c_capture_ratio() * n_c12cap;
+}
 
-double n_c12capgc(){ return n_c12cap-n_c12captarget; }
+double n_c12capgc()
+{
+  return n_c12cap - n_c12captarget;
+}
 
 double liters_in_gc() {
   return (gc_inner_r*gc_inner_r*gc_inner_h*2*TMath::Pi()
@@ -163,77 +199,205 @@ double liters_in_gc() {
    /1000000.-liters_in_target();
 }
 
-double kg_in_gc() { return scint_density*liters_in_gc(); }
+double kg_in_gc()
+{
+  return scint_density * liters_in_gc();
+}
 
-double kg_ppo_mass_gc()  { return kg_ppo_mass_total-kg_oxygen_ppo_nt; }
+double kg_ppo_mass_gc()
+{
+  return kg_ppo_mass_total - kg_oxygen_ppo_nt;
+}
 
-double looseI3()  { return kg_ppo_mass_gc()*looseC3()*1000.; }
+double g_ppo_gc()
+{
+  return kg_ppo_mass_gc() * oxygen_fraction_ppo() * 1000.;
+}
 
-double looseI16() { return looseI3()/(kg_in_gc() * scint_carbon_mass_fraction)/1000. * carbonmass/oxygenmass; }
+double o_over_c_count_gc()
+{
+  return g_ppo_gc() / (kg_in_gc() * scint_carbon_mass_fraction) / 1000. *
+      carbonmass / oxygenmass;
+}
 
-double looseI17() { return looseI16()*probrat; }
+double o_over_c_rate_gc()
+{
+  return o_over_c_count_gc() * probrat;
+}
 
-double kg_in_target() { return liters_in_target()*scint_density; }
+double kg_in_target()
+{
+  return liters_in_target() * scint_density;
+}
 
-double looseC4() { return oxygenmass/(oxygenmass + 8*hydrogenmass + 4.*carbonmass); }
+double oxygen_fraction_in_thf()
+{
+  return oxygenmass / (oxygenmass + 8 * hydrogenmass + 4. * carbonmass);
+}
 
-double looseD7() { return scint_density*THF_fraction_by_weight*1000.; }
+double THF_fraction_by_volume()
+{
+  return scint_density * THF_fraction_by_weight * 1000.;
+}
 
-double looseF4() { return looseD7()*looseC4(); }
+double g_oxygen_in_thf_per_liter()
+{
+  return THF_fraction_by_volume() * oxygen_fraction_in_thf();
+}
 
-double looseH4() { return looseF4()*liters_in_target(); }
+double g_oxygen_in_thf()
+{
+  return g_oxygen_in_thf_per_liter() * liters_in_target();
+}
 
-double looseC3() { return oxygenmass/(oxygenmass + nitrogenmass + 11.*hydrogenmass+15*carbonmass); }
+double oxygen_fraction_ppo()
+{
+  return oxygenmass / (oxygenmass + nitrogenmass + 11. * hydrogenmass +
+                       15 * carbonmass);
+}
 
-double looseH3() { return kg_oxygen_ppo_nt*looseC3()*1000.; }
+double g_oxygen_in_target_ppo() { return kg_oxygen_ppo_nt*oxygen_fraction_ppo()*1000.; }
 
-double liters_in_target(){ return (nt_inner_r*nt_inner_r*nt_inner_h*2*TMath::Pi()
-         + 2./3. * nt_inner_r*lidslope*nt_inner_r*nt_inner_r*TMath::Pi())/1000000; }
+double liters_in_target()
+{
+  return (nt_inner_r * nt_inner_r * nt_inner_h * 2 * TMath::Pi()
+          +
+          2. / 3. * nt_inner_r * lidslope * nt_inner_r * nt_inner_r *
+          TMath::Pi()) / 1000000;
+}
 
-double looseH2(){ return g_per_l_oxygen_in_target*liters_in_target(); }
+double g_oxygen_in_gdcomplex()
+{
+  return g_per_l_oxygen_in_target * liters_in_target();
+}
 
-double looseH5(){ return looseH2() + looseH3() + looseH4(); }
+double g_oxygen_in_target()
+{
+  return g_oxygen_in_gdcomplex() + g_oxygen_in_target_ppo() +
+      g_oxygen_in_thf();
+}
 
-double looseI10(){ return looseH5()/(kg_in_target() * scint_carbon_mass_fraction) * carbonmass/oxygenmass / 1000.; }
+double o_over_c_count_targ()
+{
+  return g_oxygen_in_target() / (kg_in_target() * scint_carbon_mass_fraction) *
+      carbonmass / oxygenmass / 1000.;
+}
 
-double looseI12(){ return looseI10()*probrat; }
+double o_over_c_rate_targ()
+{
+  return o_over_c_count_targ() * probrat;
+}
 
-double looseI14(){ return looseI12() * n_c12captarget; }
+double o_rate_targ_low_guess()
+{
+  return o_over_c_rate_targ() * n_c12captarget;
+}
 
-double looseI19(){ return looseI17() * n_c12capgc(); }
+double o_rate_gc_low_guess()
+{
+  return o_over_c_rate_gc() * n_c12capgc();
+}
 
-double looseJ14(){ return looseI14() * 2.; }
+double o_rate_targ_high_guess()
+{
+  return o_rate_targ_low_guess() * 2.;
+}
 
-double looseJ19(){ return looseI19()*2.; }
+double o_rate_gc_high_guess()
+{
+  return o_rate_gc_low_guess() * 2.;
+}
 
-double looseB26(){ return immersed_acrlyic_preefficiency_captures_low_guess()*immersed_acrlyic_low_guess_energy_efficiency; }
+double immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency()
+{
+  return immersed_acrlyic_preefficiency_captures_low_guess() *
+      immersed_acrlyic_low_guess_energy_efficiency;
+}
 
-double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()*halfimmersed_acrlyic_low_guess_dir_efficiency;}
+double
+gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+{
+  return
+      gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()
+      * halfimmersed_acrlyic_low_guess_dir_efficiency;
+}
 
-double looseC26(){ return immersed_acrlyic_preefficiency_captures_low_guess()*2*immersed_acrlyic_high_guess_energy_efficiency;}
+double immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency()
+{
+  return immersed_acrlyic_preefficiency_captures_low_guess() * 2 *
+      immersed_acrlyic_high_guess_energy_efficiency;
+}
 
-double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()*halfimmersed_acrlyic_high_guess_dir_efficiency;}
+double
+gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+{
+  return
+      gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()
+      * halfimmersed_acrlyic_high_guess_dir_efficiency;
+}
 
-double looseG49(){ return looseI14() + looseI19() + looseB26() + gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
+double beta_total_low()
+{
+  return o_rate_targ_low_guess()
+    + o_rate_gc_low_guess()
+    + immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency()
+    + gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
+}
 
-double looseH49(){ return looseJ14() + looseJ19() + looseC26() + gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
+double beta_total_high()
+{
+  return o_rate_targ_high_guess()
+    + o_rate_gc_high_guess()
+    + immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency()
+    + gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
+}
 
-double looseI49(){ return (looseG49() + looseH49())/2.; }
+double beta_total_central()
+{
+  return (beta_total_low() + beta_total_high()) / 2;
+}
 
-double looseI50(){ return (looseG50()+looseH50())/2; }
+double betan_total_central()
+{
+  return (betan_total_low() + betan_total_high()) / 2;
+}
 
-double gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()*halfimmersed_acrlyic_high_guess_dir_efficiency; }
+double
+gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+{
+  return
+    gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+    * halfimmersed_acrlyic_high_guess_dir_efficiency;
+}
 
-double looseH50(){ return looseJ14() + looseJ19() + looseC26() + gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
+double betan_total_high()
+{
+  return o_rate_targ_high_guess()
+    + o_rate_gc_high_guess()
+    + immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency()
+    + gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
+}
 
-double gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()*halfimmersed_acrlyic_low_guess_dir_efficiency; }
+double
+gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+{
+  return
+    gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
+    * halfimmersed_acrlyic_low_guess_dir_efficiency;
+}
 
-double looseG50() { return looseI14() + looseI19() + looseB26() + gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
+double betan_total_low()
+{
+  return o_rate_targ_low_guess()
+    + o_rate_gc_low_guess()
+    + immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency()
+    + gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
+}
 
 void dcfluids_finalfit()
 {
-  const double n_o16cap_beta = looseI49();
-  const double n_o16cap_betan = looseI50();
+  const double n_o16cap_beta = beta_total_central();
+  const double n_o16cap_betan = betan_total_central();
 
   printf("TECHNOTE 5.3: Gaussian central value of number of effective "
     "beta O-16 captures per day: %.1f\n", n_o16cap_beta);
@@ -242,6 +406,4 @@ void dcfluids_finalfit()
 
   printf("const double n_o16cap_beta  = %f; ", n_o16cap_beta);
   printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
-
-  
 }
