@@ -34,6 +34,10 @@ const double capprob_o16 = 1-lifetime_o16/mulife;
 
 const double probrat = capprob_o16/capprob_c;
 
+const double lifetime_n14 = 1919.e-6;
+const double capprob_n14 = 1-lifetime_n14/mulife;
+
+const double probrat_nc = capprob_n14/capprob_c;
 
 double gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 double gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
@@ -90,7 +94,7 @@ const double nt_inner_r = 1150;
 const double nt_inner_h = 1229;
 const double lidslope = 0.03;
 const double mass_immersed_acrylic = 432.; // in kg
-const double kg_oxygen_ppo_nt = 75.25;
+const double kg_ppo_nt = 75.25;
 const double mass_halfimmersed_acrylic = 814; // in kg
 const double scint_density = 0.804;
 const double THF_fraction_by_weight = 0.005;
@@ -222,7 +226,7 @@ double kg_in_gc()
 
 double kg_ppo_mass_gc()
 {
-  return kg_ppo_mass_total - kg_oxygen_ppo_nt;
+  return kg_ppo_mass_total - kg_ppo_nt;
 }
 
 double g_ppo_gc()
@@ -266,13 +270,21 @@ double g_oxygen_in_thf()
   return g_oxygen_in_thf_per_liter() * liters_in_target();
 }
 
+double nitrogen_fraction_ppo()
+{
+  return nitrogenmass / (oxygenmass + nitrogenmass + 11. * hydrogenmass +
+                       15 * carbonmass);
+}
+
 double oxygen_fraction_ppo()
 {
   return oxygenmass / (oxygenmass + nitrogenmass + 11. * hydrogenmass +
                        15 * carbonmass);
 }
 
-double g_oxygen_in_target_ppo() { return kg_oxygen_ppo_nt*oxygen_fraction_ppo()*1000.; }
+double g_oxygen_in_target_ppo() { return kg_ppo_nt*oxygen_fraction_ppo()*1000.; }
+
+double g_nitrogen_in_target_ppo() { return kg_ppo_nt*oxygen_fraction_ppo()*1000.; }
 
 double liters_in_target()
 {
@@ -437,6 +449,47 @@ double betan_total_low()
     + gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 }
 
+double n14_low_hp()
+{
+  const double kg = kg_ppo_nt*nitrogen_fraction_ppo() * n_c12captarget_hp/n_c12captarget+
+                  kg_ppo_mass_gc()*nitrogen_fraction_ppo()
+         * (n_c12cap_hp - n_c12captarget_hp)/(n_c12cap - n_c12captarget);
+
+  const double countratio = kg * carbonmass/nitrogenmass/
+    ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
+
+  const double rateratio = countratio * probrat_nc;
+
+  const double rate = rateratio * n_c12cap;
+
+  return rate;
+}
+
+double n14_low()
+{
+  const double kg = kg_ppo_nt*nitrogen_fraction_ppo()+
+                  kg_ppo_mass_gc()*nitrogen_fraction_ppo();
+
+  const double countratio = kg * carbonmass/nitrogenmass/
+    ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
+
+  const double rateratio = countratio * probrat_nc;
+
+  const double rate = rateratio * n_c12cap;
+
+  return rate;
+}
+
+double n14_high()
+{
+  return n14_low() * ((2.3-1)/2+1);
+}
+
+double n14_high_hp()
+{
+  return n14_low_hp() * ((2.3-1)/2+1);
+}
+
 void printlowhighgaus(const char * const msg, const double low,
                       const double high)
 {
@@ -463,4 +516,16 @@ void dcfluids_finalfit()
 
   printf("const double n_o16cap_beta_hp  = %f;\n", n_o16cap_beta_hp);
   printf("const double n_o16cap_betan_hp = %f;\n", n_o16cap_betan_hp);
+
+  printlowhighgaus("TECHNOTE 5.3: number of "
+    "beta N-14 captures/day", n14_low(), n14_high());
+
+  const double n_n14cap = (n14_low() + n14_high())/2;
+  printf("const double n_n14cap = %f;\n", n_n14cap);
+
+  printlowhighgaus("TECHNOTE 5.3: number of "
+    "beta N-14 captures/day, high-purity", n14_low_hp(), n14_high_hp());
+
+  const double n_n14cap = (n14_low_hp() + n14_high_hp())/2;
+  printf("const double n_n14cap_hp = %f;\n", n_n14cap_hp);
 }

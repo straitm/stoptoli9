@@ -20,10 +20,6 @@ const double mum_frac = 0.4410,
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 
-const double n_n14cap = (0.19+0.31)/2;
-
-const double n_n14cap_hp = (0.11+0.18)/2;
-
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
 const double mass_o16targ = 20.865041,
              mass_o16targves = 138.24*85./(85.+58.),
