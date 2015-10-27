@@ -34,7 +34,6 @@ const double n_n14cap = (0.19+0.31)/2;
 
 const double n_n14cap_hp = (0.11+0.18)/2;
 
-const double n_c12captarget = 131.8504;
 const double n_c12captarget_hp = 131.8504 * 6743.417186/7882.377282;
 
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;

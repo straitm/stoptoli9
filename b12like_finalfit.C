@@ -226,7 +226,7 @@ const double mylivetime = -1.0)
   sub_muon_eff = sub_muon_eff_in;
   eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
   if(verbose)
-    printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f +- %f %%\n",
+    printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f +- %f percent\n",
       2, eff*100, ferr_energy*eff*100);
 
   // XXX kludgy!
@@ -371,8 +371,6 @@ void loosecaptures_finalfit()
     pow(    mumc_count/hpresult.val * antihpresult.err,2)
   );
 
-  puts("The following go into consts.h, AND into section 5.1+5.2");
-  puts("of the tech note, AND into dcfluids.ods");
   printtwice("TECHNOTE 5.1: Atomic carbon captures in the loose sample: %g +- %g\n",
     4, answer,
     answer * sqrt(
@@ -381,7 +379,7 @@ void loosecaptures_finalfit()
     )
   );
 
-  printf("TECHNOTE 5.2: Error due to B-12-like statistics: %.1f%%\n",
+  printf("TECHNOTE 5.2: Error due to B-12-like statistics: %.1f percent\n",
          error/answer * 100);
 
   puts("");
@@ -425,9 +423,7 @@ void loosecaptures_finalfit()
   puts("");
   puts("");
 
-  puts("These numbers go into section 6.1 in the tech note AND ");
-  puts("consts.h AND dcfluids.ods.");
-  puts("They don't depend on the above fits, but I'm putting them");
+  puts("These numbers don't depend on the above fits, but I'm putting them");
   puts("in this order in the output to mirror the technote.");
   printtwice("TECHNOTE 6.1: Atomic captures/day on C-12: %f +- %f\n",
     0, mumc_count/livetime*(1-f13),
@@ -461,4 +457,26 @@ void loosecaptures_finalfit()
 
   printf("const double n_c13cap_hp     = %f;\n", n_c13cap_hp);
   printf("const double n_c13cap_hp_err = %f;\n", n_c13cap_hp_err);
+
+  /*****************************************************************/
+  // Now some specialty work for different regions
+  const char * const target_cut =
+    "dx**2+dy**2 < 1154**2 && "
+    "abs(dz) < 1229 + 0.03*(1154 - sqrt(dx**2+dy**2))";
+
+  const ve loosetargetresult =
+    b12like_finalfit(Form("%s && %s", target_cut, othercuts), false);
+
+  const double n_c12captarget =
+    loosetargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
+
+  printf("const double n_c12captarget = %f;\n", n_c12captarget);
+
+  const ve HPtargetresult =
+    b12like_finalfit(Form("%s && %s && %s", HPcut, target_cut, othercuts), false);
+
+  const double n_c12captarget_hp =
+    HPtargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
+
+  printf("const double n_c12captarget_hp = %f;\n", n_c12captarget_hp);
 }
