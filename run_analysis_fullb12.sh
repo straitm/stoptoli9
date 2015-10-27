@@ -1,5 +1,7 @@
 #!/bin/bash
 
-root -b -q fullb12finalfit.C+
+out=fullb12_finalfit.out 
 
-grep TECHNOTE fullb12_finalfit.out > fullb12_finalfit_out.technote
+root -b -q fullb12finalfit.C+ | tee /tmp/$$.$out && 
+mv -f /tmp/$$.$out $out
+grep TECHNOTE $out > fullb12_finalfit_out.technote

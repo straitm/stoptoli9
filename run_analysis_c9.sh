@@ -1,6 +1,8 @@
 #!/bin/bash
 
-(root -b -q c9finalfit.C"('o')";
-root -b -q c9finalfit.C"('n')") | tee c9_finalfit.out
+out=c9_finalfit.out 
 
-grep TECHNOTE c9_finalfit.out > c9_finalfit_out.technote
+root -b -q c9finalfit.C"('o')" | tee /tmp/$$.$out &&
+root -b -q c9finalfit.C"('n')" | tee -a /tmp/$$.$out &&
+mv -f /tmp/$$.$out $out &&
+grep TECHNOTE $out > c9_finalfit_out.technote
