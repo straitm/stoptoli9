@@ -34,12 +34,12 @@ const double capprob_o16 = 1-lifetime_o16/mulife;
 const double probrat = capprob_o16/capprob_c;
 
 
-double looseE28();
+double gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 double looseH50();
-double looseD28();
+double gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 double looseI50();
 double looseG50();
-double looseE26();
+double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies();
 double looseC16();
 double looseC17();
 double looseC18();
@@ -47,8 +47,8 @@ double looseD20();
 double looseD21();
 double looseD22();
 double looseD24();
-double looseD25();
-double looseD26();
+double gc_vessel_beta_count_low_guess_with_mu_selection();
+double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies();
 double looseB20();
 double looseB21();
 double looseB22();
@@ -63,7 +63,6 @@ double looseE3();
 double looseI3();
 double looseI16();
 double looseI17();
-double looseI13();
 double looseC10();
 double looseC4();
 double looseD7();
@@ -81,9 +80,9 @@ double looseI19();
 double looseJ14();
 double looseJ19();
 double looseB26();
-double looseD27();
+double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 double looseC26();
-double looseE27();
+double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 double looseG49();
 double looseH49();
 double looseI49();
@@ -113,7 +112,7 @@ const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
              halfimmersed_acrlyic_high_guess_dir_efficiency = 0.47;
 const double portion_of_useful_gc_wall = 0.9;
 
-double looseE26(){ return looseD26()*2.*halfimmersed_acrlyic_high_guess_energy_efficiency; }
+double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()*2.*halfimmersed_acrlyic_high_guess_energy_efficiency; }
 
 double looseC16(){ return TMath::Pi() * gc_inner_r*gc_inner_r; }
 
@@ -129,9 +128,9 @@ double looseD22(){ return looseD21()*probrat; }
 
 double looseD24(){ return looseD22()*n_c12cap; }
 
-double looseD25(){ return looseD24()*muon_selection_efficiency_at_gc_vessel; }
+double gc_vessel_beta_count_low_guess_with_mu_selection(){ return looseD24()*muon_selection_efficiency_at_gc_vessel; }
 
-double looseD26(){ return looseD25()*halfimmersed_acrlyic_low_guess_energy_efficiency; }
+double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection()*halfimmersed_acrlyic_low_guess_energy_efficiency; }
 
 double looseB20(){ return mass_immersed_acrylic*(oxygenmass*2./(oxygenmass*2+carbonmass*5.+8.*hydrogenmass)); } 
 
@@ -143,7 +142,7 @@ double looseB24(){ return looseB22()*n_c12cap; }
 
 double looseB25(){ return looseB24(); }
 
-double looseI18(){ return n_c12cap-looseI13(); }
+double looseI18(){ return n_c12cap-n_c12captarget; }
 
 double looseD8(){  return gc_inner_h-nt_inner_h; }
 
@@ -162,8 +161,6 @@ double looseI3()  { return looseE3()*looseC3()*1000.; }
 double looseI16() { return looseI3()/(looseC11() * scint_carbon_mass_fraction)/1000. * carbonmass/oxygenmass; }
 
 double looseI17() { return looseI16()*probrat; }
-
-double looseI13() { return n_c12cap*n_c12captarget/n_c12cap; }
 
 double looseC10() { return looseB10()*scint_density; }
 
@@ -190,7 +187,7 @@ double looseI10(){ return looseH5()/(looseC10() * scint_carbon_mass_fraction) * 
 
 double looseI12(){ return looseI10()*probrat; }
 
-double looseI14(){ return looseI12() * looseI13(); }
+double looseI14(){ return looseI12() * n_c12captarget; }
 
 double looseI19(){ return looseI17() * looseI18(); }
 
@@ -200,27 +197,27 @@ double looseJ19(){ return looseI19()*2.; }
 
 double looseB26(){ return looseB25()*immersed_acrlyic_low_guess_energy_efficiency; }
 
-double looseD27(){ return looseD26()*halfimmersed_acrlyic_low_guess_dir_efficiency;}
+double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficiencies()*halfimmersed_acrlyic_low_guess_dir_efficiency;}
 
 double looseC26(){ return looseB25()*2*immersed_acrlyic_high_guess_energy_efficiency;}
 
-double looseE27(){ return looseE26()*halfimmersed_acrlyic_high_guess_dir_efficiency;}
+double gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()*halfimmersed_acrlyic_high_guess_dir_efficiency;}
 
-double looseG49(){ return looseI14() + looseI19() + looseB26() + looseD27(); }
+double looseG49(){ return looseI14() + looseI19() + looseB26() + gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
 
-double looseH49(){ return looseJ14() + looseJ19() + looseC26() + looseE27(); }
+double looseH49(){ return looseJ14() + looseJ19() + looseC26() + gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
 
 double looseI49(){ return (looseG49() + looseH49())/2.; }
 
 double looseI50(){ return (looseG50()+looseH50())/2; }
 
-double looseE28(){ return looseE27()*halfimmersed_acrlyic_high_guess_dir_efficiency; }
+double gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()*halfimmersed_acrlyic_high_guess_dir_efficiency; }
 
-double looseH50(){ return looseJ14() + looseJ19() + looseC26() + looseE28(); }
+double looseH50(){ return looseJ14() + looseJ19() + looseC26() + gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
 
-double looseD28(){ return looseD27()*halfimmersed_acrlyic_low_guess_dir_efficiency; }
+double gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(){ return gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()*halfimmersed_acrlyic_low_guess_dir_efficiency; }
 
-double looseG50() { return looseI14() + looseI19() + looseB26() + looseD28(); }
+double looseG50() { return looseI14() + looseI19() + looseB26() + gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies(); }
 
 void dcfluids_finalfit()
 {
