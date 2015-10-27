@@ -11,6 +11,7 @@
  */
 
 #include "consts.h"
+#include "loosecaptures_finalfit_out.h" // c12, c13 per day
 
 const double f13 = 0.010921;
 
@@ -81,8 +82,6 @@ double beta_total_low();
 double betan_total_low();
 double beta_total_high();
 double betan_total_high();
-double beta_total_central();
-double betan_total_central();
 
 
 const double gc_inner_r = 1708;
@@ -120,6 +119,10 @@ const double portion_of_useful_scint_targ = 0.91;
 // we cut the edges and bottom, and top is difficult to reconstruct at.
 // See above comment, too.
 const double portion_of_useful_scint_gc = 0.78;
+
+// Totally made up number giving the fraction of events in the immersed 
+// acrylic that survive the HP cuts.
+const double hp_immersed_acrlyic_eff = 0.5;
 
 double
 gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()
@@ -349,6 +352,24 @@ gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_
       * halfimmersed_acrlyic_high_guess_dir_efficiency;
 }
 
+double beta_total_low_hp()
+{
+  return o_rate_targ_low_guess() * n_c12captarget_hp/n_c12captarget
+    + o_rate_gc_low_guess() 
+         * (n_c12cap_hp - n_c12captarget_hp)/(n_c12cap - n_c12captarget)
+    + immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency()
+         * hp_immersed_acrlyic_eff;
+}
+
+double beta_total_high_hp()
+{
+  return o_rate_targ_high_guess() * n_c12captarget_hp/n_c12captarget
+    + o_rate_gc_high_guess()
+       * (n_c12cap_hp - n_c12captarget_hp)/(n_c12cap - n_c12captarget)
+    + immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency()
+         * hp_immersed_acrlyic_eff;
+}
+
 double beta_total_low()
 {
   return o_rate_targ_low_guess()
@@ -365,15 +386,6 @@ double beta_total_high()
     + gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 }
 
-double beta_total_central()
-{
-  return (beta_total_low() + beta_total_high()) / 2;
-}
-
-double betan_total_central()
-{
-  return (betan_total_low() + betan_total_high()) / 2;
-}
 
 double
 gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
@@ -381,6 +393,15 @@ gc_vessel_betan_count_high_guess_with_mu_selection_and_beta_energy_and_direction
   return
     gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies()
     * halfimmersed_acrlyic_high_guess_dir_efficiency;
+}
+
+double betan_total_high_hp()
+{
+  return o_rate_targ_high_guess() * n_c12captarget_hp/n_c12captarget
+    + o_rate_gc_high_guess()
+         * (n_c12cap_hp - n_c12captarget_hp)/(n_c12cap - n_c12captarget)
+    + immersed_acrlyic_beta_count_high_guess_with_beta_energy_efficiency()
+         * hp_immersed_acrlyic_eff;
 }
 
 double betan_total_high()
@@ -399,6 +420,15 @@ gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_
     * halfimmersed_acrlyic_low_guess_dir_efficiency;
 }
 
+double betan_total_low_hp()
+{
+  return o_rate_targ_low_guess() * n_c12captarget_hp/n_c12captarget
+    + o_rate_gc_low_guess()
+         * (n_c12cap_hp - n_c12captarget_hp)/(n_c12cap - n_c12captarget)
+    + immersed_acrlyic_beta_count_low_guess_with_beta_energy_efficiency()
+         * hp_immersed_acrlyic_eff;
+}
+
 double betan_total_low()
 {
   return o_rate_targ_low_guess()
@@ -407,16 +437,30 @@ double betan_total_low()
     + gc_vessel_betan_count_low_guess_with_mu_selection_and_beta_energy_and_direction_efficiencies();
 }
 
+void printlowhighgaus(const char * const msg, const double low,
+                      const double high)
+{
+  printf("%s: %.0f-%.0f (%.2f - %.2f, Gaussian: %.1f +- %.1f)\n",
+    msg, low, high, low, high, (low+high)/2, (high-low)/sqrt(12));
+}
+
 void dcfluids_finalfit()
 {
-  const double n_o16cap_beta = beta_total_central();
-  const double n_o16cap_betan = betan_total_central();
+  printlowhighgaus("TECHNOTE 5.3: number of effective "
+    "beta O-16 captures/day", beta_total_low(), beta_total_high());
 
-  printf("TECHNOTE 5.3: Gaussian central value of number of effective "
-    "beta O-16 captures per day: %.1f\n", n_o16cap_beta);
-  printf("TECHNOTE 5.3: Gaussian central value of number of effective "
-    "beta-n O-16 captures per day: %.1f\n", n_o16cap_betan);
+  printlowhighgaus("TECHNOTE 5.3: number of effective "
+    "beta-n O-16 captures/day", betan_total_low(), betan_total_high());
+
+  const double n_o16cap_beta = (beta_total_low()+beta_total_high())/2;
+  const double n_o16cap_betan = (betan_total_low()+betan_total_high())/2;
 
   printf("const double n_o16cap_beta  = %f;\n", n_o16cap_beta);
   printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
+
+  const double n_o16cap_beta_hp = (beta_total_low_hp()+beta_total_high_hp())/2;
+  const double n_o16cap_betan_hp = (betan_total_low_hp()+betan_total_high_hp())/2;
+
+  printf("const double n_o16cap_beta_hp  = %f;\n", n_o16cap_beta_hp);
+  printf("const double n_o16cap_betan_hp = %f;\n", n_o16cap_betan_hp);
 }

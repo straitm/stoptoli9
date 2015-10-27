@@ -20,21 +20,9 @@ const double mum_frac = 0.4410,
 const double livetime = 489.509;
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 
-// c12 and c13 captures per day
-#include "loosecaptures_finalfit_out.h"
-
-// From dcfluids.ods
-const double n_o16cap_beta  = 9.8; // after acrylic eff - central value
-const double n_o16cap_betan = 9.0; // after acrylic eff - central value
-
-const double n_o16cap_beta_hp  = 5.0;
-const double n_o16cap_betan_hp = 5.0; // yes, the same as beta
-
 const double n_n14cap = (0.19+0.31)/2;
 
 const double n_n14cap_hp = (0.11+0.18)/2;
-
-const double n_c12captarget_hp = 131.8504 * 6743.417186/7882.377282;
 
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
 const double mass_o16targ = 20.865041,
