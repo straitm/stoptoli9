@@ -595,8 +595,9 @@ void results(const char * const iname, const int mni,
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
-  printtwice("\nTECHNOTE: %s, eff corrected, percent per C mu- stop\n"
-    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff),\n"
+
+  printtwice("\nTECHNOTE 4.3: %s, eff corrected, percent per C mu- stop "
+    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), "
     "+%f %f(total),  +%f -%f (non-fit)\n",
     prec1, iname, like_central, staterrup, staterrlo, muerr, err,
     toterrup, toterrlo,
@@ -620,10 +621,15 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nTECHNOTE: Or percent per nuclear mu- capture on this isotope\n"
-         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
+  const char * newnucprobcommandname =
+    !strcmp(iname, "C-12 -> B-12")?"probTwelveBfromTwelveC":
+    !strcmp(iname, "C-13 -> B-12+n")?"probTwelveBfromThirteenC":
+    !strcmp(iname, "C-13 -> B-13")?"probThirteenBfromThirteenC":"?";
+ 
+  printtwice("\nTECHNOTE 4.3 and results.tex %s: Or percent per nuclear mu- capture on this isotope "
+         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total),  +%f -%f (non-fit)\n",
-         prec2,
+         newnucprobcommandname, prec2,
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -647,10 +653,9 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nTECHNOTE: Or 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
-         "+-%f(lifetime)\n"
-         "+%f %f(total)  +%f -%f\n",
-         prec3,
+  printtwice("\nTECHNOTE 4.3 and XXX should go out to constants for ground state result XXX: Or 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+         "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
+         newratecommandname, prec3,
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
          toterr_ratelo,

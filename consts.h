@@ -1,5 +1,7 @@
-const char * const RED     = "\033[31;1m"; // bold red
-const char * const CLR     = "\033[m"    ; // clear
+// Disable coloring now that I am marking important output with "TECHNOTE"
+// and "^const "
+const char * const RED     = ""; // bold red
+const char * const CLR     = ""; // clear
 
 const char * const rootfile3up_extended = // XXX now out of date
   "/cp/s4/strait/fullfido-300s-3-25MeV-20150924-3rdpub+post3rdpub.root";
