@@ -31,4 +31,4 @@ clean:
       *_C.d *_C.so  AutoDict*cxx*
 
 analysisclean: 
-	loosecaptures_finalfit_out.h
+	loosecaptures_finalfit_out.h dcfluids_finalfit_out.h
