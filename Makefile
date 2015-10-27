@@ -2,11 +2,14 @@ all: stoptoli9 b12search
 
 analysis: c9_finalfit.out
 
-c9_finalfit.out: c9finalfit.C loosecaptures_finalfit_out.h
+c9_finalfit.out: c9finalfit.C loosecaptures_finalfit_out.h dcfluids_finalfit_out.h
 	./run_analysis_c9.sh
 
 loosecaptures_finalfit_out.h: consts.h mucountfinalfit.C b12like_finalfit.C
 	./run_analysis_b12like.sh
+
+dcfluids_finalfit_out.h: dcfluids_finalfit.C consts.h loosecaptures_finalfit_out.h
+	./run_dcfluids.sh
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -lm
