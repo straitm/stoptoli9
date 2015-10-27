@@ -113,11 +113,12 @@ const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
 const double portion_of_useful_gc_wall = 0.9; // assume top 10% never has muons selected stopping in it
 
 // efficiency is low near the vessel, similar to events *in*the vessel
-const double portion_of_useful_scint_targ = 0.9;
+// This is faux precision. I eyeballed some positions on a plot, then
+// multiplied out the volumes.
+const double portion_of_useful_scint_targ = 0.91;
 
 // we cut the edges and bottom, and top is difficult to reconstruct at.
-// This is faux precision.  I eyeballed some positions on a plot, then multiplied
-// out the volumes.
+// See above comment, too.
 const double portion_of_useful_scint_gc = 0.78;
 
 double
@@ -416,6 +417,6 @@ void dcfluids_finalfit()
   printf("TECHNOTE 5.3: Gaussian central value of number of effective "
     "beta-n O-16 captures per day: %.1f\n", n_o16cap_betan);
 
-  printf("const double n_o16cap_beta  = %f; ", n_o16cap_beta);
+  printf("const double n_o16cap_beta  = %f;\n", n_o16cap_beta);
   printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
 }
