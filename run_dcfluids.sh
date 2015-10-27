@@ -1,6 +1,7 @@
 #!/bin/bash
 
 out=dcfluids_finalfit.out
+set -o pipefail
 
 if ! root -b -q dcfluids_finalfit.C | tee /tmp/$$.$out; then
   exit 1
