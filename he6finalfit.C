@@ -139,9 +139,6 @@ void he6finalfit(const int nreq_ = 0,
   
   TH1::SetDefaultSumw2();
 
-  const char * const RED     = "\033[31;1m"; // bold red
-  const char * const CLR      = "\033[m"    ; // clear
-
   TCanvas * c2 = new TCanvas();
   c2->Divide(1, nrbins);
   c2->cd(1);

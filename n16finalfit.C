@@ -156,9 +156,6 @@ void n16finalfit()
 
   TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 160, 160);
 
-  const char * const RED = "\033[31;1m"; // bold red
-  const char * const CLR = "\033[m"    ; // clear
-
   const char * const scutwoe =
 #ifdef LP
   "!"

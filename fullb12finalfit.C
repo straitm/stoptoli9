@@ -745,9 +745,12 @@ double b13limit()
     const double prob = i*increment;
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
-       answer = prob-increment/2;
+       answer = prob; // had been subtracting increment/2, but
+                      // that makes the answer look funny.
+                      // Just be conservative and take the
+                      // next sample point after the crossing.
        printf("TECHNOTE 4.3: C-13 -> B-13 per nuclear capture "
-              "90%% limit = %f\n", answer);
+              "90%% limit = %.0f%%\n", answer*100);
        break;
     }
   }

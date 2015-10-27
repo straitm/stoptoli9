@@ -56,9 +56,6 @@ void n12finalfit()
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
 
-  const char * const RED = "\033[31;1m"; // bold red
-  const char * const CLR = "\033[m"    ; // clear
-
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
   const string scut =

@@ -68,9 +68,6 @@ void c9finalfit(const char elem = 'o')
 //  c->Divide(2, 1);
 //  c->cd(1);
 
-  const char * const RED = "\033[31;1m"; // bold red
-  const char * const CLR = "\033[m"    ; // clear
-
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
   const string scut =
