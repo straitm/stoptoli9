@@ -725,7 +725,7 @@ double b13limit()
   for(int i = 0; i < N; i++){
     const double prob = i*increment;
     mn->Command(Form("set par 3 %f", prob));
-    mn->Command("Migrad 4000 1");
+    mn->Command("Migrad 1000 1");
     const double p = exp(bestchi2-mn->fAmin);
     printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");

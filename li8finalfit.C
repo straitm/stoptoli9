@@ -580,7 +580,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nTECHNOTE 10.1: Or percent per nuclear mu- capture on this isotope\n"
+  printtwice("\nTECHNOTE 10.1: Or percent per nuclear mu- capture on this isotope "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
          "+%f %f(total),  +%f -%f (non-fit)\n",
          prec2, 
