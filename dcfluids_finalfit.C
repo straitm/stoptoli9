@@ -105,9 +105,6 @@ const double g_per_l_oxygen_in_target = g_per_l_gd * 6.*oxygenmass/gdmass;
 const double kg_ppo_mass_total = 120.;
 const double muon_selection_efficiency_at_gc_vessel = 0.4;
 
-// XXX needs to be generated in loosecaptures_finalfit.C
-const double n_c12cap_target = 129.979327;
-
 const double immersed_acrlyic_low_guess_energy_efficiency = 0.85,
              immersed_acrlyic_high_guess_energy_efficiency = 0.95;
 const double halfimmersed_acrlyic_low_guess_energy_efficiency = 0.75,
@@ -166,7 +163,7 @@ double looseI16() { return looseI3()/(looseC11() * scint_carbon_mass_fraction)/1
 
 double looseI17() { return looseI16()*probrat; }
 
-double looseI13() { return n_c12cap*n_c12cap_target/n_c12cap; }
+double looseI13() { return n_c12cap*n_c12captarget/n_c12cap; }
 
 double looseC10() { return looseB10()*scint_density; }
 
