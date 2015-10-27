@@ -95,7 +95,10 @@ const double kg_oxygen_ppo_nt = 75.25;
 const double mass_halfimmersed_acrylic = 814; // in kg
 const double scint_density = 0.804;
 const double THF_fraction_by_weight = 0.005;
-const double scint_carbon_mass_fraction = 12/(12 + 1.92);
+
+// taking scint as CH_1.92
+const double scint_carbon_mass_fraction = carbonmass/(carbonmass + 1.92*hydrogenmass);
+
 const double g_per_l_gd = 0.99;
 const double g_per_l_oxygen_in_target = g_per_l_gd * 6.*oxygenmass/gdmass;
 const double kg_ppo_mass_total = 120.;
@@ -107,7 +110,15 @@ const double halfimmersed_acrlyic_low_guess_energy_efficiency = 0.75,
              halfimmersed_acrlyic_high_guess_energy_efficiency = 0.85;
 const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
              halfimmersed_acrlyic_high_guess_dir_efficiency = 0.47;
-const double portion_of_useful_gc_wall = 0.9;
+const double portion_of_useful_gc_wall = 0.9; // assume top 10% never has muons selected stopping in it
+
+// efficiency is low near the vessel, similar to events *in*the vessel
+const double portion_of_useful_scint_targ = 0.9;
+
+// we cut the edges and bottom, and top is difficult to reconstruct at.
+// This is faux precision.  I eyeballed some positions on a plot, then multiplied
+// out the volumes.
+const double portion_of_useful_scint_gc = 0.78;
 
 double
 gc_vessel_beta_count_high_guess_with_mu_selection_and_beta_energy_efficiencies()
@@ -141,7 +152,7 @@ double oxygen_mass_halfimmersed()
 
 double halfimmersed_acrylic_o_over_c_number_ratio()
 {
-  return oxygen_mass_halfimmersed() * carbonmass/oxygenmass/ // carbonmass/oxygenmass not there before
+  return oxygen_mass_halfimmersed() * carbonmass/oxygenmass/
     ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
 }
 
@@ -166,15 +177,16 @@ double gc_vessel_beta_count_low_guess_with_mu_selection_and_beta_energy_efficien
   return gc_vessel_beta_count_low_guess_with_mu_selection() *
       halfimmersed_acrlyic_low_guess_energy_efficiency;
 }
+
 double oxygen_mass_immersed_in_acrylic()
 {
   return mass_immersed_acrylic*
-    (oxygenmass*2/(oxygenmass*2+carbonmass*5+hydrogenmass*8));
+    oxygenmass*2/(oxygenmass*2+carbonmass*5+hydrogenmass*8);
 } 
 
 double immersed_acrylic_o_over_c_number_ratio()
 {
-  return oxygen_mass_immersed_in_acrylic()*carbonmass/oxygenmass/ // carbonmass/oxygenmass not there before
+  return oxygen_mass_immersed_in_acrylic()*carbonmass/oxygenmass/
     ((kg_in_target()+kg_in_gc())*scint_carbon_mass_fraction);
 }
 
@@ -201,7 +213,7 @@ double liters_in_gc() {
 
 double kg_in_gc()
 {
-  return scint_density * liters_in_gc();
+  return scint_density * liters_in_gc() * portion_of_useful_scint_gc;
 }
 
 double kg_ppo_mass_gc()
@@ -227,7 +239,7 @@ double o_over_c_rate_gc()
 
 double kg_in_target()
 {
-  return liters_in_target() * scint_density;
+  return liters_in_target() * scint_density * portion_of_useful_scint_targ;
 }
 
 double oxygen_fraction_in_thf()
