@@ -526,6 +526,6 @@ void dcfluids_finalfit()
   printlowhighgaus("TECHNOTE 5.3: number of "
     "beta N-14 captures/day, high-purity", n14_low_hp(), n14_high_hp());
 
-  const double n_n14cap = (n14_low_hp() + n14_high_hp())/2;
+  const double n_n14cap_hp = (n14_low_hp() + n14_high_hp())/2;
   printf("const double n_n14cap_hp = %f;\n", n_n14cap_hp);
 }
