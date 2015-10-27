@@ -1,5 +1,6 @@
 #include <fstream>
 #include "consts.h"
+#include "loosecaptures_finalfit_out.h" // for c12, c13 rates
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
@@ -579,7 +580,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nOr percent per nuclear mu- capture on this isotope\n"
+  printtwice("\nTECHNOTE 10.1: Or percent per nuclear mu- capture on this isotope\n"
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
          "+%f %f(total),  +%f -%f (non-fit)\n",
          prec2, 

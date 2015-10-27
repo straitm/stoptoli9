@@ -595,7 +595,7 @@ void results(const char * const iname, const int mni,
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
-  printtwice("\n%s, eff corrected, percent per C mu- stop\n"
+  printtwice("\nTECHNOTE: %s, eff corrected, percent per C mu- stop\n"
     "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff),\n"
     "+%f %f(total),  +%f -%f (non-fit)\n",
     prec1, iname, like_central, staterrup, staterrlo, muerr, err,
@@ -620,7 +620,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nOr percent per nuclear mu- capture on this isotope\n"
+  printtwice("\nTECHNOTE: Or percent per nuclear mu- capture on this isotope\n"
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
          "+%f %f(total),  +%f -%f (non-fit)\n",
          prec2,
@@ -647,7 +647,7 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+  printtwice("\nTECHNOTE: Or 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime)\n"
          "+%f %f(total)  +%f -%f\n",
          prec3,
