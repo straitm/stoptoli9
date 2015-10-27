@@ -596,10 +596,16 @@ void results(const char * const iname, const int mni,
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
 
-  printtwice("\nTECHNOTE 4.3: %s, eff corrected, percent per C mu- stop "
+  printtwice("\n%s%s, eff corrected, percent per C mu- stop "
     "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), "
     "+%f %f(total),  +%f -%f (non-fit)\n",
-    prec1, iname, like_central, staterrup, staterrlo, muerr, err,
+    prec1,
+    !strcmp(iname, "C-12 -> B-12")?
+      "TECHNOTE 4.3: ":
+    !strcmp(iname, "C-13 -> B-12+n")?
+      "TECHNOTE 4.3: ":
+    !strcmp(iname, "C-13 -> B-13")?"":"?",
+    iname, like_central, staterrup, staterrlo, muerr, err,
     toterrup, toterrlo,
     sqrt(pow(toterrup,2) - pow(staterrup,2)),
     sqrt(pow(toterrlo,2) - pow(staterrlo,2))
@@ -621,15 +627,15 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  const char * newnucprobcommandname =
-    !strcmp(iname, "C-12 -> B-12")?"probTwelveBfromTwelveC":
-    !strcmp(iname, "C-13 -> B-12+n")?"probTwelveBfromThirteenC":
-    !strcmp(iname, "C-13 -> B-13")?"probThirteenBfromThirteenC":"?";
- 
-  printtwice("\nTECHNOTE 4.3 and results.tex %s: Or percent per nuclear mu- capture on this isotope "
+  printtwice("\n%sOr percent per nuclear mu- capture on this isotope "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total),  +%f -%f (non-fit)\n",
-         prec2, newnucprobcommandname,
+         prec2, 
+         !strcmp(iname, "C-12 -> B-12")?
+           "TECHNOTE 4.3 and results.tex probTwelveBfromTwelveC: ":
+         !strcmp(iname, "C-13 -> B-12+n")?
+           "TECHNOTE 4.3 and results.tex probTwelveBfromThirteenC: ":
+         !strcmp(iname, "C-13 -> B-13")?"":"?",
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -653,9 +659,14 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nTECHNOTE 4.3 and XXX should go out to constants for ground state result XXX: Or 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+  printtwice("\n%sOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
+         !strcmp("C-12 -> B-12", iname)?
+           "TECHNOTE 4.3 XXX & should go to consts for ground state result: ":
+         !strcmp("C-13 -> B-12+n", iname)?
+           "TECHNOTE 4.3: ":
+           "",
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
          toterr_ratelo,
@@ -703,17 +714,18 @@ double b13limit()
   double sump = 0;
 
   unsigned int smallcount = 0;
-  const double increment = 0.01;
-  const int N = 70;
+  const double increment = 0.02;
+  const int N = 40;
   double ps[N];
 
   const double bestchi2 = mn->fAmin;
 
   mn->Command("fix 3");
+  mn->Command("set strategy 0");
   for(int i = 0; i < N; i++){
     const double prob = i*increment;
     mn->Command(Form("set par 3 %f", prob));
-    mn->Command("Migrad");
+    mn->Command("Migrad 4000 1");
     const double p = exp(bestchi2-mn->fAmin);
     printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");
@@ -722,7 +734,7 @@ double b13limit()
     printf("\n");
     sump += p;
     ps[i] = p;
-    if(p < 1e-9 && ++smallcount > 3) break;
+    if(p < 1e-6 && ++smallcount > 3) break;
   }
 
   printf("Norm: %f\n", sump);
@@ -734,7 +746,8 @@ double b13limit()
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
        answer = prob-increment/2;
-       printf("Bays limit = %f\n", answer);
+       printf("TECHNOTE 4.3: C-13 -> B-13 per nuclear capture "
+              "90%% limit = %f\n", answer);
        break;
     }
   }

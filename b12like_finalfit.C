@@ -212,7 +212,7 @@ ve b12like_finalfit(const char * const cut =
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f",
-const bool verbose = true,
+const bool verbose = true, const bool print_stuffwithb12lifetime = true,
 const double sub_muon_eff_in = sub_muon_eff05,
 const double mylivetime = -1.0)
 {
@@ -274,9 +274,9 @@ const double mylivetime = -1.0)
   result_for_ratio.val = getpar(mn, 0);
   result_for_ratio.err = ferrorfit * getpar(mn, 0);
 
-  // Always print since this is needed for both HP and anti-HP samples
-  printtwice("\nTECHNOTE 5.1: Stuff with b12 lifetime raw %f +- %f\n", 0,
-             result_for_ratio.val, result_for_ratio.err);
+  if(print_stuffwithb12lifetime)
+    printtwice("\nTECHNOTE 5.1: Stuff with b12 lifetime raw %f +- %f\n",
+      0, result_for_ratio.val, result_for_ratio.err);
 
 
   if(mylivetime > 0){
@@ -288,7 +288,7 @@ const double mylivetime = -1.0)
                                  pow(mumc_count_e/mumc_count,2) +
                                  pow(ferr_energy, 2))*b12like_central;
 
-    printtwice("\nStuff with b12 lifetime raw with overall eff "
+    printtwice("\nStuff with b12 lifetime with overall eff "
          "corrected, per live kilosecond\n"
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
          3, b12like_central, staterr, muerr, b12err, toterr);
@@ -303,7 +303,7 @@ const double mylivetime = -1.0)
                                pow(ferr_energy, 2))*b12like_central;
 
   if(verbose)
-    printtwice("\nTECHNOTE 4.2: Stuff with b12 lifetime raw with overall eff "
+    printtwice("\nTECHNOTE 4.2: Stuff with b12 lifetime with overall eff "
          "corrected, percent per mu- stop: "
          "%f +-%f(fit) +-%f(mu count) +-%f(B-12 eff), %f(total)\n",
          3, b12like_central, staterr, muerr, b12err, toterr);
@@ -359,10 +359,10 @@ void loosecaptures_finalfit()
     "e > 4 && e < 15 && dt < %f";
 
   const ve hpresult =
-    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts), true);
+    b12like_finalfit(Form("  %s  && %s", HPcut, othercuts), true, true);
 
   const ve antihpresult =
-    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts), false);
+    b12like_finalfit(Form("!(%s) && %s", HPcut, othercuts), false, true);
 
   const double rat = antihpresult.val/hpresult.val;
   const double answer = (1+rat)*mumc_count;
@@ -465,7 +465,7 @@ void loosecaptures_finalfit()
     "abs(dz) < 1229 + 0.03*(1154 - sqrt(dx**2+dy**2))";
 
   const ve loosetargetresult =
-    b12like_finalfit(Form("%s && %s", target_cut, othercuts), false);
+    b12like_finalfit(Form("%s && %s", target_cut, othercuts), false, false);
 
   const double n_c12captarget =
     loosetargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
@@ -473,7 +473,7 @@ void loosecaptures_finalfit()
   printf("const double n_c12captarget = %f;\n", n_c12captarget);
 
   const ve HPtargetresult =
-    b12like_finalfit(Form("%s && %s && %s", HPcut, target_cut, othercuts), false);
+    b12like_finalfit(Form("%s && %s && %s", HPcut, target_cut, othercuts), false, false);
 
   const double n_c12captarget_hp =
     HPtargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
