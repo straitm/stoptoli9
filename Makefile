@@ -37,8 +37,10 @@ noncarbondenominators_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_noncarbondenominators.sh \
-  noncarbondenominators_finalfit.C \
+  noncarbondenominators_finalfit.C
 	./run_analysis_noncarbondenominators.sh
+
+noncarbondenominators_finalfit.C:
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -lm
