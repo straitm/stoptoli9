@@ -18,6 +18,7 @@ const double hydrogenmass = 1.008;
 const double carbonmass = 12.011;
 const double nitrogenmass = 14.007;
 const double oxygenmass = 15.999;
+const double gdmass = 157.25;
 
 const double mulife = 2196.9811e-6;
 
@@ -39,7 +40,6 @@ double looseD28();
 double looseI50();
 double looseG50();
 double looseE26();
-double looseD23();
 double looseC16();
 double looseC17();
 double looseC18();
@@ -63,19 +63,15 @@ double looseE3();
 double looseI3();
 double looseI16();
 double looseI17();
-double looseB23();
 double looseI13();
 double looseC10();
 double looseC4();
-double looseD6();
-double looseD5();
 double looseD7();
 double looseF4();
 double looseH4();
 double looseC3();
 double looseH3();
 double looseB10();
-double looseF2();
 double looseH2();
 double looseH5();
 double looseI10();
@@ -93,9 +89,6 @@ double looseH49();
 double looseI49();
 
 
-
-
-
 const double gc_inner_r = 1708;
 const double gc_inner_h = 1786;
 const double nt_inner_r = 1150;
@@ -104,14 +97,24 @@ const double lidslope = 0.03;
 const double mass_immersed_acrylic = 432.; // in kg
 const double kg_oxygen_ppo_nt = 75.25;
 const double mass_halfimmersed_acrylic = 814; // in kg
+const double scint_density = 0.804;
+const double THF_fraction_by_weight = 0.005;
+const double scint_carbon_mass_fraction = 12/(12 + 1.92);
+const double g_per_l_gd = 0.99;
+const double g_per_l_oxygen_in_target = g_per_l_gd * 6.*oxygenmass/gdmass;
+const double muon_selection_efficiency_at_gc_vessel = 0.4;
 
 // XXX needs to be generated in loosecaptures_finalfit.C
 const double n_c12cap_target = 129.979327;
 
+const double immersed_acrlyic_low_guess_energy_efficiency = 0.85,
+             immersed_acrlyic_high_guess_energy_efficiency = 0.95;
+const double halfimmersed_acrlyic_low_guess_energy_efficiency = 0.75,
+             halfimmersed_acrlyic_high_guess_energy_efficiency = 0.85;
+const double halfimmersed_acrlyic_low_guess_dir_efficiency = 0.43,
+             halfimmersed_acrlyic_high_guess_dir_efficiency = 0.47;
 
-double looseE26(){ return looseD26()*2.*0.85; }
-
-double looseD23(){ return looseB23(); }
+double looseE26(){ return looseD26()*2.*halfimmersed_acrlyic_high_guess_energy_efficiency; }
 
 double looseC16(){ return TMath::Pi() * gc_inner_r*gc_inner_r; }
 
@@ -121,27 +124,27 @@ double looseC18(){ return (0.9*looseC17()+looseC16())/(2.*looseC16()+looseC17())
 
 double looseD20(){ return looseC18()*mass_halfimmersed_acrylic*(oxygenmass*2./(oxygenmass*2.+carbonmass*5.+8.*hydrogenmass)); }
 
-double looseD21(){ return looseD20()/((looseC10()+looseC11())*12./14.1); }
+double looseD21(){ return looseD20()/((looseC10()+looseC11())*scint_carbon_mass_fraction); }
 
 double looseD22(){ return looseD21()*probrat; }
 
-double looseD24(){ return looseD22()*looseD23(); }
+double looseD24(){ return looseD22()*n_c12cap; }
 
-double looseD25(){ return looseD24()*0.4; }
+double looseD25(){ return looseD24()*muon_selection_efficiency_at_gc_vessel; }
 
 double looseD26(){ return looseD25()*0.75; }
 
 double looseB20(){ return mass_immersed_acrylic*(oxygenmass*2./(oxygenmass*2+carbonmass*5.+8.*hydrogenmass)); } 
 
-double looseB21(){ return looseB20()/((looseC10()+looseC11())*12./14.1); }
+double looseB21(){ return looseB20()/((looseC10()+looseC11())*scint_carbon_mass_fraction); }
 
 double looseB22(){ return looseB21()*probrat; }
 
-double looseB24(){ return looseB22()*looseB23(); }
+double looseB24(){ return looseB22()*n_c12cap; }
 
 double looseB25(){ return looseB24(); }
 
-double looseI18(){ return looseB23()-looseI13(); }
+double looseI18(){ return n_c12cap-looseI13(); }
 
 double looseD8(){  return gc_inner_h-nt_inner_h; }
 
@@ -151,29 +154,23 @@ double looseB11() { return ((nt_inner_r+looseC8())*(nt_inner_r+looseC8())*(nt_in
              + 2./3. * (nt_inner_r+looseC8())*lidslope*(nt_inner_r+looseC8())*(nt_inner_r+looseC8())*TMath::Pi())
              /1000000.-looseB10(); }
 
-double looseC11() { return looseD5()*looseB11(); }
+double looseC11() { return scint_density*looseB11(); }
 
 double looseE3()  { return 120.-kg_oxygen_ppo_nt; }
 
 double looseI3()  { return looseE3()*looseC3()*1000.; }
 
-double looseI16() { return looseI3()/(looseC11() * 12./14.1)/1000. * carbonmass/oxygenmass; }
+double looseI16() { return looseI3()/(looseC11() * scint_carbon_mass_fraction)/1000. * carbonmass/oxygenmass; }
 
 double looseI17() { return looseI16()*probrat; }
 
-double looseB23() { return 358.8; }
+double looseI13() { return n_c12cap*n_c12cap_target/n_c12cap; }
 
-double looseI13() { return looseB23()*n_c12cap_target/n_c12cap; }
-
-double looseC10() { return looseB10()*looseD5(); }
+double looseC10() { return looseB10()*scint_density; }
 
 double looseC4() { return oxygenmass/(oxygenmass + 8*hydrogenmass + 4.*carbonmass); }
 
-double looseD6() { return 0.5; }
-
-double looseD5() { return 0.804; }
-
-double looseD7() { return looseD5()*looseD6()/100.*1000.; }
+double looseD7() { return scint_density*THF_fraction_by_weight*1000.; }
 
 double looseF4() { return looseD7()*looseC4(); }
 
@@ -184,15 +181,13 @@ double looseC3() { return oxygenmass/(oxygenmass + nitrogenmass + 11.*hydrogenma
 double looseH3() { return kg_oxygen_ppo_nt*looseC3()*1000.; }
 
 double looseB10(){ return (nt_inner_r*nt_inner_r*nt_inner_h*2*TMath::Pi()
-         + 2./3. * nt_inner_r*0.03*nt_inner_r*nt_inner_r*TMath::Pi())/1000000; }
+         + 2./3. * nt_inner_r*lidslope*nt_inner_r*nt_inner_r*TMath::Pi())/1000000; }
 
-double looseF2(){ return 0.99 * 6.*oxygenmass/157.25;}
-
-double looseH2(){ return looseF2()*looseB10(); }
+double looseH2(){ return g_per_l_oxygen_in_target*looseB10(); }
 
 double looseH5(){ return looseH2() + looseH3() + looseH4(); }
 
-double looseI10(){ return looseH5()/(looseC10() * 12./14.1) * carbonmass/oxygenmass / 1000.; }
+double looseI10(){ return looseH5()/(looseC10() * scint_carbon_mass_fraction) * carbonmass/oxygenmass / 1000.; }
 
 double looseI12(){ return looseI10()*probrat; }
 
@@ -204,13 +199,13 @@ double looseJ14(){ return looseI14() * 2.; }
 
 double looseJ19(){ return looseI19()*2.; }
 
-double looseB26(){ return looseB25()*0.85; }
+double looseB26(){ return looseB25()*immersed_acrlyic_low_guess_energy_efficiency; }
 
-double looseD27(){ return looseD26()*0.43;}
+double looseD27(){ return looseD26()*halfimmersed_acrlyic_low_guess_dir_efficiency;}
 
-double looseC26(){ return looseB25()*2*0.95;}
+double looseC26(){ return looseB25()*2*immersed_acrlyic_high_guess_energy_efficiency;}
 
-double looseE27(){ return looseE26()*0.47;}
+double looseE27(){ return looseE26()*halfimmersed_acrlyic_high_guess_dir_efficiency;}
 
 double looseG49(){ return looseI14() + looseI19() + looseB26() + looseD27(); }
 
@@ -220,11 +215,11 @@ double looseI49(){ return (looseG49() + looseH49())/2.; }
 
 double looseI50(){ return (looseG50()+looseH50())/2; }
 
-double looseE28(){ return looseE27()*0.47; }
+double looseE28(){ return looseE27()*halfimmersed_acrlyic_high_guess_dir_efficiency; }
 
 double looseH50(){ return looseJ14() + looseJ19() + looseC26() + looseE28(); }
 
-double looseD28(){ return looseD27()*0.43; }
+double looseD28(){ return looseD27()*halfimmersed_acrlyic_low_guess_dir_efficiency; }
 
 double looseG50() { return looseI14() + looseI19() + looseB26() + looseD28(); }
 
@@ -238,7 +233,7 @@ void dcfluids_finalfit()
   printf("TECHNOTE 5.3: Gaussian central value of number of effective "
     "beta-n O-16 captures per day: %.1f\n", n_o16cap_betan);
 
-  printf("const double n_o16cap_beta  = %f;\n", n_o16cap_beta);
+  printf("const double n_o16cap_beta  = %f; ", n_o16cap_beta);
   printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
 
   
