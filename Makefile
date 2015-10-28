@@ -8,7 +8,17 @@ analysis: \
   n12_finalfit.out \
   b14_finalfit.out \
   n16_finalfit.out \
+  he6_finalfit.out \
+  li9_finalfit.out \
   li8_finalfit.out
+
+li9_finalfit.out: \
+  consts.h \
+  noncarbondenominators_finalfit_out.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_li9.sh \
+  li9finalfit.C
+	./run_analysis_li9.sh
 
 n16_finalfit.out: \
   consts.h \
@@ -38,6 +48,13 @@ c9_finalfit.out: \
   run_analysis_c9.sh \
   c9finalfit.C
 	./run_analysis_c9.sh
+
+he6_finalfit.out: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_he6.sh \
+  he6finalfit.C
+	./run_analysis_he6.sh
 
 b8_finalfit.out: \
   consts.h \

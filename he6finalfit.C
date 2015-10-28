@@ -11,6 +11,7 @@
 #include "TF1.h"
 #include <stdio.h>
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
 
 // Turn on to use the high-purity muon sample.  I found that this 
 // gave similar, but slightly worse, results
@@ -382,8 +383,11 @@ void he6finalfit(const int nreq_ = 0,
   const double chi2he6 = mn->fAmin;
 
   if(chi2nohe6 - chi2he6 > 0)
-    printf("%sSignificance of He-6: %f%s\n",
-           RED, sqrt(chi2nohe6 - chi2he6), CLR);
+    printf("%sTECHNOTE Table 2: Significance of He-6 with %d neutrons: %f%s\n",
+           RED, nreq, sqrt(chi2nohe6 - chi2he6), CLR);
+  else
+    printf("%sTECHNOTE Table 2: Significance of He-6 with %d neutrons: 0%s\n",
+           RED, nreq, CLR);
 
   const double upforlim = 1.64237441514981608 + chi2nohe6 - chi2he6;
 
@@ -421,7 +425,9 @@ void he6finalfit(const int nreq_ = 0,
 
   printf("%sraw    He-6: %f %f +%f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
   printf("%scooked He-6: %f %f +%f%s\n", RED, cooked_nhe6, cooked_signhe6lo, cooked_signhe6up, CLR);
-  printf("%sHe-6 prob: %f %f +%f%s\n", RED, cooked_nhe6/captures, cooked_signhe6lo/captures, cooked_signhe6up/captures, CLR);
+  printf("%s%sHe-6 prob: (%.2f %.2f +%.2f)%%%s\n", RED,
+        nreq == 1? "TECHNOTE results.tex probSixHeFromTwelveCnval: ":"",
+        100*cooked_nhe6/captures, 100*cooked_signhe6lo/captures, 100*cooked_signhe6up/captures, CLR);
 
   const double defaultfup = mn->fUp;
   mn->fUp = upforlim;
@@ -503,14 +509,14 @@ void he6finalfit(const int nreq_ = 0,
 
   const char * const name = "";
 
-  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.pdf", name, nreq,
+  c2->SaveAs(Form("he6out/he6-%s-ncut%d-%d%d%d%d%d.pdf", name, nreq,
              rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  c2->SaveAs(Form("he6-%s-ncut%d-%d%d%d%d%d.C", name, nreq,
+  c2->SaveAs(Form("he6out/he6-%s-ncut%d-%d%d%d%d%d.C", name, nreq,
              rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 
-  ehistsig->SaveAs(Form("tmp-%s-ehistsig-ncut%d-%d%d%d%d%d.C", name,
+  ehistsig->SaveAs(Form("he6out/tmp-%s-ehistsig-ncut%d-%d%d%d%d%d.C", name,
     nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
-  ehistbg->SaveAs(Form("tmp-%s-ehistbg-ncut%d-%d%d%d%d%d.C", name,
+  ehistbg->SaveAs(Form("he6out/tmp-%s-ehistbg-ncut%d-%d%d%d%d%d.C", name,
     nreq, rbinson[0], rbinson[1], rbinson[2], rbinson[3], rbinson[4]));
 
 
@@ -540,7 +546,7 @@ void he6finalfit(const int nreq_ = 0,
     printf("\n");
     sump += p;
     ps[i] = p;
-    if(p < 1e-9 && ++smallcount > 3)
+    if(p < 1e-6 && ++smallcount > 3)
       break;
   }
   
@@ -551,7 +557,13 @@ void he6finalfit(const int nreq_ = 0,
     const double prob = i*increment;
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
-       printf("Bays limit = %f\n", prob-increment/2);
+       // conservatively use the high side of the interval.
+       printf("TECHNOTE results.tex %s: Bayes limit = %.2f%%\n",
+              nreq == 0? "probSixHeFromTwelveCZeron":
+              nreq == 1? "probSixHeFromTwelveCnlim":
+              nreq == 2? "probSixHeFromTwelveCnn":
+              nreq == 3? "probSixHeFromTwelveCnnn": "???",
+              prob*100);
        break;
     }
   }

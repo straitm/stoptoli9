@@ -3,6 +3,8 @@
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
+#include "noncarbondenominators_finalfit_out.h"
 
 #include "TCanvas.h"
 #include "TColor.h"
