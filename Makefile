@@ -5,7 +5,32 @@ analysis: \
   c9_finalfit.out \
   be12_finalfit.out \
   b8_finalfit.out \
+  n12_finalfit.out \
+  b14_finalfit.out \
+  n16_finalfit.out \
   li8_finalfit.out
+
+n16_finalfit.out: \
+  consts.h \
+  noncarbondenominators_finalfit_out.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_n16.sh \
+  n16finalfit.C
+	./run_analysis_n16.sh
+
+b14_finalfit.out: \
+  consts.h \
+  noncarbondenominators_finalfit_out.h \
+  run_analysis_b14.sh \
+  b14finalfit.C
+	./run_analysis_b14.sh
+
+n12_finalfit.out: \
+  consts.h \
+  noncarbondenominators_finalfit_out.h \
+  run_analysis_n12.sh \
+  n12finalfit.C
+	./run_analysis_n12.sh
 
 c9_finalfit.out: \
   consts.h \

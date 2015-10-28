@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "noncarbondenominators_finalfit_out.h"
 
 void n12finalfit()
 {
@@ -68,118 +69,96 @@ void n12finalfit()
   printf("Number selected in 100ms: %d\n", nsel);
 
   if(nsel > 0){
-  t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
-  TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
+    t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
+    TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
 
-  TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
-               "[1]*exp(-x*log(2)/[2]) + "
-               "[3]*exp(-x*log(2)/7.13) + "
-               "[4]", 0, 100);
+    TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
+                 "[1]*exp(-x*log(2)/[2]) + "
+                 "[3]*exp(-x*log(2)/7.13) + "
+                 "[4]", 0, 100);
 
-  ee->SetParameters(1, 1, 0.7700, 1, 1);
-  ee->FixParameter(3, 0);
-  ee->FixParameter(2, 0.0110);
+    ee->SetParameters(1, 1, 0.7700, 1, 1);
+    ee->FixParameter(3, 0);
+    ee->FixParameter(2, 0.0110);
 
-  ee->SetParLimits(1, 0, 10);
-  if(nncut >= 3){
-    ee->SetParLimits(0, 0, 10);
-    ee->SetParLimits(4, 0, 10);
-  }
-  int p0isfixed = 0;
-  if(nncut >= 4){
-    p0isfixed = 1;
-    ee->FixParameter(0, 0);
-    ee->FixParameter(4, 0);
-  }
+    ee->SetParLimits(1, 0, 10);
+    if(nncut >= 3){
+      ee->SetParLimits(0, 0, 10);
+      ee->SetParLimits(4, 0, 10);
+    }
+    int p0isfixed = 0;
+    if(nncut >= 4){
+      p0isfixed = 1;
+      ee->FixParameter(0, 0);
+      ee->FixParameter(4, 0);
+    }
 
-  hfit->Fit(Form("ee%d", nncut), "le");
-
-  if(ee->GetParameter(0) < 1e-6){
-    p0isfixed = 1;
-    ee->FixParameter(0, 0);
     hfit->Fit(Form("ee%d", nncut), "le");
-  }
 
-  t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
-  TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
-  if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
+    if(ee->GetParameter(0) < 1e-6){
+      p0isfixed = 1;
+      ee->FixParameter(0, 0);
+      hfit->Fit(Form("ee%d", nncut), "le");
+    }
 
-  TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
-  eedisp->SetNpx(400);
-  eedisp->SetLineColor(kRed);
+    t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
+    TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
+    if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
-  int tomult[4] = { 0, 1, 3, 4};
-  const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
-  for(int i = 0; i < 4; i++)
-    eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
-  eedisp->Draw("same");
+    TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
+    eedisp->SetNpx(400);
+    eedisp->SetLineColor(kRed);
 
-  TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-  TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
-  TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
+    int tomult[4] = { 0, 1, 3, 4};
+    const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
+    for(int i = 0; i < 4; i++)
+      eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
+    eedisp->Draw("same");
 
-  b12->SetNpx(400);
-  b8->SetNpx(400);
+    TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
+    TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
+    TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
 
-  TF1 * parts[3] = { b12, b8, acc };
+    b12->SetNpx(400);
+    b8->SetNpx(400);
 
-  b12->SetParameter(0, eedisp->GetParameter(0));
-  b8 ->SetParameter(0, eedisp->GetParameter(1));
-  b8 ->SetParameter(1, eedisp->GetParameter(2));
-  acc->SetParameter(0, eedisp->GetParameter(4));
+    TF1 * parts[3] = { b12, b8, acc };
 
-  for(int i = 0; i < 3; i++){
-    parts[i]->SetLineStyle(7);
-    parts[i]->SetLineWidth(2);
-    parts[i]->Draw("Same");
-  }
+    b12->SetParameter(0, eedisp->GetParameter(0));
+    b8 ->SetParameter(0, eedisp->GetParameter(1));
+    b8 ->SetParameter(1, eedisp->GetParameter(2));
+    acc->SetParameter(0, eedisp->GetParameter(4));
 
-  const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
-  double Nerrup, Nerrlo;
-  char * errtype = NULL;
-  if(hfit->GetEntries() < 3){
-    errtype = "HESSE";
-    Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
-    Nerrlo = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+    for(int i = 0; i < 3; i++){
+      parts[i]->SetLineStyle(7);
+      parts[i]->SetLineWidth(2);
+      parts[i]->Draw("Same");
+    }
+
+    const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
+    double Nerrup, Nerrlo;
+    char * errtype = NULL;
+    if(hfit->GetEntries() < 3){
+      errtype = "HESSE";
+      Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+      Nerrlo = Nfound * ee->GetParError(1)/ee->GetParameter(1);
+    }
+    else{
+      errtype = "MINOS";
+      Nerrup = Nfound * gMinuit->fErp[1-p0isfixed]/ee->GetParameter(1);
+      Nerrlo = Nfound * gMinuit->fErn[1-p0isfixed]/ee->GetParameter(1);
+    }
+
+    printf("%sN found: %f +%f %f %s%s\n",
+           RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
+
+    printf("%sProb: %g +%g %g%s\n",
+        RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
+
+    printf("TECHNOTE: Selected >0 events for N-12, look at the code\n");
   }
   else{
-    errtype = "MINOS";
-    Nerrup = Nfound * gMinuit->fErp[1-p0isfixed]/ee->GetParameter(1);
-    Nerrlo = Nfound * gMinuit->fErn[1-p0isfixed]/ee->GetParameter(1);
+    printf("%sTECHNOTE results.tex probTwelveNFromSixteenO: N-12 limit < %.0e\n%s",
+          RED, 2.30258509299404590/eff/captures/lim_inflation_for_obeta, CLR);
   }
-
-  printf("%sN found: %f +%f %f %s%s\n",
-         RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
-
-  printf("%sProb: %g +%g %g%s\n",
-      RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
-  }
-
-  printf("%sIf you see none before 100ms with no background: < %f\n%s", RED, 2.3/eff/captures/lim_inflation_for_obeta, CLR);
-
-/*  TF1 gaus("gaus", "gaus(0)", 0, 20);
-  gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);
-
-  for(int i = 1; i < 400; i++){
-    const double up = 0.01*i;
-    const double frac = gaus.Integral(0, up)/gaus.Integral(0, 20);
-    printf("%f %f\n", up, frac);
-    if(frac > 0.9){
-      printf("90%% limit = %f\n", up);
-      printf("90%% limit prob = %f\n", up*toprob);
-      printf("90%% limit prob *0.1/1.22 = %f\n", up*toprob *(1+0.1/1.22));
-      break;
-    }
-  } */
-
-/*
-  c->cd(2);
-
-  const string escut =
-    Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d "
-    "&& timeleft > 10e3", ndef, nncut, ndef, nncuthigh);
-  const char * const ecut = escut.c_str();
-
-  t->Draw(Form("e >> ehist%d(250, 0, 25)", nncut), ecut, "e");
-*/
 }

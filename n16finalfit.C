@@ -12,6 +12,8 @@
 #include "TMinuit.h"
 #include "TGaxis.h"
 #include "consts.h"
+#include "noncarbondenominators_finalfit_out.h"
+#include "carbondenominators_finalfit_out.h"
 #include <string>
 
 // High-purity sample
@@ -385,9 +387,9 @@ void n16finalfit()
     }
   }
 
-  printf("%sBe-11 90%% CL upper limit prob: %.3lf %s\n", RED, be11lim, CLR);
+  printf("%sTECHNOTE results.tex probElevenBeFromTwelveC: Be-11 90%% CL upper limit prob: %.2lf%% %s\n", RED, be11lim, CLR);
 
-  printf("%sC-15 90%% CL upper limit prob: %.3lf %s\n", RED, c15lim, CLR);
+  printf("%sTECHNOTE results.tex probFifteenCFromSixteenO: C-15 90%% CL upper limit prob: %.0lf%% %s\n", RED, c15lim, CLR);
 
   TCanvas * c2 = new TCanvas("c2", "c2", 1000, 1000);
 

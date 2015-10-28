@@ -632,9 +632,9 @@ void results(const char * const iname, const int mni,
          "+%f %f(total),  +%f -%f (non-fit)\n",
          prec2, 
          !strcmp(iname, "C-12 -> B-12")?
-           "TECHNOTE 4.3 and results.tex probTwelveBfromTwelveC: ":
+           "TECHNOTE 4.3 and results.tex probTwelveBFromTwelveC: ":
          !strcmp(iname, "C-13 -> B-12+n")?
-           "TECHNOTE 4.3 and results.tex probTwelveBfromThirteenC: ":
+           "TECHNOTE 4.3 and results.tex probTwelveBFromThirteenC: ":
          !strcmp(iname, "C-13 -> B-13")?"":"?",
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,

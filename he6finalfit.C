@@ -279,7 +279,7 @@ void he6finalfit(const int nreq_ = 0,
 
   if(ehistsig->Integral(4, 32) == 0){
     printf("NO signal events.  Assuming zero background, \n"
-           "limit is roughly < %f\n", 2.3/captures/teff[1]);
+           "limit is roughly < %f\n", 2.30258509299404590/captures/teff[1]);
     return;
   }
   else{

@@ -174,14 +174,14 @@ void c9finalfit(const char elem = 'o')
     if(elem == 'o')
       printf("%sTECHNOTE results.tex %s: "
            "If no events and no background: <%.2f%%%s\n", 
-        RED, "probNineCfromSixteenO",
-        2.3026*toprob*lim_inflation_for_obeta*100, CLR);
+        RED, "probNineCFromSixteenO",
+        2.30258509299404590*toprob*lim_inflation_for_obeta*100, CLR);
 
     else 
       printf("%sTECHNOTE results.tex %s: "
            "If no events and no background: < %.1f%%%s\n", 
-        RED, "probNineCfromFourteenN",
-        2.3026*toprob*lim_inflation_for_obeta*100, CLR);
+        RED, "probNineCFromFourteenN",
+        2.30258509299404590*toprob*lim_inflation_for_obeta*100, CLR);
   }
 
 

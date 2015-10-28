@@ -777,7 +777,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
   const int oldprintlevel = mn->fISW[4];
   mn->Command("Set print 0");
 
-  mn->fUp = 2.30; // 68% in 2D
+  mn->fUp = 2.30258509299404590; // 68% in 2D
   mn->Command(Form("mncont %d %d %d", par1, par2, points));
   TGraph * sigma_2d =
     mn->GetPlot()?(TGraph*)((TGraph*)mn->GetPlot())->Clone():NULL;
@@ -1172,7 +1172,7 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2_all = mn->fAmin;
 
-  const double maxb13 = getpar(mn, 7) + mn->fErp[7] * sqrt(2.3);
+  const double maxb13 = getpar(mn, 7) + mn->fErp[7] * sqrt(2.30258509299404590);
   printf("%sApprox 90%% upper limit B-13: %f\n%s", RED, maxb13, CLR);
   printf("%sBut look at the contour!\n%s", RED, CLR);
 

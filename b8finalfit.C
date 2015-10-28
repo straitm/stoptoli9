@@ -137,7 +137,7 @@ void b8finalfit(const int nn = 4)
         RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
   }
   else{
-    const double N = 2.3026;
+    const double N = 2.30258509299404590;
     printf("%sTECHNOTE results.tex probEightBFromTwelveC: Probability 90%% limit: %.2g%s\n",RED, toprob*N, CLR);
   }
 }

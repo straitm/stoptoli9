@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "noncarbondenominators_finalfit_out.h"
 
 void b14finalfit()
 {
@@ -96,8 +97,7 @@ void b14finalfit()
         RED, eff, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
   }
   else{
-    printf("%sNo signal and no background, so limit is <%.2f%%%s\n",
-           RED, 2.3026*lim_inflation_for_obeta*toprob*100, CLR);
+    printf("%sTECHNOTE results.tex probFourteenBFromSixteenO: No signal, no bg, limit is <%.2f%%%s\n",
+           RED, 2.30258509299404590*lim_inflation_for_obeta*toprob*100, CLR);
   }
-
 }
