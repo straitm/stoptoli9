@@ -1042,8 +1042,11 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2all_nopull = mn->fAmin;
 
-  printf("%sSignificance of any betan (%f vs. %f), no cheaty pulls: %.1f%s\n",
-         RED, chi2nothing, chi2all_nopull, 
+  printf("%s%sSignificance of any betan (%f vs. %f), no cheaty pulls: %.1f%s\n",
+         RED,
+         neutrons == -1?"TECHNOTE results.tex betansignificance: ":
+         neutrons ==  1?"TECHNOTE 8.4.1: ":"",
+         chi2nothing, chi2all_nopull, 
          lratsig(chi2nothing, chi2all_nopull), CLR);
 
   printf("%sSignificance of li9/he8 over other bn&accidental without pull: %.2f%s\n",
@@ -1067,8 +1070,11 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
   }
   const double chi2all_withpull = mn->fAmin;
 
-  printf("%sSignificance of li9/he8 over other bn&accidental with pull: %.1f%s\n",
-         RED, lratsig(chi2all_exceptli9he8_withpull, chi2all_withpull), CLR);
+  printf("%s%sSignificance of li9/he8 over other bn&accidental with pull: %.1f%s\n",
+         RED,
+         neutrons == -1?"TECHNOTE results.tex linineheeightsignificance: ":
+         neutrons ==  1?"TECHNOTE 8.4.1: ":"",
+         lratsig(chi2all_exceptli9he8_withpull, chi2all_withpull), CLR);
 
   {
     setupmn(mn, expectedgdfrac);
@@ -1139,16 +1145,24 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
     printf("%sLi-9 prob/C-12 capture with everything except "
            "He-8 (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
-    printf("%sLi-9 prob/C-13 capture with everything except "
-           "He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*Nc12cap/Nc13cap,
-           mn->fErn[2]*Nc12cap/Nc13cap, mn->fErp[2]*Nc12cap/Nc13cap,
+    printf("%s%sLi-9 prob/C-13 capture with everything except "
+           "He-8 (%.2f): (%.1f %.1f +%.1f)%%%s\n",
+           RED,
+           neutrons == -1?"TECHNOTE results.tex probNineLiFromThirteenC: ":"",
+           mn->fAmin,
+           getpar(mn, 2)*Nc12cap/Nc13cap*100,
+           mn->fErn[2]*Nc12cap/Nc13cap*100,
+           mn->fErp[2]*Nc12cap/Nc13cap*100,
            CLR);
-    printf("%sLi-9 prob/C-nat capture with everything except "
-           "He-8 (%.2f): %g %g +%g%s\n",
-           RED, mn->fAmin, getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap),
-           mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap),
-           mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap),
+    printf("%s%sLi-9 prob/C-nat capture w/ everything except "
+           "He-8 (%.2f): (%.2f %.2f +%.2f)*10**-4%s\n",
+           RED,
+           neutrons == -1? "TECHNOTE results.tex primaryresult: ":
+           neutrons ==  1? "TECHNOTE results.tex probNineLiFromTwelveC: ":"",
+           mn->fAmin,
+           getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap)*10000,
+           mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
+           mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
            CLR);
   }
   const double chi2_allbut_he8 = mn->fAmin;
@@ -1253,10 +1267,10 @@ void li9finalfit(int neutrons = -1, int contourmask = 0)
 
   if(neutrons == 1){
     setupmn(mn, expectedgdfrac);
-    const double assumedli9prob = 0.243774e-3;
+    const double assumedli9prob = 0.243774e-3; // XXX should read this in properly
     fixat(mn, 3, assumedli9prob);
     mn->Command("MIGRAD");
-    printf("%sSigmas between here & Li-9 prob = %f: %.1f%s\n",
+    printf("%sTECHNOTE 8.4.1: Sigmas between here & Li-9 prob = %f: %.1f%s\n",
            RED, assumedli9prob, lratsig(mn->fAmin, chi2_all), CLR);
   }
   
