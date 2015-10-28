@@ -3,6 +3,8 @@ all: stoptoli9 b12search
 analysis: \
   fullb12_finalfit.out \
   c9_finalfit.out \
+  be12_finalfit.out \
+  b8_finalfit.out \
   li8_finalfit.out
 
 c9_finalfit.out: \
@@ -11,6 +13,20 @@ c9_finalfit.out: \
   run_analysis_c9.sh \
   c9finalfit.C
 	./run_analysis_c9.sh
+
+b8_finalfit.out: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_b8.sh \
+  b8finalfit.C
+	./run_analysis_b8.sh
+
+be12_finalfit.out: \
+  consts.h \
+  carbondenominators_finalfit_out.h \
+  run_analysis_be12.sh \
+  be12finalfit.C
+	./run_analysis_be12.sh
 
 li8_finalfit.out: \
   consts.h \
@@ -39,8 +55,6 @@ noncarbondenominators_finalfit_out.h: \
   run_analysis_noncarbondenominators.sh \
   noncarbondenominators_finalfit.C
 	./run_analysis_noncarbondenominators.sh
-
-noncarbondenominators_finalfit.C:
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -lm

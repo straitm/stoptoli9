@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
 
 void b8finalfit(const int nn = 4)
 {
@@ -137,6 +138,6 @@ void b8finalfit(const int nn = 4)
   }
   else{
     const double N = 2.3026;
-    printf("%sProbability 90%% limit: %.2g%s\n",RED, toprob*N, CLR);
+    printf("%sTECHNOTE results.tex probEightBFromTwelveC: Probability 90%% limit: %.2g%s\n",RED, toprob*N, CLR);
   }
 }

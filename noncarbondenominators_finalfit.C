@@ -493,7 +493,7 @@ void printlowhighgaus(const char * const msg, const double low,
     msg, low, high, low, high, (low+high)/2, (high-low)/sqrt(12));
 }
 
-void dcfluids_finalfit()
+void noncarbondenominators_finalfit()
 {
   printlowhighgaus("TECHNOTE 5.3: number of effective "
     "beta O-16 captures/day", beta_total_low(), beta_total_high());

@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
 
 void be12finalfit()
 {
@@ -57,6 +58,6 @@ void be12finalfit()
   }
   const double upperlimprob = upperlimcount/livetime/n_c13cap/b12eff/be12eff;
 
-  printf("Upper limit count = %.2f\n", upperlimcount);
-  printf("%sUpper limit prob = %.3f%%%s\n", RED, upperlimprob*100, CLR);
+  printf("TECHNOTE 9: Be-12 count = %d\n", n);
+  printf("%sTECHNOTE results.tex probTwelveBeFromThirteenC: Be-12 90%% upper limit prob = %.2f%%%s\n", RED, upperlimprob*100, CLR);
 }
