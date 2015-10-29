@@ -1,7 +1,6 @@
 all: stoptoli9 b12search
 
 analysis: \
-  fullb12_finalfit.out \
   b12groundstate_finalfit.out \
   c9_finalfit.out \
   be12_finalfit.out \
@@ -10,7 +9,6 @@ analysis: \
   b14_finalfit.out \
   n16_finalfit.out \
   he6_finalfit.out \
-  b12gamma_finalfit.out \
   li9_finalfit.out \
   li8_finalfit.out
 
@@ -86,14 +84,14 @@ b12groundstate_finalfit.out: \
   b12groundstatefinalfit.C
 	./run_analysis_b12groundstate.sh
 
-b12gamma_finalfit.out: \
+b12gamma_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_b12gamma.sh \
   b12gammafinalfit.C
 	./run_analysis_b12gamma.sh
 
-fullb12_finalfit.out: \
+fullb12_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_fullb12.sh \
