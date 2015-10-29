@@ -1,6 +1,6 @@
 #!/bin/bash
 
-root -b -q b12like_finalfit.C++'(bad)' &> /dev/null
+root -b -q b12like_finalfit.C++O'(bad)' &> /dev/null
 
 cat run2month | awk '{print $2}' | sort | uniq | \
 while read month; do

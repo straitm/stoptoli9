@@ -8,7 +8,7 @@ out=carbondenominators_finalfit.out
 
 set -o pipefail
 
-if ! root -b -q carbondenominators_finalfit.C+ | tee /tmp/$$.$out; then
+if ! root -b -q carbondenominators_finalfit.C+O | tee /tmp/$$.$out; then
   exit 1
 fi
 
