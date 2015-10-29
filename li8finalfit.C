@@ -541,7 +541,7 @@ void results(const char * const iname, const int mni,
   const double ferrorfitup = sani_minos(mn->fErp[mni])/getpar(mni);
   const double ferrorfitlo = sani_minos(mn->fErn[mni])/getpar(mni);
 
-  printtwice("\n%s raw %f +%f %f\n", 0, iname,
+  printtwice("\nTECHNOTE 10.1: %s raw %f +%f %f\n", 0, iname,
     fit, ferrorfitup*fit, ferrorfitlo*fit);
 
   const double like_central = fit/eff/mum_count * 100/ifrac;
@@ -555,8 +555,8 @@ void results(const char * const iname, const int mni,
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
-  printtwice("\n%s, eff corrected, percent per C mu- stop\n"
-    "%f +%f %f(fit) +-%f(mu count) +-%f(Li-8 eff),\n"
+  printtwice("\n%s, eff corrected, percent per C mu- stop "
+    "%f +%f %f(fit) +-%f(mu count) +-%f(Li-8 eff), "
     "+%f %f(total),  +%f -%f (non-fit)\n",
     prec1, iname, like_central, staterrup, staterrlo, muerr, err,
     toterrup, toterrlo,
@@ -580,10 +580,12 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nTECHNOTE 10.1: Or percent per nuclear mu- capture on this isotope "
-         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac),\n"
-         "+%f %f(total),  +%f -%f (non-fit)\n",
+  printtwice("\nTECHNOTE results.tex %s: Or percent per nuclear mu- capture on this isotope "
+         "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
+         "+%f %f(total),  +%f -%f (non-fit, a.k.a. syst)\n",
          prec2, 
+         !strcmp(iname, "C-12 -> Li-8")?"probEightLiFromTwelveC":
+         !strcmp(iname, "C-13 -> Li-8+n")?"probEightLiFromThirteenC":"???"
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -608,8 +610,7 @@ void results(const char * const iname, const int mni,
                                   pow(lifetimeerr_rate,2));
 
   printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
-         "+-%f(lifetime)\n"
-         "+%f %f(total)  +%f -%f\n",
+         "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
