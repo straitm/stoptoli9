@@ -585,13 +585,30 @@ void results(const char * const iname, const int mni,
          "+%f %f(total),  +%f -%f (non-fit, a.k.a. syst)\n",
          prec2, 
          !strcmp(iname, "C-12 -> Li-8")?"probEightLiFromTwelveC":
-         !strcmp(iname, "C-13 -> Li-8+n")?"probEightLiFromThirteenC":"???"
+         !strcmp(iname, "C-13 -> Li-8+n")?"probEightLiFromThirteenC":"???",
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
          sqrt(pow(toterr_percapup,2) - pow(staterr_percapup,2)),
          sqrt(pow(toterr_percaplo,2) - pow(staterr_percaplo,2))
          );
+
+  if(!strcmp(iname, "C-13 -> Li-8+n")){
+    printf("const double probEightLiFromThirteenC = %f;\n",
+           like_central_percap/100.);
+    printf("const double probEightLiFromThirteenC_statup = %f;\n",
+           staterr_percapup/100.);
+    printf("const double probEightLiFromThirteenC_statlo = %f;\n",
+           staterr_percaplo/100.);
+  }
+  else if(!strcmp(iname, "C-12 -> Li-8")){
+    printf("const double probEightLiFromTwelveC = %f;\n",
+           like_central_percap/100.);
+    printf("const double probEightLiFromTwelveC_statup = %f;\n",
+           staterr_percapup/100.);
+    printf("const double probEightLiFromTwelveC_statlo = %f;\n",
+           staterr_percaplo/100.);
+  }
 
   const double like_central_rate = like_central/lifetime/100;
   const double staterr_rateup = staterrup/lifetime/100;

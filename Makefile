@@ -9,8 +9,7 @@ analysis: \
   b14_finalfit.out \
   n16_finalfit.out \
   he6_finalfit.out \
-  li9_finalfit.out \
-  li8_finalfit.out
+  li9_finalfit.out
 
 li9_finalfit.out: \
   consts.h \
@@ -70,7 +69,7 @@ be12_finalfit.out: \
   be12finalfit.C
 	./run_analysis_be12.sh
 
-li8_finalfit.out: \
+li8_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_li8.sh \
@@ -78,14 +77,17 @@ li8_finalfit.out: \
 	./run_analysis_li8.sh
 
 b12groundstate_finalfit.out: \
+  li8_finalfit_out.h \
   fullb12_finalfit_out.h \
   b12gamma_finalfit_out.h \
   run_analysis_b12groundstate.sh \
-  b12groundstatefinalfit.C
+  b12groundstate_finalfit.C
 	./run_analysis_b12groundstate.sh
 
 b12gamma_finalfit_out.h: \
   consts.h \
+  li8_finalfit_out.h \
+  fullb12_finalfit_out.h \
   carbondenominators_finalfit_out.h \
   run_analysis_b12gamma.sh \
   b12gammafinalfit.C

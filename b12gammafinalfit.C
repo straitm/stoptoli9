@@ -1,6 +1,10 @@
 #include "unistd.h"
 #include "consts.h"
 #include "carbondenominators_finalfit_out.h"
+#include "li8_finalfit_out.h"
+#include "fullb12_finalfit_out.h"
+#include "b12gamma_finalfit_out.h"
+
 
 #include <string>
 #include "math.h"
@@ -245,16 +249,17 @@ void print_results8(const double eff, const double energy,
   const double n_ec = n/eff, nelo_ec = nelo/eff,
                              neup_ec = neup/eff;
 
-  const double p_li8_from_c12 = 0.0055;
-
-  const double li8syst_fup= sqrt(pow(0.04/0.55, 2) +pow(addsystf,2)),
-               li8syst_flo=-sqrt(pow(0.04/0.55, 2) +pow(addsystf,2));
+  // sic: lo goes with up and vice versa
+  const double li8syst_fup=
+    sqrt(pow(probEightLiFromTwelveC_statlo/probEightLiFromTwelveC, 2) +pow(addsystf,2)),
+               li8syst_flo=
+   -sqrt(pow(probEightLiFromTwelveC_statup/probEightLiFromTwelveC, 2) +pow(addsystf,2));
 
   const double
-    li8stat_lo = 100*nelo_ec/Nc12cap/p_li8_from_c12,
-    li8stat_up = 100*neup_ec/Nc12cap/p_li8_from_c12,
-    li8syst_lo = 100*n_ec/Nc12cap/p_li8_from_c12 * li8syst_flo,
-    li8syst_up = 100*n_ec/Nc12cap/p_li8_from_c12 * li8syst_fup;
+    li8stat_lo = 100*nelo_ec/Nc12cap/probEightLiFromTwelveC,
+    li8stat_up = 100*neup_ec/Nc12cap/probEightLiFromTwelveC,
+    li8syst_lo = 100*n_ec/Nc12cap/probEightLiFromTwelveC * li8syst_flo,
+    li8syst_up = 100*n_ec/Nc12cap/probEightLiFromTwelveC * li8syst_fup;
 
   const double percentval = 100*n_ec/Nc12cap/p_li8_from_c12;
 
@@ -282,7 +287,7 @@ void print_results8(const double eff, const double energy,
 
   const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
+  const double ratesyst_f = sqrt(pow(0.021, 2) /* XXX ? */+ pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -326,18 +331,23 @@ void print_results13(const double eff, const double energy,
   const double n_ec = n/eff, nelo_ec = nelo/eff,
                              neup_ec = neup/eff;
 
-  const double p_b12_from_c13 = 0.516;
-
-  const double b12syst_fup= sqrt(pow(5/51.6, 2) +pow(addsystf,2)),
-               b12syst_flo=-sqrt(pow(5/51.6, 2) +pow(addsystf,2));
+  // sic: up goes with lo and vice versa because these go on the bottom
+  // of a ratio. i.e. if the total rate is higher, the fraction of a
+  // gamma line is lower.
+  const double b12syst_fup= sqrt(pow(probTwelveBFromThirteenC_statlo/
+                                     probTwelveBFromThirteenC, 2)
+                               + pow(addsystf,2)),
+               b12syst_flo=-sqrt(pow(probTwelveBFromThirteenC_statup/
+                                     probTwelveBFromThirteenC, 2)
+                               + pow(addsystf,2))
 
   const double
-    b12stat_lo = 100*nelo_ec/Nc13cap/p_b12_from_c13,
-    b12stat_up = 100*neup_ec/Nc13cap/p_b12_from_c13,
-    b12syst_lo = 100*n_ec/Nc13cap/p_b12_from_c13 * b12syst_flo,
-    b12syst_up = 100*n_ec/Nc13cap/p_b12_from_c13 * b12syst_fup;
+    b12stat_lo = 100*nelo_ec/Nc13cap/probTwelveBFromThirteenC,
+    b12stat_up = 100*neup_ec/Nc13cap/probTwelveBFromThirteenC,
+    b12syst_lo = 100*n_ec/Nc13cap/probTwelveBFromThirteenC * b12syst_flo,
+    b12syst_up = 100*n_ec/Nc13cap/probTwelveBFromThirteenC * b12syst_fup;
 
-  const double percentval = 100*n_ec/Nc13cap/p_b12_from_c13;
+  const double percentval = 100*n_ec/Nc13cap/probTwelveBFromThirteenC;
   printtwice("\n%.0fkeV per B-12 + n production: "
              "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
              percentval,
@@ -362,7 +372,7 @@ void print_results13(const double eff, const double energy,
 
   const double ratemult = capprob13/(Nc13cap*muClife)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
+  const double ratesyst_f = sqrt(pow(0.021, 2)/* XXX ? */ + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -418,16 +428,21 @@ void print_results(const double eff, const double energy,
              100*nelo_ec/Nc12cap,
              100*neup_ec/Nc12cap);*/
 
-  const double p_b12_from_c12 = 0.1735;
-
-  const double b12syst_fup =  sqrt(pow(0.0319, 2) + pow(addsystf,2)),
-               b12syst_flo = -sqrt(pow(0.0163, 2) + pow(addsystf,2));
+  // sic: up goes with lo and vice versa because these go on the bottom
+  // of a ratio. i.e. if the total rate is higher, the fraction of a
+  // gamma line is lower.
+  const double b12syst_fup = 
+    sqrt(pow(probTwelveBFromTwelveC_statlo/probTwelveBFromTwelveC, 2)
+       + pow(addsystf,2)),
+               b12syst_flo =
+   -sqrt(pow(probTwelveBFromTwelveC_statup/probTwelveBFromTwelveC, 2)
+       + pow(addsystf,2));
 
   const double
-    b12stat_lo = 100*nelo_ec/Nc12cap/p_b12_from_c12,
-    b12stat_up = 100*neup_ec/Nc12cap/p_b12_from_c12,
-    b12syst_lo = 100*n_ec/Nc12cap/p_b12_from_c12 * b12syst_flo,
-    b12syst_up = 100*n_ec/Nc12cap/p_b12_from_c12 * b12syst_fup;
+    b12stat_lo = 100*nelo_ec/Nc12cap/probTwelveBFromTwelveC,
+    b12stat_up = 100*neup_ec/Nc12cap/probTwelveBFromTwelveC,
+    b12syst_lo = 100*n_ec/Nc12cap/probTwelveBFromTwelveC * b12syst_flo,
+    b12syst_up = 100*n_ec/Nc12cap/probTwelveBFromTwelveC * b12syst_fup;
 
   printtwice("\n%.0fkeV per bound B-12 production: "
              "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
@@ -440,7 +455,7 @@ void print_results(const double eff, const double energy,
 
   const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2) + pow(addsystf, 2));
+  const double ratesyst_f = sqrt(pow(0.021, 2)/* XXX ? */ + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
