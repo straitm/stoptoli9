@@ -3,8 +3,8 @@
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h"
-#include "noncarbondenominators_finalfit_out.h"
+#include "carbondenominators_finalfit.out.h"
+#include "noncarbondenominators_finalfit.out.h"
 
 #include "TCanvas.h"
 #include "TColor.h"
@@ -897,9 +897,37 @@ float getredchi2(const int run, const int trig)
   return ids_chi2/(nidtubes + nivtubes - 6);
 }
 
+double getprimaryresult()
+{
+  ifstream infile("li9_finalfit_-1.out.h");
+  if(!infile.is_open()){
+    printf("couldn't open li9_finalfit_-1.out.h\n");
+    exit(1);
+  }
+
+  string scratch;
+  double primaryresult;
+  for(int i = 0; i < 4; i++){
+    if(!(infile >> scratch)){
+      printf("li9_finalfit_-1.out.h ended unexpectedly\n");
+      exit(1);
+    }
+  }
+  if(!(infile >> primaryresult)){
+    printf("li9_finalfit_-1.out.h ended unexpectedly or had bad format\n");
+    exit(1);
+  }
+   
+  return primaryresult;
+}
+
 void li9_finalfit(int neutrons = -1, int contourmask = 0)
 {
-  if(neutrons < -1) return;
+  if(neutrons < -1){
+    puts("You gave me less than -1 neutrons, so I am just compiling");
+    return;
+  }
+
   // First factor takes into account the efficiency of selecting a
   // neutron after a muon, second is the prompt energy cut, third as
   // documented above
@@ -1164,6 +1192,12 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
            mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
            mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
            CLR);
+    if(neutrons == -1)
+      // NOTE-driftcheck: horrible and fragile passing of this result to
+      // the 1-neutron code. Note the space after the number, which is
+      // necessary!
+      printf("const double primaryresult = %f ;\n",
+             getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap));
   }
   const double chi2_allbut_he8 = mn->fAmin;
 
@@ -1267,11 +1301,11 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
 
   if(neutrons == 1){
     setupmn(mn, expectedgdfrac);
-    const double assumedli9prob = 0.243774e-3; // XXX should read this in properly
-    fixat(mn, 3, assumedli9prob);
+    const double primaryresult = getprimaryresult(); // NOTE-driftcheck
+    fixat(mn, 3, primaryresult);
     mn->Command("MIGRAD");
     printf("%sTECHNOTE 8.4.1: Sigmas between here & Li-9 prob = %f: %.1f%s\n",
-           RED, assumedli9prob, lratsig(mn->fAmin, chi2_all), CLR);
+           RED, primaryresult, lratsig(mn->fAmin, chi2_all), CLR);
   }
   
   //////////////////////////////////////////////////////////////////////

@@ -136,7 +136,7 @@ static void printtwice(const char * const msg, const int digits, ...)
 }
 
 /**********************************************************************/
-#include "mucountfinalfit.C"
+#include "mucount_finalfit.C"
 
 // The number of stopping mu-.
 const double mum_count = mucountfinalfit_cut(

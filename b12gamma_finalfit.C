@@ -1,8 +1,8 @@
 #include "unistd.h"
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h"
-#include "li8_finalfit_out.h"
-#include "fullb12_finalfit_out.h"
+#include "carbondenominators_finalfit.out.h"
+#include "li8_finalfit.out.h"
+#include "fullb12_finalfit.out.h"
 
 
 #include <string>
@@ -262,8 +262,9 @@ void print_results8(const double eff, const double energy,
 
   const double percentval = 100*n_ec/Nc12cap/probEightLiFromTwelveC;
 
-  printtwice("\n%.0fkeV per Li-8 production: "
-             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
+  printtwice("\nTECHNOTE results.tex probLiEightGammaFrac, "
+             "probLiEightGammaFracCent: %.0fkeV per Li-8 production: "
+             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 0, energy,
              percentval,
              li8stat_lo, li8stat_up,
              li8syst_lo, li8syst_up,
@@ -278,8 +279,9 @@ void print_results8(const double eff, const double energy,
   const double bayescorrectionforrate = fraclimit/
     (percentval + li8stat_up*ROOT::Math::gaussian_quantile(0.9, 1));
 
-  printtwice("\n%.0fkeV 90%% upper limit per Li-8 production: "
-             "%f%%\n", 1, energy,
+  printtwice("\nTECHNOTE results.tex probLiEightGammaFracSimple: "
+             "%.0fkeV 90%% upper limit per Li-8 production: "
+             "%f%%\n", 0, energy,
              /* See comments for rate limit, below */
              fraclimit*(1 + li8syst_up/percentval*0.17)
             );
@@ -294,15 +296,18 @@ void print_results8(const double eff, const double energy,
     ratesyst = ratesyst_f*n_ec*ratemult;
 
   const double rateval = n_ec*ratemult;
-  printtwice("\n%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
-             "%f +%f (tot) e-3\n", 3, energy,
+  printtwice("\nTECHNOTE results.tex probLiEightGammaRate, "
+             "probLiEightGammaRateCent: %.0fkeV rate: "
+             "%f %f +%f (stat) %f +%f (syst) "
+             "%f +%f (tot) e-3\n", 2, energy,
              rateval,
              ratestat_lo, ratestat_up,
              ratesyst, ratesyst,
              -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
-  printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
+  printtwice("\nTECHNOTE results.tex probLiEightGammaRateSimple: "
+             "%.0fkeV rate 90%% upper limit: %f e-3\n", 2, energy,
   /* See comments in C-13 function below */
        (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
           * bayescorrectionforrate
@@ -346,9 +351,16 @@ void print_results13(const double eff, const double energy,
     b12syst_lo = 100*n_ec/Nc13cap/probTwelveBFromThirteenC * b12syst_flo,
     b12syst_up = 100*n_ec/Nc13cap/probTwelveBFromThirteenC * b12syst_fup;
 
+  const char * const linenumber = fabs(energy - 953) < 10? "One":
+                                  fabs(energy - 1674) < 10? "Two":
+                                  fabs(energy - 2621) < 10? "Three":
+                                  fans(energy - 3759) < 10? "Four":"??";
+
   const double percentval = 100*n_ec/Nc13cap/probTwelveBFromThirteenC;
-  printtwice("\n%.0fkeV per B-12 + n production: "
-             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
+  printtwice("\nTECHNOTE results.tex nprobGamma%sFrac, nprobGamma%sFracCent: "
+             "%.0fkeV per B-12 + n production: "
+             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n",
+             0, linenumber, linenumber, energy,
              percentval,
              b12stat_lo, b12stat_up,
              b12syst_lo, b12syst_up,
@@ -363,8 +375,9 @@ void print_results13(const double eff, const double energy,
   const double bayescorrectionforrate = fraclimit/
     (percentval + b12stat_up*ROOT::Math::gaussian_quantile(0.9, 1));
 
-  printtwice("\n%.0fkeV 90%% upper limit per B-12 + n production: "
-             "%f%%\n", 1, energy,
+  printtwice("\nTECHNOTE results.tex nprobGamma%sFracSimple: "
+             "%.0fkeV 90%% upper limit per B-12 + n production: "
+             "%f%%\n", 0, linenumber, energy,
              /* See comments for systematic on the rate limit, below */
              fraclimit*(1 + b12syst_up/percentval*0.17)
             );
@@ -379,15 +392,17 @@ void print_results13(const double eff, const double energy,
     ratesyst = ratesyst_f*n_ec*ratemult;
 
   const double rateval = n_ec*ratemult;
-  printtwice("\n%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
-             "%f +%f (tot) e-3\n", 3, energy,
+  printtwice("\nTECHNOTE results.tex nprobGamma%sRate, nprobGamma%sRateCent: "
+             "%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
+             "%f +%f (tot) e-3\n", 1, linenumber, linenumber, energy,
              rateval,
              ratestat_lo, ratestat_up,
              ratesyst, ratesyst,
              -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
-  printtwice("\n%.0fkeV rate 90%% upper limit: %f e-3\n", 1, energy,
+  printtwice("\nTECHNOTE results.tex nprobGamma%sRateSimple: "
+             "%.0fkeV rate 90%% upper limit: %f e-3\n", 0, energy,
   /* Find upper limit as though there were no bounds, then correct that
      given the bounds of 0-100% production, as found above. */
        (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
@@ -443,8 +458,15 @@ void print_results(const double eff, const double energy,
     b12syst_lo = 100*n_ec/Nc12cap/probTwelveBFromTwelveC * b12syst_flo,
     b12syst_up = 100*n_ec/Nc12cap/probTwelveBFromTwelveC * b12syst_fup;
 
-  printtwice("\n%.0fkeV per bound B-12 production: "
-             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
+  const char * const linenumber = fabs(energy - 953) < 10? "One":
+                                  fabs(energy - 1674) < 10? "Two":
+                                  fabs(energy - 2621) < 10? "Three":
+                                  fans(energy - 3759) < 10? "Four":"??";
+
+  printtwice("\nTECHNOTE results.tex probGamma%sFrac, probGamma%sFracCent: "
+             "%.0fkeV per bound B-12 production: "
+             "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 1, 
+             linenumber, linenumber, energy,
              100*n_ec   /Nc12cap/probTwelveBFromTwelveC,
              b12stat_lo, b12stat_up,
              b12syst_lo, b12syst_up,
@@ -461,13 +483,18 @@ void print_results(const double eff, const double energy,
     ratestat_up = neup_ec*ratemult,
     ratesyst = ratesyst_f*n_ec*ratemult;
 
-  printtwice("\n%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
-             "%f +%f (tot) e-3\n", 3, energy,
+  printtwice("\nTECHNOTE results.tex probGamma%sRate, probGamma%sRateCent: "
+             "%.0fkeV rate: %f %f +%f (stat) %f +%f (syst) "
+             "%f +%f (tot) e-3\n", 2, linenumber, linenumber, energy,
              n_ec*ratemult,
              ratestat_lo, ratestat_up,
              ratesyst, ratesyst,
              -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
+
+  printf("const double probGamma%sRate = %f;\n", linenumber, n_ec*ratemult);
+  printf("const double probGamma%sRate_statup = %f;\n", linenumber, ratestat_up);
+  printf("const double probGamma%sRate_statlo = %f;\n", linenumber, ratestat_lo);
 
   puts("");
 }
@@ -723,6 +750,11 @@ void setlinemarkercolor(TH1 * h, int c)
 
 void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double targfrac = 0)
 {
+  if(region < 0){
+    puts("You gave me a negative region, so I am just compiling");
+    return;
+  }
+
   whichcorr = whichcorr_;
   const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
   const double hight = 5024.; // ns
@@ -1174,6 +1206,22 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   printf("Fitting signal, step 2/2...\n");
   mn->Command("Set strategy 2");
   mn->Command("MIGRAD");
+  mn->Command("HESSE"); // we use the covariance matrix
+                        // for the ground state calculation
+
+  {
+    double errmatrix[gg->GetNpar() + ggnnpars][gg->GetNpar() + ggnnpars];
+    mn->mnemat(errmatrix, gg->GetNpar() + ggnnpars);
+
+    // translate gamma lines to MINUIT parameters
+    const double l2p[4] = { 3, 5, 7, 11 };
+    printf("const double b12cov_12 = %f;\n", errmatrix[l2p[0]][l2p[1]]);
+    printf("const double b12cov_13 = %f;\n", errmatrix[l2p[0]][l2p[2]]);
+    printf("const double b12cov_14 = %f;\n", errmatrix[l2p[0]][l2p[3]]);
+    printf("const double b12cov_23 = %f;\n", errmatrix[l2p[1]][l2p[2]]);
+    printf("const double b12cov_24 = %f;\n", errmatrix[l2p[1]][l2p[3]]);
+    printf("const double b12cov_34 = %f;\n", errmatrix[l2p[2]][l2p[3]]);
+  }
 
   printf("Finding MINOS errors...\n");
   if(region == 0){
@@ -1230,7 +1278,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double neveup = mn->fErp[2]/gg->GetParameter("n1")*nev;
       const double nevelo = mn->fErn[2]/gg->GetParameter("n1")*nev;
 
-      print_results(b12geff, 953, nev, nevelo, neveup, 0.00170994 / 0.315747);
+      print_results(b12geff, 953, nev, nevelo, neveup, 
+        sqrt(pow(b12lineEsyst[0], 2) + pow(b12lineNsyst[0], 2));
     }
     {
       drawpeak("2");
@@ -1240,7 +1289,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[3]/gg->GetParameter("n2")*nev;
 
       print_results(b12geff, 1674, nev, nevelo, neveup,
-                    sqrt(pow(0.00174438/0.0617006,2) + pow(0.03,2)));
+        sqrt(pow(b12lineEsyst[1], 2) + pow(b12lineNsyst[1], 2));
     }
     {
       const double nev = getpar(31)/ehist->GetBinWidth(1);
@@ -1273,7 +1322,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[4]/gg->GetParameter("n3")*nev;
 
       print_results(b12geff, 2621, nev, nevelo, neveup,
-                    sqrt(pow(0.00107529/0.464471,2) + pow(0.01,2)));
+        sqrt(pow(b12lineEsyst[2], 2) + pow(b12lineNsyst[2], 2));
     }
     {
       drawpeak("5");
@@ -1282,7 +1331,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double neveup = mn->fErp[5]/gg->GetParameter("n5")*nev;
       const double nevelo = mn->fErn[5]/gg->GetParameter("n5")*nev;
 
-      print_results(b12geff, 3759, nev, nevelo, neveup, 0.000441855/0.0258321);
+      print_results(b12geff, 3759, nev, nevelo, neveup,
+        sqrt(pow(b12lineEsyst[3], 2) + pow(b12lineNsyst[3], 2));
     }
     {
       const double nev = getpar(33)/ehist->GetBinWidth(1);

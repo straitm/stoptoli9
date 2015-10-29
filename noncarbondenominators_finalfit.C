@@ -7,7 +7,7 @@
  */
 
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h" // c12, c13 per day
+#include "carbondenominators_finalfit.out.h" // c12, c13 per day
 
 const double f13 = 0.010921;
 

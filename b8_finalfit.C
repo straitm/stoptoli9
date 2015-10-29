@@ -1,5 +1,5 @@
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h"
+#include "carbondenominators_finalfit.out.h"
 
 void b8_finalfit(const int nn = 4)
 {

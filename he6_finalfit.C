@@ -11,7 +11,7 @@
 #include "TF1.h"
 #include <stdio.h>
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h"
+#include "carbondenominators_finalfit.out.h"
 
 // Turn on to use the high-purity muon sample.  I found that this 
 // gave similar, but slightly worse, results

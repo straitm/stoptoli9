@@ -1,6 +1,6 @@
 #include <fstream>
 #include "consts.h"
-#include "carbondenominators_finalfit_out.h"
+#include "carbondenominators_finalfit.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"

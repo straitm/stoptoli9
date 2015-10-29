@@ -1,16 +1,20 @@
 #!/bin/bash
 
 set -o pipefail
-tmp=/tmp/$$.${name}_finalfit.out 
+
+if [ $macroparameter ]; then
+  extrafilenamepart=_$macroparameter
+fi
+tmp=/tmp/$$.${name}_finalfit$extrafilenamepart.out 
 macro=${name}_finalfit.C
 
 finish(){
   name=$1
-  out=${name}_finalfit.out 
-  headerout=${name}_finalfit_out.h
-  technoteout=${name}_finalfit_out.technote
+  out=${name}_finalfit$extrafilenamepart.out 
+  headerout=${name}_finalfit$extrafilenamepart.out.h
+  technoteout=${name}_finalfit$extrafilenamepart.out.technote
 
-  mv -f /tmp/$$.$out $out
+  mv -f $tmp $out
   grep TECHNOTE $out > $technoteout
 
   if grep -q '^const ' $out; then
@@ -24,6 +28,6 @@ finish(){
 fail(){
   name=$1
   out=${name}_finalfit.out 
-  mv -f /tmp/$$.$out $out.fail
+  mv -f $tmp $out.fail
   exit 1
 }

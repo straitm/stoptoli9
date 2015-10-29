@@ -12,8 +12,8 @@
 #include "TMinuit.h"
 #include "TGaxis.h"
 #include "consts.h"
-#include "noncarbondenominators_finalfit_out.h"
-#include "carbondenominators_finalfit_out.h"
+#include "noncarbondenominators_finalfit.out.h"
+#include "carbondenominators_finalfit.out.h"
 #include <string>
 
 // High-purity sample

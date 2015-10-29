@@ -8,108 +8,156 @@ analysis: \
   n12_finalfit.out \
   b14_finalfit.out \
   n16_finalfit.out \
-  he6_finalfit.out \
-  li9_finalfit.out
+  he6_finalfit_0.out \
+  he6_finalfit_1.out \
+  he6_finalfit_2.out \
+  he6_finalfit_3.out \
+  li9_finalfit_0.out \
+  li9_finalfit_1.out
 
-li9_finalfit.out: \
+li9_finalfit_C.so: \
   consts.h \
-  noncarbondenominators_finalfit_out.h \
-  carbondenominators_finalfit_out.h \
-  run_analysis_li9.sh \
+  noncarbondenominators_finalfit.out.h \
+  carbondenominators_finalfit.out.h \
   li9_finalfit.C
-	./run_analysis_li9.sh
+	root -b -q li9_finalfit.C++'(-2)'
+
+li9_finalfit_-1.out.h: \
+  li9_finalfit_C.so \
+  run_analysis_li9.sh
+	./run_analysis_li9.sh -1
+
+li9_finalfit_0.out: \
+  li9_finalfit_C.so \
+  run_analysis_li9.sh
+	./run_analysis_li9.sh 0
+
+li9_finalfit_1.out: \
+  li9_finalfit_C.so \
+  li9_finalfit_-1.out.h \
+  run_analysis_li9.sh
+	./run_analysis_li9.sh 1
 
 n16_finalfit.out: \
   consts.h \
-  noncarbondenominators_finalfit_out.h \
-  carbondenominators_finalfit_out.h \
+  noncarbondenominators_finalfit.out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_n16.sh \
   n16_finalfit.C
 	./run_analysis_n16.sh
 
 b14_finalfit.out: \
   consts.h \
-  noncarbondenominators_finalfit_out.h \
+  noncarbondenominators_finalfit.out.h \
   run_analysis_b14.sh \
   b14_finalfit.C
 	./run_analysis_b14.sh
 
 n12_finalfit.out: \
   consts.h \
-  noncarbondenominators_finalfit_out.h \
+  noncarbondenominators_finalfit.out.h \
   run_analysis_n12.sh \
   n12_finalfit.C
 	./run_analysis_n12.sh
 
 c9_finalfit.out: \
   consts.h \
-  noncarbondenominators_finalfit_out.h \
+  noncarbondenominators_finalfit.out.h \
   run_analysis_c9.sh \
   c9_finalfit.C
 	./run_analysis_c9.sh
 
-he6_finalfit.out: \
+he6_finalfit_C.so: \
+  he6_finalfit.C \
   consts.h \
-  carbondenominators_finalfit_out.h \
-  run_analysis_he6.sh \
-  he6_finalfit.C
-	./run_analysis_he6.sh
+  carbondenominators_finalfit.out.h
+	root -b -q he6_finalfit.C++'(-1)'
+
+he6_finalfit_0.out: \
+  he6_finalfit_C.so \
+  run_analysis_he6.sh
+	./run_analysis_he6.sh 0
+
+he6_finalfit_1.out: \
+  he6_finalfit_C.so \
+  run_analysis_he6.sh
+	./run_analysis_he6.sh 1
+
+he6_finalfit_2.out: \
+  he6_finalfit_C.so \
+  run_analysis_he6.sh
+	./run_analysis_he6.sh 2
+
+he6_finalfit_3.out: \
+  he6_finalfit_C.so \
+  run_analysis_he6.sh
+	./run_analysis_he6.sh 3
 
 b8_finalfit.out: \
   consts.h \
-  carbondenominators_finalfit_out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_b8.sh \
   b8_finalfit.C
 	./run_analysis_b8.sh
 
 be12_finalfit.out: \
   consts.h \
-  carbondenominators_finalfit_out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_be12.sh \
   be12_finalfit.C
 	./run_analysis_be12.sh
 
-li8_finalfit_out.h: \
+li8_finalfit.out.h: \
   consts.h \
-  carbondenominators_finalfit_out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_li8.sh \
   li8_finalfit.C
 	./run_analysis_li8.sh
 
 b12groundstate_finalfit.out: \
-  li8_finalfit_out.h \
-  fullb12_finalfit_out.h \
-  b12gamma_finalfit_out.h \
+  li8_finalfit.out.h \
+  fullb12_finalfit.out.h \
+  b12gamma_finalfit_0.out.h \
+  b12gamma_finalfit_1.out.h \
   run_analysis_b12groundstate.sh \
   b12groundstate_finalfit.C
 	./run_analysis_b12groundstate.sh
 
-b12gamma_finalfit_out.h: \
+b12gamma_finalfit_C.so: \
+  b12gamma_finalfit.C \
   consts.h \
-  li8_finalfit_out.h \
-  fullb12_finalfit_out.h \
-  carbondenominators_finalfit_out.h \
-  run_analysis_b12gamma.sh \
-  b12gamma_finalfit.C
-	./run_analysis_b12gamma.sh
+  li8_finalfit.out.h \
+  fullb12_finalfit.out.h \
+  carbondenominators_finalfit.out.h
+	root -b -q b12gamma_finalfit.C++'(-1)'
 
-fullb12_finalfit_out.h: \
+b12gamma_finalfit_0.out.h: \
+  b12gamma_finalfit_C.so \
+  run_analysis_b12gamma.sh
+	./run_analysis_b12gamma.sh 0
+
+b12gamma_finalfit_1.out.h: \
+  b12gamma_finalfit_C.so \
+  run_analysis_b12gamma.sh
+	./run_analysis_b12gamma.sh 1
+
+fullb12_finalfit.out.h: \
   consts.h \
-  carbondenominators_finalfit_out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_fullb12.sh \
   fullb12_finalfit.C
 	./run_analysis_fullb12.sh
 
-carbondenominators_finalfit_out.h: \
+carbondenominators_finalfit.out.h: \
   consts.h \
   run_analysis_carbondenominators.sh \
   mucount_finalfit.C \
   carbondenominators_finalfit.C
 	./run_analysis_carbondenominators.sh
 
-noncarbondenominators_finalfit_out.h: \
+noncarbondenominators_finalfit.out.h: \
   consts.h \
-  carbondenominators_finalfit_out.h \
+  carbondenominators_finalfit.out.h \
   run_analysis_noncarbondenominators.sh \
   noncarbondenominators_finalfit.C
 	./run_analysis_noncarbondenominators.sh
@@ -129,9 +177,9 @@ b12search: b12search.o search.o
 stoptoli9: stoptoli9.o search.o
 	g++ -o stoptoli9 stoptoli9.o search.o `root-config --libs`
 
-clean: 
+clean:
 	rm -f stoptoli9 b12search stoptoli9.o b12search.o search.o \
       *_C.d *_C.so  AutoDict*cxx*
 
-analysisclean: 
-	rm -f *.out *_out.h *.technote *.out.fail
+analysisclean:
+	rm -f *.out *.out.h *.technote *.out.fail

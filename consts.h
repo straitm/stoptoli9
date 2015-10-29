@@ -111,3 +111,17 @@ const double lim_inflation_for_obeta = 1.055239;
 const double wholedet_dist400eff = 0.9148;
 const double wholedet_dist300eff = 0.8121;
 const double wholedet_dist200eff = 0.5343;
+
+// Systematic error on B-12 gamma lines due to uncertainty in the energy
+// correction function.  Technote section 11.7
+const double b12lineEsyst[4] = { 0.00170994 / 0.315747,
+                                 0.00174438/0.0617006,
+                                 0.00107529/0.464471,
+                                 0.000441855/0.0258321};
+
+// Systematic error on B-12 gamma lines due to uncertainly on neutron 
+// background.  Technote section 11.7
+const double b12lineNsyst[4] = { 0,
+                                 0.03,
+                                 0.01,
+                                 0 };
