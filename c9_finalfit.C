@@ -1,50 +1,59 @@
 #include "consts.h"
 #include "noncarbondenominators_finalfit_out.h"
 
-void n12finalfit()
+void c9_finalfit(const char elem = 'o')
 {
-  const int nncut = 3, nncuthigh = 4;
-  
-  // Relative amounts of effective oxygen in these regions
-  const double o_targ = mass_o16targ,
-               o_targacrlyic = mass_o16targves+mass_o16targbits,
-               o_gc = mass_o16gc,
+  const int nncut = 4, nncuthigh = 6;
 
-               // use the beta number here, since I'm going to apply
-               // different n efficiencies
-               o_gcacrlyic = mass_o16gcves_effective;
+  // oxygen
+  double targrate = mass_o16targ,
+         targvesrate =  mass_o16targves,
+         targbitsrate = mass_o16targbits,
+         gcrate = mass_o16gc,
+         gcvesrate = mass_o16gcves_effective; 
 
-  const double o_sum = o_targ+o_targacrlyic+o_gc+o_gcacrlyic;
+  // nitrogen
+  if(elem != 'o'){
+    targrate = mass_n14targ,
+    targvesrate =  0,
+    targbitsrate = 0,
+    gcrate = mass_n14gc,
+    gcvesrate = 0;
+  }
 
-  const double
-    targf    =                             o_targ/o_sum,
-    targedgef= (o_targacrlyic*85./(85.+58.)     )/o_sum,
-    gcf      = (o_targacrlyic*58./(85.+58.)+o_gc)/o_sum,
-    gcedgef  =                        o_gcacrlyic/o_sum;
+  const double totalrate =
+    gcvesrate+gcrate+targvesrate+targbitsrate+targrate;
+
+  const double targf    =              targrate/totalrate,
+               targedgef=           targvesrate/totalrate,
+               gcf      = (targbitsrate+gcrate)/totalrate,
+               gcedgef  =             gcvesrate/totalrate;
 
 
-  const double tpneff = 0.55, tpedgeneff = 0.748,
-               gpneff = 0.9323, gpedgeneff = 0.1843 /* vary this */;
+  const double tpneff = 0.4555,
+               tpedgeneff = 0.6658,
+               gpneff = 0.9350,
+               gpedgeneff = 0.0911 /*0.0911*/ /* vary this 0.0655-0.1225*/;
 
-  const double neff = tpneff*targf
-                    + tpedgeneff*targedgef
-                    + gpneff*gcf
-                    + gpedgeneff*gcedgef;
-
+  const double neff = tpneff*targf + tpedgeneff*targedgef 
+                    + gpneff*gcf   + gpedgeneff*gcedgef;
 
   const double eff = 1
-    * exp(-1.*log(2)/11.00) // n12 half-life and 1ms veto
-    * (1 - exp(-100.*log(2)/11.00)) // 100ms window
+    * exp(-1.*log(2)/127.00) // half-life and 1ms veto
+    * (1-exp(-1000.*log(2)/127.00)) // up to 1s
     * light_noise_eff
     * mich_eff
     * sub_muon_eff05 // subsequent muons
-    * 0.897 // delta r
-    * 0.99709 // 10s from end of run
-    * 0.9481 // energy
+    * (elem=='o'?0.897:0.9405) // delta r
+    * 0.99709 // 100s from end of run
+    * 0.969 // energy -- maybe a little optimistic: 60%
+            // goes to the ground state, rest to excited
+            // states between 2-3 MeV, which isn't too bad,
+            // but will lower the efficiency a little.
     * neff
   ;
 
-  const double captures = n_o16cap_beta * livetime;
+  const double captures = (elem == 'o'?n_o16cap_beta:n_n14cap) * livetime;
 
   const double toprob = 1./captures/eff;
 
@@ -56,6 +65,8 @@ void n12finalfit()
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
+//  c->Divide(2, 1);
+//  c->cd(1);
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
@@ -65,11 +76,12 @@ void n12finalfit()
 
   const char * const cut = scut.c_str();
 
-  const int nsel = t->GetEntries(Form("%s && dt < 100", cut));
-  printf("Number selected in 100ms: %d\n", nsel);
+  const int nsel = t->GetEntries(Form("%s && dt < 1000", cut));
+  printf("N selected: %d\n", nsel);
 
   if(nsel > 0){
-    t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
+
+    t->Draw(Form("dt/1000 >> hfit%d(1000, 0.001, 10)", nncut), cut);
     TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
 
     TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
@@ -79,7 +91,7 @@ void n12finalfit()
 
     ee->SetParameters(1, 1, 0.7700, 1, 1);
     ee->FixParameter(3, 0);
-    ee->FixParameter(2, 0.0110);
+    ee->FixParameter(2, 0.1270);
 
     ee->SetParLimits(1, 0, 10);
     if(nncut >= 3){
@@ -101,7 +113,7 @@ void n12finalfit()
       hfit->Fit(Form("ee%d", nncut), "le");
     }
 
-    t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
+    t->Draw(Form("dt/1000 >> hdisp%d(20, 0.001, 10.01)", nncut), cut, "hist");
     TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
     if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
@@ -133,7 +145,7 @@ void n12finalfit()
       parts[i]->SetLineStyle(7);
       parts[i]->SetLineWidth(2);
       parts[i]->Draw("Same");
-    }
+    } 
 
     const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
     double Nerrup, Nerrlo;
@@ -152,13 +164,50 @@ void n12finalfit()
     printf("%sN found: %f +%f %f %s%s\n",
            RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
 
-    printf("%sProb: %g +%g %g%s\n",
+    printf("%sProb: %g +%g %g%s\n", 
         RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);
 
-    printf("TECHNOTE: Selected >0 events for N-12, look at the code\n");
+    printf("TECHNOTE: c9 error.  Some events selected, so you may need"
+      " to rewrite c9_finalfit.C\n");
   }
   else{
-    printf("%sTECHNOTE results.tex probTwelveNFromSixteenO: N-12 limit < %.0e\n%s",
-          RED, 2.30258509299404590/eff/captures/lim_inflation_for_obeta, CLR);
+    if(elem == 'o')
+      printf("%sTECHNOTE results.tex %s: "
+           "If no events and no background: <%.2f%%%s\n", 
+        RED, "probNineCFromSixteenO",
+        2.30258509299404590*toprob*lim_inflation_for_obeta*100, CLR);
+
+    else 
+      printf("%sTECHNOTE results.tex %s: "
+           "If no events and no background: < %.1f%%%s\n", 
+        RED, "probNineCFromFourteenN",
+        2.30258509299404590*toprob*lim_inflation_for_obeta*100, CLR);
   }
+
+
+/*  TF1 gaus("gaus", "gaus(0)", 0, 20);
+  gaus.SetParameters(1, toprob*Nfound, toprob*Nerrup);
+
+  for(int i = 1; i < 400; i++){
+    const double up = 0.01*i;
+    const double frac = gaus.Integral(0, up)/gaus.Integral(0, 20);
+    printf("%f %f\n", up, frac);
+    if(frac > 0.9){
+      printf("90%% limit = %f\n", up);
+      printf("90%% limit prob = %f\n", up*toprob);
+      printf("90%% limit prob *0.1/1.22 = %f\n", up*toprob *(1+0.1/1.22));
+      break;
+    }
+  } */
+
+/*
+  c->cd(2);
+
+  const string escut =
+    Form("!earlymich && miche < 12 && dist < 400 && %s >= %d && %s <= %d "
+    "&& timeleft > 10e3", ndef, nncut, ndef, nncuthigh);
+  const char * const ecut = escut.c_str();
+
+  t->Draw(Form("e >> ehist%d(250, 0, 25)", nncut), ecut, "e");
+*/
 }

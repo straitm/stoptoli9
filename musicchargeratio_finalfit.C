@@ -49,7 +49,7 @@ void minos5013(double & fpi, double & fk)
 }
 
 
-void musicchargeratiofinalfit()
+void musicchargeratio_finalfit()
 {
   TFile * music = new TFile(rootfilemusic);
   TTree * t = (TTree *)music->Get("mu_initial");

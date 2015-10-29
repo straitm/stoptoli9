@@ -1,7 +1,7 @@
 #include "consts.h"
 #include "carbondenominators_finalfit_out.h"
 
-void be12finalfit()
+void be12_finalfit()
 {
   const double be12eff = 
       0.894 // Energy over 3MeV

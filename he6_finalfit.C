@@ -120,7 +120,7 @@ int classi(const double x, const double y, const double z)
   return 0;
 }
 
-void he6finalfit(const int nreq_ = 0,
+void he6_finalfit(const int nreq_ = 0,
                  const bool r0 = true, const bool r1 = true,
                  const bool r2 = true, const bool r3 = true,
                  const bool r4 = true, const bool jefferys = false)

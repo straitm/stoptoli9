@@ -1,7 +1,7 @@
 #include "consts.h"
 #include "carbondenominators_finalfit_out.h"
 
-void b8finalfit(const int nn = 4)
+void b8_finalfit(const int nn = 4)
 {
   const double gf = 1-n_c12captarget/n_c12cap, // fraction in GC
                tf =   n_c12captarget/n_c12cap; // fraction in Target

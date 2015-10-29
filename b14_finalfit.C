@@ -1,7 +1,7 @@
 #include "consts.h"
 #include "noncarbondenominators_finalfit_out.h"
 
-void b14finalfit()
+void b14_finalfit()
 {
   TFile fiel(rootfile3up);
   TTree * t = (TTree *) fiel.Get("t");

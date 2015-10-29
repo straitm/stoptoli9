@@ -721,7 +721,7 @@ void setlinemarkercolor(TH1 * h, int c)
   h->SetMarkerColor(c);
 }
 
-void b12gammafinalfit(const int region = 1, const int whichcorr_ = 0, double targfrac = 0)
+void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double targfrac = 0)
 {
   whichcorr = whichcorr_;
   const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;

@@ -1,12 +1,10 @@
 #!/bin/bash
 
-out=b12groundstate_finalfit.out 
-set -o pipefail
+name=b12groundstate
+. analysis_function.sh
 
-if ! root -b -q b12groundstate_finalfit.C | tee /tmp/$$.$out; then
-  mv -f /tmp/$$.$out $out.fail
-  exit 1
+if ! root -b -q $macro | tee $tmp; then
+  fail $name
+else
+  finish $name
 fi
-
-mv -f /tmp/$$.$out $out
-grep TECHNOTE $out > b12groundstate_finalfit_out.technote

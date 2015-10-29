@@ -149,7 +149,7 @@ static void scalegraph(TGraph * g)
   }
 }
 
-void n16finalfit()
+void n16_finalfit()
 {
   const bool fit = true;
 

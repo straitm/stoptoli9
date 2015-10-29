@@ -1,5 +1,6 @@
 #include <fstream>
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
@@ -12,8 +13,13 @@
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
-//#define DISABLEN16
-//#define DISABLELI
+//#define HP
+
+const double neff_dr_800_avg =
+  (
+  (n_c12cap - n_c12captarget*gd_fraction) * neff_dr_800_h
+  +           n_c12captarget*gd_fraction  * neff_dr_800_gd
+  )/n_c12cap;
 
 using std::vector;
 
@@ -25,7 +31,7 @@ const double b12life_err = 0.02/log(2.);
 const double nom_n16life = 7130./log(2.);
 const double n16life_err = 20./log(2.);
 
-const double nom_b13life = 17.33/log(2.);
+const double nom_b13life = 17.33/log(2.); 
 const double b13life_err = 0.17/log(2.);
 
 // This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
@@ -71,59 +77,6 @@ void printfr(const char * const msg, ...)
   printf(CLR);
 }
 
-/*
- * Prints the message once with the requested floating point precision
- * and in RED, then again with all digits in the default color, starting
- * with the first floating point number.
- */
-void printtwice(const char * const msg, const int digits, ...)
-{
-  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
-  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
-
-  // Just for fun...
-  char * pmp = pmsg;
-  char * bmp = bmsg;
-  bool gotone = false;
-  for(unsigned int i = 0; i <= strlen(msg); i++){
-    switch(msg[i]){
-      case '\0':
-        *pmp++ = '\0';
-        *bmp++ = '\0';
-        break;
-      case '%':
-        switch(msg[i+1]){
-          case 'e': case 'E': case 'f': case 'F':
-          case 'g': case 'G': case 'a': case 'A':
-            gotone = true;
-            *pmp++ = '%';
-            *bmp++ = '%';
-            *pmp++ = '.';
-            *pmp++ = digits+'0';
-            break;
-          default:
-            *pmp++ = msg[i];
-            if(gotone) *bmp++ = msg[i];
-        }
-        break;
-      default:
-        *pmp++ = msg[i];
-        if(gotone) *bmp++ = msg[i];
-        break;
-    }
-  }
-
-  va_list ap;
-  va_start(ap, digits);
-  printf(RED);
-  vprintf(pmsg, ap);
-  printf(CLR);
-
-  va_start(ap, digits);
-  vprintf(bmsg, ap);
-}
-
-
 int reactorpowerbin(const int run)
 {
   bool inited = false;
@@ -143,48 +96,6 @@ int reactorpowerbin(const int run)
   if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
   return 2;
 }
-
-/**********************************************************************/
-
-#include "mucountfinalfit.C"
-
-#define STD
-
-#ifdef STD
-const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
-// The number of mu- stopping, regardless of what they atomicly or
-// nuclearly capture on
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
-#endif
-
-#ifdef LESSPOS
-const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
-#endif
-
-#ifdef LESSSLANT
-const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
-#endif
-
-#ifdef LESSCHI2
-const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
-#endif
-
-/**********************************************************************/
 
 // Weighted average of T and GC measurements for the HP region
 const double f13 = 0.010921;
@@ -218,57 +129,126 @@ const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
                               + pow(errcapprob13,2)*f13 +
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
+
+#ifdef HP
+const double mum_count =   7.16322e5;
+const double mum_count_e = 0.05388e5;
 const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
 const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
+#else
+const double mum_count =   2.309e6;
+const double mum_count_e = 0.032e6;
+const double c12nuc_cap = n_c12cap*livetime;
+const double c13nuc_cap = n_c13cap*livetime;
+#endif
 
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
 // light from B-12, 12ns. Doesn't make a real difference.
 const double offset = 2.040e-3;
 
-TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 50, 1-offset, 501-offset);
+TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 40, 100, 20101);
 
 
 const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-const double b12energyeff = 0.8504;  // B-12 energy cut
-const double b12energyeff_e = 0.0065;
+const double li8eff_energy = 0.7165; // estimate from DOGS MC -- good 
+const double li8eff_energy_e = 0.02; // made up!
+const double li8ferr_energy = li8eff_energy_e/li8eff_energy; // made up!
+
+const double b12energyeff = 0.7484;  // B-12 energy cut for 5MeV
+const double b12energyeff_e = 0.0056;
 
 const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
-const double li8eff_energy = 0.6927; // estimate from DOGS MC
-const double li8eff_energy_e = 0.02; // made up! (and not used)
-
-const double li9eff_energy = 0.8069+0.05; // DOGS, with ad hoc
-                                          // correction for the beta
-                                          // branches being the
-                                          // relevant ones rather
-                                          // than the betan branches
-const double li9eff_energy_e = 0.05; // made up!
+const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
+                                            // spectrum but bumped
+                                            // up since I only see
+                                            // non-betan decays here.
+const double li9eff_energy_e = 0.05;
 
 // time until end of run
 const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
-const double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
+const double b12likelihood_eff = 0.906; // For 0.02
+
+const double b12eff = b12likelihood_eff * light_noise_eff *
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
-const double b13eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b13energyeff;
+const double b13eff = b12likelihood_eff * light_noise_eff *
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
+const double li8eff = b12likelihood_eff * light_noise_eff *
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
 
-const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
+const double li9eff = b12likelihood_eff * light_noise_eff *
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
 // Constant 1% absolute error assumed on neutron efficiency.
 // Not a very rigourous model, but it's something.
 const double neff_err = 0.01;
 
 // Measured probablity of getting one accidental neutron.  These
-// are *detected* neutrons, so don't apply efficiency to them.
+// are *detected* muons, so don't apply efficiency to them.
 const double paccn = 1.1e-4;
+
+/*
+ * Prints the message once with the requested floating point precision
+ * and in RED, then again with all digits in the default color, starting
+ * with the first floating point number.
+ */
+void printtwice(const char * const msg, const int digits, ...)
+{
+  char * bmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  char * pmsg = (char *)malloc(strlen(msg)+100); // Ha!
+  
+  // Just for fun...
+  char * pmp = pmsg;
+  char * bmp = bmsg;
+  bool gotone = false;
+  for(unsigned int i = 0; i <= strlen(msg); i++){
+    switch(msg[i]){
+      case '\0':
+        *pmp++ = '\0';
+        *bmp++ = '\0';
+        break;
+      case '%':
+        switch(msg[i+1]){
+          case 'e': case 'E': case 'f': case 'F':
+          case 'g': case 'G': case 'a': case 'A': 
+            gotone = true;
+            *pmp++ = '%';
+            *bmp++ = '%';
+            *pmp++ = '.';
+            *pmp++ = digits+'0';
+            break;
+          default:
+            *pmp++ = msg[i];
+            if(gotone) *bmp++ = msg[i];
+        }
+        break;
+      default:
+        *pmp++ = msg[i];
+        if(gotone) *bmp++ = msg[i];
+        break;
+    }
+  }
+  
+  va_list ap;
+  va_start(ap, digits);
+  printf(RED);
+  vprintf(pmsg, ap);
+  printf(CLR);
+
+  va_start(ap, digits);
+  vprintf(bmsg, ap);
+}
+
 
 bool isibd(const int in_run, const int in_trig)
 {
@@ -287,7 +267,7 @@ bool isibd(const int in_run, const int in_trig)
       ibd.GetEntry(i);
       ibds.push_back(pair<int,int>(int(run), int(trig)));
 
-      // Get the delayed event too.  ROUGH, since there could be
+      // Get the delayed event too.  ROUGH, since there could be 
       // an intervening event
       ibds.push_back(pair<int,int>(int(run), int(trig+1)));
     }
@@ -326,13 +306,9 @@ const double n_n16, const double n16t)
     // is easier. (Ok, N-16 might come from O-17, but it is only a
     // nuisance parameter here...)
     unpaccn*n_b13/b13t*exp(mt/b13t)
-#ifndef DISABLELI
   + (unpaccn*n_li8 + uneffunpaccn*n_li8n)/li8t*exp(mt/li8t) +
     (unpaccn*n_li9 + uneffunpaccn*n_li9n)/li9t*exp(mt/li9t)
-#endif
-#ifndef DISABLEN16
   + unpaccn*n_n16/n16t*exp(mt/n16t)
-#endif
     ;
 }
 
@@ -353,13 +329,9 @@ const double n_n16, const double n16t)
   // Can only get B-13 with a neutron from an inefficiency, assuming
   // there's no O-16(mu,ppn)B-13 to speak of.
   paccn*n_b13/b13t*exp(mt/b13t)
-#ifndef DISABLELI
  +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)
  +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)
-#endif
-#ifndef DISABLEN16
   + paccn*n_n16/n16t*exp(mt/n16t)
-#endif
   ;
 }
 
@@ -375,10 +347,8 @@ const double n_li9n, const double li9t)
   // case for the above normalization component of the likelihood to be
   // correct.
   neff*paccn*(n_b12n/b12t*exp(mt/b12t)
-#ifndef DISABLELI
             + n_li8n/li8t*exp(mt/li8t)
             + n_li9n/li9t*exp(mt/li9t)
-#endif
   );
 }
 
@@ -420,14 +390,14 @@ double unit_penalty(const double x)
 
   const double sig = (x-1)/unitwidth;
 
-  // When erf gets very close to 0, bad things happen, so switch to
-  // an approximation past 5 sigma out. There may well be a better
+  // When erf gets very close to 0, bad things happen, so switch to 
+  // an approximation past 5 sigma out. There may well be a better 
   // way to handle this.
   static const double sigcut = 5;
   static const double corr = -2*log(priorerf(sigcut)) - pow(sigcut,2);
   const double mlogprior =
     sig < sigcut? -2*log(priorerf(sig)) : corr + pow(sig, 2);
-
+  
   return mlogprior;
 }
 
@@ -437,21 +407,17 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   const double norm =
       (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
-#ifndef DISABLELI
     + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
     + (n_li9 + n_li9n)*(exp(-lowtime/li9t) - exp(-hightime/li9t))
-#endif
     +      n_b13      *(exp(-lowtime/b13t) - exp(-hightime/b13t))
-#ifndef DISABLEN16
     +      n_n16      *(exp(-lowtime/n16t) - exp(-hightime/n16t))
-#endif
     + totaltime*(acc+accn+accn2);
 
   like = norm;
 
   {
     static int dotcount = 0;
-    if(mn->fCfrom != "CONtour   " && dotcount++%128 == 0){
+    if(mn->fCfrom != "CONtour   " && dotcount++%100 == 0){
       printf(".");  fflush(stdout); }
   }
 
@@ -484,16 +450,11 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // pull terms for lifetimes
   like += pow((b12t - nom_b12life)/b12life_err, 2)
         + pow((b13t - nom_b13life)/b13life_err, 2)
-#ifndef DISABLELI
         + pow((li8t - nom_li8life)/li8life_err, 2)
         + pow((li9t - nom_li9life)/li9life_err, 2)
-#endif
-#ifndef DISABLEN16
         + pow((n16t - nom_n16life)/n16life_err, 2)
-#endif
           // and the neutron efficiency
         + pow(neffdelta/neff_err, 2);
-
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
   // with a neutron so as not to double count. Since IBD candidates are
@@ -502,8 +463,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
   like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
         + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
-
-
+  
   // Pull term to impose unitarity bound on products of C-13. Width is
   // determined by the error on the number of captures The concept here
   // is that there is a prior for the total number of captures with the
@@ -518,14 +478,14 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // fit really likes adding lots of them in and being really sure about
   // it, which forces B-13 to a very low value. I don't think this is
   // physical. I suspect the presence of some other isotope that doesn't
-  // come from C-13.  With this hypothesis, it makes sense to allow
-  // them to float freely in the fit, since they are representing some
+  // come from C-13.  With this hypothesis, it makes sense to allow 
+  // them to float freely in the fit, since they are representing some 
   // unknown background.  Could they be spallation reactions farther
   // up the muon track, here admitted since I don't use a distance cut?
   if(unitarity) like += unit_penalty(p_b12n +p_b13 /* +p_li8n +p_li9*/);
 
   static const double likeoffset = 252637;
-
+  
   like += likeoffset;
 }
 
@@ -581,7 +541,7 @@ void results(const char * const iname, const int mni,
   const double ferrorfitup = sani_minos(mn->fErp[mni])/getpar(mni);
   const double ferrorfitlo = sani_minos(mn->fErn[mni])/getpar(mni);
 
-  printtwice("\n%s raw %f +%f %f\n", 0, iname,
+  printtwice("\nTECHNOTE 10.1: %s raw %f +%f %f\n", 0, iname,
     fit, ferrorfitup*fit, ferrorfitlo*fit);
 
   const double like_central = fit/eff/mum_count * 100/ifrac;
@@ -595,17 +555,10 @@ void results(const char * const iname, const int mni,
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
                                pow(mum_count_e/mum_count,2) +
                                pow(ferr_energy, 2))*like_central;
-
-  printtwice("\n%s%s, eff corrected, percent per C mu- stop "
-    "%f +%f %f(fit) +-%f(mu count) +-%f(B-12 eff), "
+  printtwice("\n%s, eff corrected, percent per C mu- stop "
+    "%f +%f %f(fit) +-%f(mu count) +-%f(Li-8 eff), "
     "+%f %f(total),  +%f -%f (non-fit)\n",
-    prec1,
-    !strcmp(iname, "C-12 -> B-12")?
-      "TECHNOTE 4.3: ":
-    !strcmp(iname, "C-13 -> B-12+n")?
-      "TECHNOTE 4.3: ":
-    !strcmp(iname, "C-13 -> B-13")?"":"?",
-    iname, like_central, staterrup, staterrlo, muerr, err,
+    prec1, iname, like_central, staterrup, staterrlo, muerr, err,
     toterrup, toterrlo,
     sqrt(pow(toterrup,2) - pow(staterrup,2)),
     sqrt(pow(toterrlo,2) - pow(staterrlo,2))
@@ -627,15 +580,12 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\n%sOr percent per nuclear mu- capture on this isotope "
+  printtwice("\nTECHNOTE results.tex %s: Or percent per nuclear mu- capture on this isotope "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
-         "+%f %f(total),  +%f -%f (non-fit)\n",
+         "+%f %f(total),  +%f -%f (non-fit, a.k.a. syst)\n",
          prec2, 
-         !strcmp(iname, "C-12 -> B-12")?
-           "TECHNOTE 4.3 and results.tex probTwelveBFromTwelveC: ":
-         !strcmp(iname, "C-13 -> B-12+n")?
-           "TECHNOTE 4.3 and results.tex probTwelveBFromThirteenC: ":
-         !strcmp(iname, "C-13 -> B-13")?"":"?",
+         !strcmp(iname, "C-12 -> Li-8")?"probEightLiFromTwelveC":
+         !strcmp(iname, "C-13 -> Li-8+n")?"probEightLiFromThirteenC":"???",
          like_central_percap, staterr_percapup, staterr_percaplo,
          muerr_percap, err_percap, capfracerr_percap,
          toterr_percapup, toterr_percaplo,
@@ -643,20 +593,20 @@ void results(const char * const iname, const int mni,
          sqrt(pow(toterr_percaplo,2) - pow(staterr_percaplo,2))
          );
 
-  if(!strcmp(iname, "C-13 -> B-12+n")){
-    printf("const double probTwelveBFromThirteenC = %f;\n",
+  if(!strcmp(iname, "C-13 -> Li-8+n")){
+    printf("const double probEightLiFromThirteenC = %f;\n",
            like_central_percap/100.);
-    printf("const double probTwelveBFromThirteenC_statup = %f;\n",
+    printf("const double probEightLiFromThirteenC_statup = %f;\n",
            staterr_percapup/100.);
-    printf("const double probTwelveBFromThirteenC_statlo = %f;\n",
+    printf("const double probEightLiFromThirteenC_statlo = %f;\n",
            staterr_percaplo/100.);
   }
-  else if(!strcmp(iname, "C-12 -> B-12")){
-    printf("const double probTwelveBFromTwelveC = %f;\n",
+  else if(!strcmp(iname, "C-12 -> Li-8")){
+    printf("const double probEightLiFromTwelveC = %f;\n",
            like_central_percap/100.);
-    printf("const double probTwelveBFromTwelveC_statup = %f;\n",
+    printf("const double probEightLiFromTwelveC_statup = %f;\n",
            staterr_percapup/100.);
-    printf("const double probTwelveBFromTwelveC_statlo = %f;\n",
+    printf("const double probEightLiFromTwelveC_statlo = %f;\n",
            staterr_percaplo/100.);
   }
 
@@ -676,45 +626,28 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\n%sOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
-         !strcmp("C-12 -> B-12", iname)?   "TECHNOTE 4.3: ":
-         !strcmp("C-13 -> B-12+n", iname)? "TECHNOTE 4.3: ": "",
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
          toterr_ratelo,
          sqrt(pow(toterr_rateup, 2) - pow(staterr_rateup,2)),
          sqrt(pow(toterr_ratelo, 2) - pow(staterr_ratelo,2))
          );
-  if(!strcmp("C-12 -> B-12", iname)){
-    printf("const double b12totalrate = %f;\n", like_central_rate);
-    printf("const double b12totalrate_statup = %f;\n", staterr_rateup);
-    printf("const double b12totalrate_statlo = %f;\n", staterr_ratelo);
-    printf("const double b12totalrate_syst = %f;\n",
-      sqrt(pow(muerr_rate,2)+pow(err_rate,2)+pow(lifetimeerr_rate,2)));
-  }
-
   puts("");
 }
 
-void printc12b12results()
+void printli8results()
 {
-  results("C-12 -> B-12", 0, 1-f13, b12eff, b12ferr_energy,
+  results("C-12 -> Li-8", 3, 1-f13, li8eff, li8ferr_energy,
     capprob12*c_atomic_capture_prob, errcapprob12, lifetime_c12,
     lifetime_c12_err, c12nuc_cap, 3, 2, 2);
 }
 
-void printc13b12nresults()
+void printli8nresults()
 {
-  results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy,
-    capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
-    lifetime_c13_err, c13nuc_cap, 2, 1, 1);
-}
-
-void printc13b13results()
-{
-  results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy,
+  results("C-13 -> Li-8+n", 4, f13, li8eff, li8ferr_energy,
     capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
     lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
@@ -736,18 +669,17 @@ double b13limit()
   double sump = 0;
 
   unsigned int smallcount = 0;
-  const double increment = 0.05;
-  const int N = 20;
+  const double increment = 0.01;
+  const int N = 70;
   double ps[N];
 
   const double bestchi2 = mn->fAmin;
 
   mn->Command("fix 3");
-  mn->Command("set strategy 0");
   for(int i = 0; i < N; i++){
     const double prob = i*increment;
     mn->Command(Form("set par 3 %f", prob));
-    mn->Command("Migrad 2000 1");
+    mn->Command("Migrad");
     const double p = exp(bestchi2-mn->fAmin);
     printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");
@@ -756,9 +688,9 @@ double b13limit()
     printf("\n");
     sump += p;
     ps[i] = p;
-    if(p < 1e-6 && ++smallcount > 3) break;
+    if(p < 1e-9 && ++smallcount > 3) break;
   }
-
+  
   printf("Norm: %f\n", sump);
 
   double sump2 = 0;
@@ -767,12 +699,8 @@ double b13limit()
     const double prob = i*increment;
     sump2 += ps[i]/sump;
     if(sump2 > 0.9){
-       answer = prob; // had been subtracting increment/2, but
-                      // that makes the answer look funny.
-                      // Just be conservative and take the
-                      // next sample point after the crossing.
-       printf("TECHNOTE 4.3: C-13 -> B-13 per nuclear capture "
-              "90%% limit = %.0f%%\n", answer*100);
+       answer = prob-increment/2;
+       printf("Bays limit = %f\n", answer);
        break;
     }
   }
@@ -783,27 +711,14 @@ double b13limit()
   return answer;
 }
 
-void fullb12finalfit(const char * const cut =
-#ifdef LESSPOS
-"mx**2+my**2 < 900**2 && mz > -900 && "
-#else
-"mx**2+my**2 < 1050**2 && mz > -1175 && "
+void li8_finalfit(const char * const cut =
+#ifdef HP
+  "mx**2+my**2 < 1050**2 && mz > -1175 && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 #endif
-#ifdef LESSSLANT
-"abs(fez + 62*ivdedx/2 - 8847.2) < 600 && "
-#else
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
-#endif
-#ifdef LESSCHI2
-"rchi2 < 1.25 && "
-#else
-"rchi2 < 2 && "
-#endif
-"timeleft > %f && miche < 12 && !earlymich && "
-"e > 4 && e < 15 && dt < %f && laten <= 2")
+"b12like < 0.02 && timeleft > %f && miche < 12 && !earlymich && "
+"e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2")
 {
-  printtwice("mu- count is %f %f\n", 4, mum_count, mum_count_e);
-
   printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
   printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
   printtwice("Li-8 selection efficiency is %f%%\n", 2, li8eff*100);
@@ -813,7 +728,7 @@ void fullb12finalfit(const char * const cut =
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
-
+ 
   const int npar = 17;
   mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
@@ -824,10 +739,10 @@ void fullb12finalfit(const char * const cut =
   mn->mnparm(0, "p_b12", 0.2,  0.001, 0, 2, err);
   mn->mnparm(1, "p_b12n",0.5,  0.01,  0, 2, err);
   mn->mnparm(2, "p_b13", 0.2,  0.01,  0, 2, err);
-  mn->mnparm(3, "p_li8", 0.01,  0.01, 0, 2, err);
+  mn->mnparm(3, "p_li8", 0.005,  0.001, 0, 2, err);
   mn->mnparm(4, "p_li8n",0.05,  0.01, 0, 2, err);
-  mn->mnparm(5, "p_li9", 0.01,  0.01, 0, 2, err);
-  mn->mnparm(6, "p_li9n",0.05,  0.01, 0, 2, err);
+  mn->mnparm(5, "p_li9", 0.00,  0.01, 0, 2, err);
+  mn->mnparm(6, "p_li9n",0.024,  0.01, 0, 2, err);
   mn->mnparm(7, "n_n16",   1,  1, 0, 1e3, err);
   mn->mnparm(8, "acc",   1,    0.01, 0, 100, err);
   mn->mnparm(9, "accn",  0.1,  0.001, 0, 10, err);
@@ -842,27 +757,6 @@ void fullb12finalfit(const char * const cut =
   mn->mnparm(15, "n16t", 0,  n16life_err/nom_n16life, -5, +5, err);
   mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
 
-#ifdef DISABLEN16
-  mn->Command("SET PAR 8 0");
-  mn->Command("FIX 8");
-  mn->Command("FIX 16");
-#endif
-#ifdef DISABLELI
-  mn->Command("SET PAR 4 0");
-  mn->Command("SET PAR 5 0");
-  mn->Command("SET PAR 6 0");
-  mn->Command("SET PAR 7 0");
-  mn->Command("FIX 4");
-  mn->Command("FIX 5");
-  mn->Command("FIX 6");
-  mn->Command("FIX 7");
-  mn->Command("FIX 14");
-  mn->Command("FIX 15");
-#endif
-
-  // XXX fix all lifetimes and the neutron efficiency
-  //for(int i = 12; i <= 17; i++) mn->Command(Form("FIX %d", i));
-
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
@@ -872,7 +766,7 @@ void fullb12finalfit(const char * const cut =
   float dt, mx, my, mz, fq;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
-  selt->SetBranchAddress("laten", &nn);
+  selt->SetBranchAddress("latennear", &nn);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
@@ -884,7 +778,8 @@ void fullb12finalfit(const char * const cut =
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     if(isibd(run, trig)) continue;
-    events.push_back(ev(dt-offset, nn, eff(fq, mx, my, mz), isibd(run, trig)));
+    events.push_back(ev(dt-offset, nn,
+      neff_dr_800_avg*eff(fq, mx, my, mz), isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }
@@ -917,25 +812,21 @@ void fullb12finalfit(const char * const cut =
   }
 
   mn->SetPrintLevel(0);
-  mn->Command("MINOS 2000 1 2 3");
+  mn->Command("MINOS 2000 4 5");
+  mn->Command("MINOS 2000 4"); // failed, so try again
   puts("");
   mn->Command("show min");
-
-  printc12b12results();
-  printc13b12nresults();
-  printc13b13results();
 
   zero= new TF1("zero",dispf0, 0, 100e3, npar);
   one = new TF1("one", dispf1, 0, 100e3, npar);
   two = new TF1("two", dispf2, 0, 100e3, npar);
+
+  printli8results();
+  printli8nresults();
 
   for(int i = 0; i < npar; i++){
     zero->SetParameter(i, getpar(i));
     one ->SetParameter(i, getpar(i));
     two ->SetParameter(i, getpar(i));
   }
-
-  mn->SetPrintLevel(-1);
-  b13limit();
-  mn->SetPrintLevel(0);
 }

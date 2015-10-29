@@ -53,7 +53,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like += pow((par[10] - 0.00022)/0.00007, 2);
 }
 
-void chargeratiofinalfit()
+void chargeratio_finalfit()
 {
   mt->SetBinContent(3,65);
   mt->SetBinContent(4,2984);

@@ -18,7 +18,7 @@ double mucountfinalfit_cut(const char * const cut,
   return returnerr? err: val;
 }
 
-void mucountfinalfit()
+void mucount_finalfit()
 {
   mucountfinalfit_cut(
     "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "

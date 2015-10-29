@@ -1,12 +1,10 @@
 #!/bin/bash
 
-out=n16_finalfit.out 
-set -o pipefail
+name=n16
+. analysis_function.sh
 
-if ! root -b -q n16finalfit.C+O | tee /tmp/$$.$out; then
-  mv -f /tmp/$$.$out $out.fail
-  exit 1
+if ! root -b -q ${macro}+O | tee $tmp; then
+  fail $name
+else
+  finish $name
 fi
-
-mv -f /tmp/$$.$out $out
-grep TECHNOTE $out > n16_finalfit_out.technote

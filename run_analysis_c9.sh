@@ -1,13 +1,11 @@
 #!/bin/bash
 
-out=c9_finalfit.out 
-set -o pipefail
+name=c9
+. analysis_function.sh
 
-if ! root -b -q c9finalfit.C"('o')" | tee /tmp/$$.$out ||
-   ! root -b -q c9finalfit.C"('n')" | tee -a /tmp/$$.$out; then
-  mv -f /tmp/$$.$out $out.fail
-  exit 1
+if ! root -b -q ${macro}"('o')" | tee $tmp ||
+   ! root -b -q ${macro}"('n')" | tee -a $tmp; then
+  fail $name
+else
+  finish $name
 fi
-
-mv -f /tmp/$$.$out $out
-grep TECHNOTE $out > c9_finalfit_out.technote

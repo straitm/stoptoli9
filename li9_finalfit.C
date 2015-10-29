@@ -897,7 +897,7 @@ float getredchi2(const int run, const int trig)
   return ids_chi2/(nidtubes + nivtubes - 6);
 }
 
-void li9finalfit(int neutrons = -1, int contourmask = 0)
+void li9_finalfit(int neutrons = -1, int contourmask = 0)
 {
   if(neutrons < -1) return;
   // First factor takes into account the efficiency of selecting a
