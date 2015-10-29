@@ -1,5 +1,7 @@
 #include "unistd.h"
 #include "consts.h"
+#include "carbondenominators_finalfit_out.h"
+
 #include <string>
 #include "math.h"
 #include "TFile.h"
@@ -66,13 +68,9 @@ const double capprob13 = 1-muC13life/mulife;
 const double errcapprob13 = (1-(muClife+muC13life_err)/mulife)/2
                            -(1-(muClife-muC13life_err)/mulife)/2;
 #ifdef HP
-  const double No16cap_betan = n_o16cap_betan_hp*livetime;
-  const double Nc12captarget = n_c12captarget_hp*livetime;
   const double Nc12cap       = n_c12cap_hp*livetime;
   const double Nc13cap       = n_c13cap_hp*livetime;
 #else
-  const double No16cap_betan = n_o16cap_betan*livetime;
-  const double Nc12captarget = n_c12captarget*livetime;
   const double Nc12cap       = n_c12cap*livetime;
   const double Nc13cap       = n_c13cap*livetime;
 #endif
