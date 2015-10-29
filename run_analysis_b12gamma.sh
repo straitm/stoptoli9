@@ -5,6 +5,7 @@ set -o pipefail
 
 if ! root -b -q b12gammafinalfit.C+O'(0)' | tee /tmp/$$.$out || 
    ! root -b -q b12gammafinalfit.C+O'(1)' | tee -a /tmp/$$.$out; then
+  mv -f /tmp/$$.$out $out.fail
   exit 1
 fi
 

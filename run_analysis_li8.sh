@@ -4,6 +4,7 @@ out=li8_finalfit.out
 set -o pipefail
 
 if ! root -b -q li8finalfit.C+O | tee /tmp/$$.$out; then
+  mv -f /tmp/$$.$out $out.fail
   exit 1
 fi
 

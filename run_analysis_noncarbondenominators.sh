@@ -4,6 +4,7 @@ out=noncarbondenominators_finalfit.out
 set -o pipefail
 
 if ! root -b -q noncarbondenominators_finalfit.C | tee /tmp/$$.$out; then
+  mv -f /tmp/$$.$out $out.fail
   exit 1
 fi
 

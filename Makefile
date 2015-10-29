@@ -134,4 +134,4 @@ clean:
       *_C.d *_C.so  AutoDict*cxx*
 
 analysisclean: 
-	rm -f *.out *_out.h *.technote
+	rm -f *.out *_out.h *.technote *.out.fail

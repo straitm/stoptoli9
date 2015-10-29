@@ -4,6 +4,7 @@ out=fullb12_finalfit.out
 set -o pipefail
 
 if ! root -b -q fullb12finalfit.C+O | tee /tmp/$$.$out; then
+  mv -f /tmp/$$.$out $out.fail
   exit 1
 fi
 
