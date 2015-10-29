@@ -3,7 +3,8 @@
 out=b12gamma_finalfit.out 
 set -o pipefail
 
-if ! root -b -q b12gammafinalfit.C+ | tee /tmp/$$.$out; then
+if ! root -b -q b12gammafinalfit.C+'(0)' | tee /tmp/$$.$out || 
+   ! root -b -q b12gammafinalfit.C+'(1)' | tee -a /tmp/$$.$out; then
   exit 1
 fi
 
