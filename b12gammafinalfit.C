@@ -261,7 +261,7 @@ void print_results8(const double eff, const double energy,
     li8syst_lo = 100*n_ec/Nc12cap/probEightLiFromTwelveC * li8syst_flo,
     li8syst_up = 100*n_ec/Nc12cap/probEightLiFromTwelveC * li8syst_fup;
 
-  const double percentval = 100*n_ec/Nc12cap/p_li8_from_c12;
+  const double percentval = 100*n_ec/Nc12cap/probEightLiFromTwelveC;
 
   printtwice("\n%.0fkeV per Li-8 production: "
              "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
@@ -339,7 +339,7 @@ void print_results13(const double eff, const double energy,
                                + pow(addsystf,2)),
                b12syst_flo=-sqrt(pow(probTwelveBFromThirteenC_statup/
                                      probTwelveBFromThirteenC, 2)
-                               + pow(addsystf,2))
+                               + pow(addsystf,2));
 
   const double
     b12stat_lo = 100*nelo_ec/Nc13cap/probTwelveBFromThirteenC,
@@ -446,7 +446,7 @@ void print_results(const double eff, const double energy,
 
   printtwice("\n%.0fkeV per bound B-12 production: "
              "(%f %f +%f (stat) %f +%f (syst) %f %f (tot))%%\n", 2, energy,
-             100*n_ec   /Nc12cap/p_b12_from_c12,
+             100*n_ec   /Nc12cap/probTwelveBFromTwelveC,
              b12stat_lo, b12stat_up,
              b12syst_lo, b12syst_up,
              -sqrt(pow(b12stat_lo,2) + pow(b12syst_lo,2)),
