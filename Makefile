@@ -16,7 +16,7 @@ li9_finalfit.out: \
   noncarbondenominators_finalfit_out.h \
   carbondenominators_finalfit_out.h \
   run_analysis_li9.sh \
-  li9finalfit.C
+  li9_finalfit.C
 	./run_analysis_li9.sh
 
 n16_finalfit.out: \
@@ -24,56 +24,56 @@ n16_finalfit.out: \
   noncarbondenominators_finalfit_out.h \
   carbondenominators_finalfit_out.h \
   run_analysis_n16.sh \
-  n16finalfit.C
+  n16_finalfit.C
 	./run_analysis_n16.sh
 
 b14_finalfit.out: \
   consts.h \
   noncarbondenominators_finalfit_out.h \
   run_analysis_b14.sh \
-  b14finalfit.C
+  b14_finalfit.C
 	./run_analysis_b14.sh
 
 n12_finalfit.out: \
   consts.h \
   noncarbondenominators_finalfit_out.h \
   run_analysis_n12.sh \
-  n12finalfit.C
+  n12_finalfit.C
 	./run_analysis_n12.sh
 
 c9_finalfit.out: \
   consts.h \
   noncarbondenominators_finalfit_out.h \
   run_analysis_c9.sh \
-  c9finalfit.C
+  c9_finalfit.C
 	./run_analysis_c9.sh
 
 he6_finalfit.out: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_he6.sh \
-  he6finalfit.C
+  he6_finalfit.C
 	./run_analysis_he6.sh
 
 b8_finalfit.out: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_b8.sh \
-  b8finalfit.C
+  b8_finalfit.C
 	./run_analysis_b8.sh
 
 be12_finalfit.out: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_be12.sh \
-  be12finalfit.C
+  be12_finalfit.C
 	./run_analysis_be12.sh
 
 li8_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_li8.sh \
-  li8finalfit.C
+  li8_finalfit.C
 	./run_analysis_li8.sh
 
 b12groundstate_finalfit.out: \
@@ -90,20 +90,20 @@ b12gamma_finalfit_out.h: \
   fullb12_finalfit_out.h \
   carbondenominators_finalfit_out.h \
   run_analysis_b12gamma.sh \
-  b12gammafinalfit.C
+  b12gamma_finalfit.C
 	./run_analysis_b12gamma.sh
 
 fullb12_finalfit_out.h: \
   consts.h \
   carbondenominators_finalfit_out.h \
   run_analysis_fullb12.sh \
-  fullb12finalfit.C
+  fullb12_finalfit.C
 	./run_analysis_fullb12.sh
 
 carbondenominators_finalfit_out.h: \
   consts.h \
   run_analysis_carbondenominators.sh \
-  mucountfinalfit.C \
+  mucount_finalfit.C \
   carbondenominators_finalfit.C
 	./run_analysis_carbondenominators.sh
 

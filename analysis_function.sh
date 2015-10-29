@@ -8,6 +8,7 @@ finish(){
   name=$1
   out=${name}_finalfit.out 
   headerout=${name}_finalfit_out.h
+  technoteout=${name}_finalfit_out.technote
 
   mv -f /tmp/$$.$out $out
   grep TECHNOTE $out > $technoteout
