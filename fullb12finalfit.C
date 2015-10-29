@@ -451,7 +451,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   {
     static int dotcount = 0;
-    if(mn->fCfrom != "CONtour   " && dotcount++%100 == 0){
+    if(mn->fCfrom != "CONtour   " && dotcount++%128 == 0){
       printf(".");  fflush(stdout); }
   }
 
@@ -662,17 +662,22 @@ void results(const char * const iname, const int mni,
   printtwice("\n%sOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
-         !strcmp("C-12 -> B-12", iname)?
-           "TECHNOTE 4.3 XXX & should go to consts for ground state result: ":
-         !strcmp("C-13 -> B-12+n", iname)?
-           "TECHNOTE 4.3: ":
-           "",
+         !strcmp("C-12 -> B-12", iname)?   "TECHNOTE 4.3: ":
+         !strcmp("C-13 -> B-12+n", iname)? "TECHNOTE 4.3: ": "",
          like_central_rate, staterr_rateup, staterr_ratelo,
          muerr_rate, err_rate, lifetimeerr_rate, toterr_rateup,
          toterr_ratelo,
          sqrt(pow(toterr_rateup, 2) - pow(staterr_rateup,2)),
          sqrt(pow(toterr_ratelo, 2) - pow(staterr_ratelo,2))
          );
+  if(!strcmp("C-12 -> B-12", iname)){
+    printf("const double b12totalrate = %f\n", like_central_rate);
+    printf("const double b12totalrate_statup = %f\n", staterr_rateup);
+    printf("const double b12totalrate_statlo = %f\n", staterr_ratelo);
+    printf("const double b12totalrate_syst = %f\n",
+      sqrt(pow(muerr_rate,2)+pow(err_rate,2)+pow(lifetimeerr_rate,2)));
+  }
+
   puts("");
 }
 
@@ -714,8 +719,8 @@ double b13limit()
   double sump = 0;
 
   unsigned int smallcount = 0;
-  const double increment = 0.02;
-  const int N = 40;
+  const double increment = 0.05;
+  const int N = 20;
   double ps[N];
 
   const double bestchi2 = mn->fAmin;
@@ -725,7 +730,7 @@ double b13limit()
   for(int i = 0; i < N; i++){
     const double prob = i*increment;
     mn->Command(Form("set par 3 %f", prob));
-    mn->Command("Migrad 1000 1");
+    mn->Command("Migrad 2000 1");
     const double p = exp(bestchi2-mn->fAmin);
     printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");
