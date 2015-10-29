@@ -3,7 +3,6 @@
 #include "carbondenominators_finalfit_out.h"
 #include "li8_finalfit_out.h"
 #include "fullb12_finalfit_out.h"
-#include "b12gamma_finalfit_out.h"
 
 
 #include <string>
