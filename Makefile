@@ -102,6 +102,7 @@ b8_finalfit.out: \
 
 be12_finalfit.out: \
   consts.h \
+  b12cutefficiency_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_be12.sh \
   be12_finalfit.C
@@ -110,6 +111,7 @@ be12_finalfit.out: \
 li8_finalfit.out.h: \
   consts.h \
   carbondenominators_finalfit.out.h \
+  b12cutefficiency_finalfit.out.h \
   run_analysis_li8.sh \
   li8_finalfit.C
 	./run_analysis_li8.sh
@@ -117,6 +119,7 @@ li8_finalfit.out.h: \
 b12groundstate_finalfit.out: \
   consts.h \
   fullb12_finalfit.out.h \
+  b12cutefficiency_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   b12gamma_finalfit_0.out.h \
   b12gamma_finalfit_1.out.h \
@@ -127,6 +130,7 @@ b12groundstate_finalfit.out: \
 b12gamma_finalfit_C.so: \
   b12gamma_finalfit.C \
   consts.h \
+  b12cutefficiency_finalfit.out.h \
   li8_finalfit.out.h \
   fullb12_finalfit.out.h \
   carbondenominators_finalfit.out.h
@@ -144,13 +148,21 @@ b12gamma_finalfit_1.out.h: \
 
 fullb12_finalfit.out.h: \
   consts.h \
+  b12cutefficiency_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_fullb12.sh \
   fullb12_finalfit.C
 	./run_analysis_fullb12.sh
 
+b12cutefficiency_finalfit.out.h: \
+  consts.h \
+  b12cutefficiency_finalfit.C \
+  b12spectrum.C
+	./run_analysis_b12cutefficiency.sh
+
 carbondenominators_finalfit.out.h: \
   consts.h \
+  b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \
   mucount_finalfit.C \
   carbondenominators_finalfit.C

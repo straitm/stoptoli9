@@ -112,9 +112,6 @@ const double wholedet_dist400eff = 0.9148;
 const double wholedet_dist300eff = 0.8121;
 const double wholedet_dist200eff = 0.5343;
 
-const double b12energyeff = 0.8504;  // B-12 energy cut
-const double b12energyeff_e = 0.0065;
-
 // Systematic error on B-12 gamma lines due to uncertainty in the energy
 // correction function.  Technote section 11.7
 const double b12lineEsyst[4] = { 0.00170994 / 0.315747,
@@ -129,6 +126,7 @@ const double b12lineNsyst[4] = { 0,
                                  0.01,
                                  0 };
 
+// In milliseconds
 const double lifetime_c12 = 2028.e-6;
 const double lifetime_c13 = 2037.e-6;
 const double lifetime_c12_err = 2.e-6;

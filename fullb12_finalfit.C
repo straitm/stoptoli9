@@ -1,5 +1,6 @@
 #include <fstream>
 #include "consts.h"
+#include "b12cutefficiency_finalfit.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"

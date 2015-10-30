@@ -1,5 +1,6 @@
 #include "consts.h"
 #include "carbondenominators_finalfit.out.h"
+#include "b12cutefficiency_finalfit.out.h"
 
 void be12_finalfit()
 {

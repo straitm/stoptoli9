@@ -94,6 +94,12 @@ void b12cutefficiency_finalfit(const double cutlow = 4)
             pow(cuth->Integral(1,3), 2)
             ), 2)
         );
-  printf("Data Efficiency for %.1f-%.1f MeV cut for B-12+B-13: %.2f +- %.2f %%\n",
+  printf("TECHNOTE 4.4.1: Data Efficiency for %.1f-%.1f MeV cut "
+         "for B-12+B-13: %.2f +- %.2f %%\n",
          cutlow, cuthigh, eff*100, error*100);
+  printf("All the digits: %f +- %f %%\n", eff*100, error*100);
+
+  printf("const double b12energyeff = %f\n", eff);
+  printf("const double b12energyeff_e = %f\n", error);
+  
 }

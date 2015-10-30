@@ -1,5 +1,6 @@
 #include "unistd.h"
 #include "consts.h"
+#include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "li8_finalfit.out.h"
 #include "fullb12_finalfit.out.h"
@@ -55,7 +56,7 @@ const double paccn = 1.1e-4;
 
 const double hn_e = 2.224573;
 
-const double mulife = 2196.9811;
+const double mulife = 2196.9811e-6;
 const double capprob12 = 1-lifetime_c12/mulife;
 const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
                            -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
@@ -758,8 +759,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   }
 
   whichcorr = whichcorr_;
-  const double lowt   = region == 0? 4000 :region == 1?  3008: 2016;
-  const double hight = 5024.; // ns
+  const double lowt   = region == 0? 4.000 :region == 1?  3.008: 2.016;
+  const double hight = 5.024; // us
   const double highfq = 215; // MeV
 
   // From B-12-like event counting, with a bit over 1% stat error. Since
@@ -795,13 +796,16 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     * fq_eff
   ;
   const double gammatimecut_eff = 
-    (exp(-lowt/lifetime_c12)-exp(-hight/lifetime_c12));
+    (exp(-lowt/1000/lifetime_c12)-exp(-hight/1000/lifetime_c12));
   const double b12geff = b12eff * gammatimecut_eff;
   const double li8geff = li8eff * gammatimecut_eff;
 
-  printtwice("Gamma time efficiency: %f%%\n", 1, 100*gammatimecut_eff);
-  printtwice("Efficiency for B-12 gammas: %f%%\n", 1, 100*b12geff);
-  printtwice("Efficiency for Li-8 gammas: %f%%\n", 1, 100*li8geff);
+  printtwice("Muon energy cut efficiency: (%f +- %f)percent\n", 2,
+             100*n_c12cap_forb12gamma/n_c12cap,
+             n_c12cap_forb12gamma_additional_ferr);
+  printtwice("Gamma time efficiency: %fpercent\n", 1, 100*gammatimecut_eff);
+  printtwice("Efficiency for B-12 gammas: %fpercent\n", 1, 100*b12geff);
+  printtwice("Efficiency for Li-8 gammas: %fpercent\n", 1, 100*li8geff);
 
   const string gdndist = 
     // Gd-n distribution, normalized to 1, with a 
@@ -885,7 +889,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
          "dist < %f && "
          "fq < %f && "
          "micht >= %f && micht < %f"
-         , b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
+         , b12ecutlow, distcut, fq_per_mev*highfq, lowt*1000, hight*1000));
   seltree->Write();
 
   printf("%lld events in t, %lld in seltree\n",
@@ -1126,12 +1130,12 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     // Hn in the GC, easy.  It's just the total times the probability
     // of an exponential during the time window
     const double n_hn_gc = (1-targfrac) * nobsb12n *
-      (exp(-lowt/1000./hn_t)-exp(-hight/1000./hn_t));
+      (exp(-lowt/hn_t)-exp(-hight/hn_t));
 
     // Gd-n [in the Target].  Complicated, so integral a function
     // to get the probability.
     const double inwindowgdprob =
-      gdtime()->Integral(lowt/1000, hight/1000)/gdtime()->Integral(0,600);
+      gdtime()->Integral(lowt, hight)/gdtime()->Integral(0,600);
     const double n_gn = gdfrac * targfrac * nobsb12n *
       inwindowgdprob;
     printf("In-window Gd probability: %.3f\n", inwindowgdprob);

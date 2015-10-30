@@ -1,4 +1,5 @@
 #include "consts.h"
+#include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "fullb12_finalfit.out.h"
 #include "b12gamma_finalfit_0.out.h"
