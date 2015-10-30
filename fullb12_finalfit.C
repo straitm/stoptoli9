@@ -62,15 +62,6 @@ vector<ev> events;
 double meaneff[3] = {0};
 int eventc[3] = {0}; // number of events with each n count
 
-void printfr(const char * const msg, ...)
-{
-  va_list ap;
-  va_start(ap, msg);
-  printf(RED);
-  vprintf(msg, ap);
-  printf(CLR);
-}
-
 /*
  * Prints the message once with the requested floating point precision
  * and in RED, then again with all digits in the default color, starting
@@ -194,11 +185,6 @@ const double mulife = 2196.9811e-6;
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
-const double lifetime_c12 = 2028.e-6;
-const double lifetime_c13 = 2037.e-6;
-const double lifetime_c12_err = 2.e-6;
-const double lifetime_c13_err = 8.e-6;
-
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
                                   +pow(lifetime_c13_err*   f13 ,2));
@@ -232,9 +218,6 @@ TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 50, 1-offset, 501-offset);
 const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
-
-const double b12energyeff = 0.8504;  // B-12 energy cut
-const double b12energyeff_e = 0.0065;
 
 const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
@@ -802,8 +785,10 @@ void fullb12_finalfit(const char * const cut =
 "timeleft > %f && miche < 12 && !earlymich && "
 "e > 4 && e < 15 && dt < %f && laten <= 2")
 {
-  printtwice("mu- count is %f %f\n", 4, mum_count, mum_count_e);
-
+  printtwice("The number of mu- stopping in the high-purity sample, "
+             " regardless of what they atomicly or nuclearly capture "
+             "on, is %f %f\n", 4, mum_count, mum_count_e);
+  
   printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
   printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
   printtwice("Li-8 selection efficiency is %f%%\n", 2, li8eff*100);

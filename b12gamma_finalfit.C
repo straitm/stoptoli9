@@ -25,8 +25,6 @@ using std::string;
 
 const int ggnnpars = 5;
 
-//#define HP
-
 TCanvas * c2 = new TCanvas("c2", "", 0, 0, 500, 400);
 
 TMinuit * mn = NULL;
@@ -55,28 +53,19 @@ const double G4E = 3.759 + 0.006;
 // are *detected* neutrons, so don't apply efficiency to them.
 const double paccn = 1.1e-4;
 
-const double muClife = 2028.; // muon lifetime in C-12, ns
 const double hn_e = 2.224573;
 
-const double muC13life = 2037.; // muon lifetime in C-12, ns
-
 const double mulife = 2196.9811;
-const double muClife_err = 2.;
-const double muC13life_err = 8.;
-const double capprob12 = 1-muClife/mulife;
-const double errcapprob12 = (1-(muClife+muClife_err)/mulife)/2
-                           -(1-(muClife-muClife_err)/mulife)/2;
+const double capprob12 = 1-lifetime_c12/mulife;
+const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
+                           -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
 
-const double capprob13 = 1-muC13life/mulife;
-const double errcapprob13 = (1-(muClife+muC13life_err)/mulife)/2
-                           -(1-(muClife-muC13life_err)/mulife)/2;
-#ifdef HP
-  const double Nc12cap       = n_c12cap_hp*livetime;
-  const double Nc13cap       = n_c13cap_hp*livetime;
-#else
-  const double Nc12cap       = n_c12cap*livetime;
-  const double Nc13cap       = n_c13cap*livetime;
-#endif
+const double capprob13 = 1-lifetime_c13/mulife;
+const double errcapprob13 = (1-(lifetime_c12+lifetime_c13_err)/mulife)/2
+                           -(1-(lifetime_c12-lifetime_c13_err)/mulife)/2;
+
+const double Nc12cap = n_c12cap*livetime;
+const double Nc13cap = n_c13cap*livetime;
 
 const double li8hl = 839.9;
 
@@ -286,9 +275,13 @@ void print_results8(const double eff, const double energy,
              fraclimit*(1 + li8syst_up/percentval*0.17)
             );
 
-  const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
+  const double ratemult = capprob12/(Nc12cap*lifetime_c12)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2) /* XXX ? */+ pow(addsystf, 2));
+  const double ratesyst_f = sqrt(
+     pow(n_c12cap_forb12gamma_additional_ferr, 2)
+   + pow(mum_count_e/mum_count, 2)
+   + pow(lifetime_c12_err/lifetime_c12, 2)
+   + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -382,9 +375,13 @@ void print_results13(const double eff, const double energy,
              fraclimit*(1 + b12syst_up/percentval*0.17)
             );
 
-  const double ratemult = capprob13/(Nc13cap*muClife)*1e6;
+  const double ratemult = capprob13/(Nc13cap*lifetime_c13)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2)/* XXX ? */ + pow(addsystf, 2));
+  const double ratesyst_f = sqrt(
+     pow(n_c12cap_forb12gamma_additional_ferr, 2)
+   + pow(mum_count_e/mum_count, 2)
+   + pow(lifetime_c12_err/lifetime_c12, 2)
+   + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -475,9 +472,13 @@ void print_results(const double eff, const double energy,
              sqrt(pow(b12stat_up,2) + pow(b12syst_up,2))
             );
 
-  const double ratemult = capprob12/(Nc12cap*muClife)*1e6;
+  const double ratemult = capprob12/(Nc12cap*lifetime_c12)*1e6;
 
-  const double ratesyst_f = sqrt(pow(0.021, 2)/* XXX ? */ + pow(addsystf, 2));
+  const double ratesyst_f = sqrt(
+     pow(n_c12cap_forb12gamma_additional_ferr, 2)
+   + pow(mum_count_e/mum_count, 2)
+   + pow(lifetime_c12_err/lifetime_c12, 2)
+   + pow(addsystf, 2));
 
   const double
     ratestat_lo = nelo_ec*ratemult,
@@ -761,15 +762,10 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   const double hight = 5024.; // ns
   const double highfq = 215; // MeV
 
-#ifdef HP
-  // From muon counting.  Exact.
-  const double fq_eff = 481414./1628874;
-#else
   // From B-12-like event counting, with a bit over 1% stat error. Since
   // the most precise output of this fit has 10% stat errors, I won't
   // obsess over that.
-  const double fq_eff = 0.3857;
-#endif
+  const double fq_eff = n_c12cap_for_b12gamma/n_c12cap;
 
   const double b12eff = 1
     * light_noise_eff
@@ -779,7 +775,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     * sub_muon_eff05  // Subsequent muon veto efficiency 
     * eff_eor_b12 // timeleft cut
     * (b12ecutlow == 3?0.9251:
-       b12ecutlow == 4?0.8504:
+       b12ecutlow == 4?b12energyeff:
        (exit(1),1)) // B-12 energy cut
     * (distcut == 400?wholedet_dist400eff:(exit(1),1))
     * (exp(-b12lowt *log(2)/b12hl)
@@ -799,7 +795,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     * fq_eff
   ;
   const double gammatimecut_eff = 
-    (exp(-lowt/muClife)-exp(-hight/muClife));
+    (exp(-lowt/lifetime_c12)-exp(-hight/lifetime_c12));
   const double b12geff = b12eff * gammatimecut_eff;
   const double li8geff = li8eff * gammatimecut_eff;
 
@@ -884,10 +880,6 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
 
   printf("Pre-selecting...\n");
   TTree * seltree = t->CopyTree(Form(
-         #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-         #endif
          "!earlymich && "
          "e > %f && e < 15 && "
          "dist < %f && "
@@ -1122,16 +1114,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       double(t->GetEntries(Form(
           "mx**2+my**2 < 1154**2 && "
           "abs(mz) < 1229+4+0.03*(1154-sqrt(mx**2+my**2)) && "
-        #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-        #endif
          "ndecay == 0 && fq < %f", fq_per_mev*highfq)))/
       t->GetEntries(Form(
-        #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-        #endif
          "ndecay == 0 && fq < %f", fq_per_mev*highfq));
     printf("neutron Target fraction: %f\n", targfrac);
 
@@ -1208,7 +1192,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   mn->Command("HESSE"); // we use the covariance matrix
                         // for the ground state calculation
 
-  {
+  if(region == 0 || region == 1){
     double errmat[NMINUITPAR][NMINUITPAR];
     mn->mnemat(&errmat[0][0], NMINUITPAR);
 
@@ -1216,10 +1200,17 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     const int l2fp[5] = { -1, 2, 3, 4, 5 };
     // translate gamma lines to MINUIT *parameters*
     const int l2p[5] = { -1, 3, 5, 7, 11 };
-    for(int i = 1; i <= 4; i++)
-      for(int j = i+1; j <= 4; j++)
-        printf("const double b12cc_%d%d = %g;\n", i, j,
-               errmat[l2fp[i]][l2fp[j]]/geterr(l2p[i])/geterr(l2p[j]));
+    for(int i = 1; i <= 4; i++){
+      for(int j = i+1; j <= 4; j++){
+        // Use the conditions under which we fit lines 1 and 2 to give
+        // us the correlation coefficient for them. Use the conditions
+        // under which we fit lines 3 and 4 to give us all the rest,
+        // including those involving lines 1 and 2.
+        if((region == 1) ^ (i == 1 && j == 2))
+          printf("const double b12cc_%d%d = %g;\n", i, j,
+            errmat[l2fp[i]][l2fp[j]]/geterr(l2p[i])/geterr(l2p[j]));
+      }
+    }
   }
 
   printf("Finding MINOS errors...\n");

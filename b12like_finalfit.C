@@ -24,11 +24,6 @@ const double mulife = 2196.9811e-6;
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
-const double lifetime_c12 = 2028.e-6;
-const double lifetime_c13 = 2037.e-6;
-const double lifetime_c12_err = 2.e-6;
-const double lifetime_c13_err = 8.e-6;
-
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
                                   +pow(lifetime_c13_err*   f13 ,2));
@@ -156,9 +151,6 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-static const double energyeff = 0.8504;  // B-12 energy cut
-static const double energyeff_e = 0.0065;
-
 // time until end of run
 static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 
@@ -168,7 +160,7 @@ static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 double sub_muon_eff = 0; // set by main function argument
 
 static double eff = 0;
-static const double ferr_energy = energyeff_e/energyeff;
+static const double ferr_energy = b12energyeff_e/b12energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
@@ -211,6 +203,8 @@ const double mylivetime = -1.0)
   if(verbose){
     printtwice("TECHNOTE 3.5: Number %s of mu- stops is %f +- %f\n",
       0, iname, mum_count, mum_count_e);
+    printf("const double mum_count   = %f;\n", mum_count);
+    printf("const double mum_count_e = %f;\n", mum_count_e);
     printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures, any C "
       "isotope is %f +- %f\n",
       0, iname, mumc_count, mumc_count_e);
@@ -229,7 +223,7 @@ const double mylivetime = -1.0)
   }
 
   sub_muon_eff = sub_muon_eff_in;
-  eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * energyeff;
+  eff = light_noise_eff * mich_eff * eor_eff * sub_muon_eff * b12energyeff;
   if(verbose)
     printtwice("TECHNOTE 4.1.2: B-12 selection efficiency: %f +- %f percent\n",
       2, eff*100, ferr_energy*eff*100);
@@ -484,6 +478,21 @@ void carbondenominators_finalfit()
 
   printf("const double n_c12captarget = %f;\n", n_c12captarget);
 
+  /*****************************************************************/
+  const ve result_forb12gamma =
+    b12like_finalfit("for b12 gamma", Form("%s && %s", "fq < 215*8300", othercuts), false, false);
+
+  const double n_c12cap_forb12gamma =
+    result_forb12gamma.val/(hpresult.val+antihpresult.val) * n_c12cap;
+
+  printf("const double n_c12cap_forb12gamma = %f;\n", n_c12cap_forb12gamma);
+  printf("const double n_c12cap_forb12gamma_additional_ferr = %f;\n",
+         sqrt(
+           (hpresult.val+antihpresult.val - result_forb12gamma.val)/
+           (result_forb12gamma.val*(hpresult.val+antihpresult.val))
+         ));
+
+  /*****************************************************************/
   const ve HPtargetresult =
     b12like_finalfit("HP target", Form("%s && %s && %s", HPcut, target_cut, othercuts), false, false);
 

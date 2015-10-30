@@ -115,8 +115,9 @@ li8_finalfit.out.h: \
 	./run_analysis_li8.sh
 
 b12groundstate_finalfit.out: \
-  li8_finalfit.out.h \
+  consts.h \
   fullb12_finalfit.out.h \
+  carbondenominators_finalfit.out.h \
   b12gamma_finalfit_0.out.h \
   b12gamma_finalfit_1.out.h \
   run_analysis_b12groundstate.sh \

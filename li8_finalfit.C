@@ -105,11 +105,6 @@ const double mulife = 2196.9811e-6;
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
-const double lifetime_c12 = 2028.e-6;
-const double lifetime_c13 = 2037.e-6;
-const double lifetime_c12_err = 2.e-6;
-const double lifetime_c13_err = 8.e-6;
-
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
                                   +pow(lifetime_c13_err*   f13 ,2));
@@ -136,8 +131,6 @@ const double mum_count_e = 0.05388e5;
 const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
 const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
 #else
-const double mum_count =   2.309e6;
-const double mum_count_e = 0.032e6;
 const double c12nuc_cap = n_c12cap*livetime;
 const double c13nuc_cap = n_c13cap*livetime;
 #endif
@@ -158,10 +151,10 @@ const double li8eff_energy = 0.7165; // estimate from DOGS MC -- good
 const double li8eff_energy_e = 0.02; // made up!
 const double li8ferr_energy = li8eff_energy_e/li8eff_energy; // made up!
 
-const double b12energyeff = 0.7484;  // B-12 energy cut for 5MeV
-const double b12energyeff_e = 0.0056;
+const double b12energyeff_5MeV = 0.7484;  // B-12 energy cut for 5MeV
+const double b12energyeff_5MeV_e = 0.0056;
 
-const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
+const double b13energyeff = b12energyeff_5MeV * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
 const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
@@ -176,8 +169,8 @@ const double eor_eff = 1-(1-0.9709)*hightime/100e3;
 const double b12likelihood_eff = 0.906; // For 0.02
 
 const double b12eff = b12likelihood_eff * light_noise_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff;
-const double b12ferr_energy = b12energyeff_e/b12energyeff;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff_5MeV;
+const double b12ferr_energy = b12energyeff_5MeV_e/b12energyeff_5MeV;
 
 const double b13eff = b12likelihood_eff * light_noise_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b13energyeff;
