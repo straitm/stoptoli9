@@ -16,6 +16,9 @@
 #include "carbondenominators_finalfit.out.h"
 #include <string>
 
+using std::string;
+using std::cout;
+
 // High-purity sample
 //#define HP
 
@@ -151,8 +154,6 @@ static void scalegraph(TGraph * g)
 
 void n16_finalfit()
 {
-  const bool fit = true;
-
   TFile * fiel= new TFile(rootfile3up,"read");
   TTree * t = (TTree *) fiel->Get("t");
 
@@ -228,7 +229,7 @@ void n16_finalfit()
     
     printf("%sN-16 found, no pull term, assuming no Be-11 or "
            "C-15 = %.0f +%.0f %.0f%s\n",
-           n16found, n16founderrup, n16founderrlo, RED, CLR);
+           RED, n16found, n16founderrup, n16founderrlo, CLR);
   }
 
   TF1 * eep = new TF1("eep", Form(
@@ -273,7 +274,7 @@ void n16_finalfit()
     
     printf("%sN-16 found, no pull term, Be-11 and C-15 free = "
            "%.0f +%.0f %.0f%s\n",
-           n16found, n16founderrup, n16founderrlo, RED, CLR);
+           RED, n16found, n16founderrup, n16founderrlo, CLR);
   }
 
   printf("%sAll preferred to none, no pull, by %.1f%s\n", RED,
@@ -344,7 +345,7 @@ void n16_finalfit()
   const double n16founderrlo = n16found / val[4] * mn->fErn[4];
   
   printf("%sN-16 found with pull = %.0f +%.0f %.0f%s\n",
-         n16found, n16founderrup, n16founderrlo, RED, CLR);
+         RED, n16found, n16founderrup, n16founderrlo, CLR);
 
   TMarker * best = new TMarker(val[3], val[5], kStar);
   scalemarker(best);

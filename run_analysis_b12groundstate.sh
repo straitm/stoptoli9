@@ -3,7 +3,7 @@
 name=b12groundstate
 . analysis_function.sh
 
-if ! root -b -q $macro | tee $tmp; then
+if ! root -b -q $macro &> $tmp; then
   fail $name
 else
   finish $name

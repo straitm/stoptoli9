@@ -21,6 +21,11 @@
 #include "TFile.h"
 #include "TRandom3.h"
 
+using std::vector;
+using std::string;
+using std::cin;
+using std::cout;
+
 //#define HP
 
 // H efficiency is lower than GC efficiency by a little 
@@ -247,7 +252,7 @@ int reactorpowerbin(const int run)
     while(onofffile  >> r) on_off.push_back(r);
     if(off_off.empty() || on_off.empty()){
       fprintf(stderr, "Off-off has %d runs, on-off has %d: Bad(?)\n",
-              off_off.size(), on_off.size());
+              (int)off_off.size(), (int)on_off.size());
     }
   }
 
@@ -810,7 +815,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
     ((TGaxis*)(ninty_2d->GetYaxis()))->SetMaxDigits(3);
   }
   if(ninty_1d) ninty_1d->SetLineColor(kRed),   ninty_1d->Draw("l");
-  else printf("ACK! Couldn't make 90% 1D contour!\n");
+  else printf("ACK! Couldn't make 90%% 1D contour!\n");
   if(sigma_2d){
     sigma_2d->SetNameTitle(sigmaname, sigmaname);
     sigma_2d->SavePrimitive(cout);
@@ -828,7 +833,7 @@ void contour(TMinuit * mn, const int par1, const int par2,
   TMarker * best = new TMarker(minx, miny, kStar);
   best->Draw();
 
-  if(comment != ""){
+  if(!strcmp(comment, "")){
     TLatex * t = new TLatex(0.5, 0.8, comment);
     t->SetTextSize(0.07);
     t->SetNDC(1);
@@ -907,7 +912,7 @@ double getprimaryresult()
 
   string scratch;
   double primaryresult;
-  for(int i = 0; i < 4; i++){
+  for(int i = 0; i < 11; i++){
     if(!(infile >> scratch)){
       printf("li9_finalfit_-1.out.h ended unexpectedly\n");
       exit(1);
@@ -1010,7 +1015,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
   TTree * tsels[2] = { tgsel, thsel };
 
   for(int tree = 0; tree < 2; tree++){
-    printf("Reading cut tree %d with %d entries\n",
+    printf("Reading cut tree %d with %lld entries\n",
            tree, tsels[tree]->GetEntries());
     tsels[tree]->SetBranchAddress("dt", &tim);
     tsels[tree]->SetBranchAddress("run", &run);

@@ -162,7 +162,7 @@ void he6_finalfit(const int nreq_ = 0,
     "dist < %f && b12like < 0.4 && ttlastvalid > 0.1 && ttlastmuon>1"
     , distcut);
   char cut[1000];
-  snprintf(cut, 999, "latennear == %d && %s", nreq, distcut, cutnoncut);
+  snprintf(cut, 999, "latennear == %d && %s", nreq, cutnoncut);
 
 
   const double bglow = 7.13*3, bghigh = 100,
@@ -524,7 +524,6 @@ void he6_finalfit(const int nreq_ = 0,
   const double rat = (n90he6/captures)/he6norm90;
 
   mn->SetPrintLevel(-1);
-  const double scan = 0;
   double sump = 0;
   const int N = 20000;
   double ps[N];

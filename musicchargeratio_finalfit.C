@@ -102,9 +102,9 @@ void musicchargeratio_finalfit()
     else if(exper == 1) printf("Combined: ");
     else                printf("L3+C+MINOS FD:    ");
     printf("%.4f +- %.4f (%s) or +- %.4f (their systematic (shadier))\n",
-           exper == 0?"minos5013":"sig-figs",
            results.GetMean(),
            results.GetRMS(),
+           exper == 0?"minos5013":"sig-figs",
            results.GetMean() * (exper == 0? minossyst:
                                  exper == 2? l3csyst:
                      1/sqrt(1/pow(l3csyst,2) + 1/pow(minossyst,2)))    );

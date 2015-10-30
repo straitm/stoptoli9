@@ -26,3 +26,5 @@ seq?.ntuple.root
 *_out.h
 *.out
 *.technote
+.~*#
+*.out.h
