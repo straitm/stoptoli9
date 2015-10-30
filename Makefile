@@ -20,7 +20,7 @@ li9_finalfit_C.so: \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   li9_finalfit.C
-	root -b -q li9_finalfit.C++'(-2)'
+	root -n -l -b -q li9_finalfit.C++'(-2)'
 
 li9_finalfit_-1.out.h: \
   li9_finalfit_C.so \
@@ -71,7 +71,7 @@ he6_finalfit_C.so: \
   he6_finalfit.C \
   consts.h \
   carbondenominators_finalfit.out.h
-	root -b -q he6_finalfit.C++'(-1)'
+	root -n -l -b -q he6_finalfit.C++'(-1)'
 
 he6_finalfit_0.out: \
   he6_finalfit_C.so \
@@ -129,7 +129,7 @@ b12gamma_finalfit_C.so: \
   li8_finalfit.out.h \
   fullb12_finalfit.out.h \
   carbondenominators_finalfit.out.h
-	root -b -q b12gamma_finalfit.C++'(-1)'
+	root -n -l -b -q b12gamma_finalfit.C++'(-1)'
 
 b12gamma_finalfit_0.out.h: \
   b12gamma_finalfit_C.so \
@@ -182,4 +182,4 @@ clean:
       *_C.d *_C.so  AutoDict*cxx*
 
 analysisclean:
-	rm -f *.out *.out.h *.technote *.out.fail
+	rm -f *_C.d *_C.so AutoDict*cxx* *.out *.out.h *.technote *.out.fail
