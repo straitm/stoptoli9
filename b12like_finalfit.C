@@ -34,18 +34,18 @@ const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
                                   +pow(lifetime_c13_err*   f13 ,2));
 
 const double capprob12 = 1-lifetime_c12/mulife;
-const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
-                           -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
+const double errcapprob12 =-(1-(lifetime_c12+lifetime_c12_err)/mulife)/2
+                           +(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;
 
 const double capprob13 = 1-lifetime_c13/mulife;
-const double errcapprob13 = (1-(lifetime_c13+lifetime_c13_err)/mulife)/2
-                           -(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
+const double errcapprob13 =-(1-(lifetime_c13+lifetime_c13_err)/mulife)/2
+                           +(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
 
 const double capprob = c_atomic_capture_prob *
                       (capprob12*(1-f13) + capprob13*f13);
 
-const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
-                              + pow(errcapprob13,2)*f13 +
+const double errcapprob = sqrt(pow(errcapprob12,2)*(1-f13)
+                             + pow(errcapprob13,2)*f13 +
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
 struct ev{
@@ -79,15 +79,6 @@ TMinuit * mn = NULL;
 TTree * selt = NULL;
 
 vector<ev> events;
-
-static void printfr(const char * const msg, ...)
-{
-  va_list ap;
-  va_start(ap, msg);
-  printf(RED);
-  vprintf(msg, ap);
-  printf(CLR);
-}
 
 /*
  * Prints the message once with the requested precision and in RED, then
@@ -218,10 +209,23 @@ const double sub_muon_eff_in = sub_muon_eff05,
 const double mylivetime = -1.0)
 {
   if(verbose){
-    printtwice("TECHNOTE 3.5: Number of mu- stops is %f +- %f\n", 0,
-               mum_count, mum_count_e);
-    printtwice("TECHNOTE 3.5: Number of mu- atomic captures, any C "
-               "isotope is %f +- %f\n", 0, mumc_count, mumc_count_e);
+    printtwice("TECHNOTE 3.5: Number %s of mu- stops is %f +- %f\n",
+      0, iname, mum_count, mum_count_e);
+    printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures, any C "
+      "isotope is %f +- %f\n",
+      0, iname, mumc_count, mumc_count_e);
+    printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures on C-12 "
+      "is %f +- %f\n",
+      0, iname, mumc_count*(1-f13), mumc_count_e*(1-f13));
+    printtwice("TECHNOTE 6.1: Number %s of mu- atomic captures on C-12 "
+      "per day: %f +- %f\n",
+      0, iname, mumc_count*(1-f13)/livetime, mumc_count_e*(1-f13)/livetime);
+    printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures on C-13 "
+      "is %f +- %f\n",
+      0, iname, mumc_count*f13, mumc_count_e*f13);
+    printtwice("TECHNOTE 6.1: Number %s of mu- atomic captures on C-13 "
+      "per day: %f +- %f\n",
+      2, iname, mumc_count*f13/livetime, mumc_count_e*f13/livetime);
   }
 
   sub_muon_eff = sub_muon_eff_in;
@@ -315,7 +319,7 @@ const double mylivetime = -1.0)
   const double muerr_percap = muerr/capprob;
   const double b12err_percap = b12err/capprob;
   const double capfracerr_percap =
-    b12like_central_percap * err_capprob/capprob;
+    b12like_central_percap * errcapprob/capprob;
   const double toterr_percap = sqrt(pow(staterr_percap,2)+
                                     pow(muerr_percap,2)+
                                     pow(b12err_percap,2)+
@@ -351,6 +355,13 @@ const double mylivetime = -1.0)
 
 void carbondenominators_finalfit()
 {
+  printtwice("TECHNOTE 2.2: Nuclear capture probability on C-12 "
+    "(%f +- %f)percent\n", 2, capprob12*100, errcapprob12*100);
+  printtwice("TECHNOTE 2.3: Nuclear capture probability on C-13 "
+    "(%f +- %f)percent\n", 2, capprob13*100, errcapprob13*100);
+  printtwice("TECHNOTE 2.3: Nuclear capture probability on C-nat "
+    "(%f +- %f)percent\n", 2, capprob  *100, errcapprob  *100);
+
   const char * const HPcut =
     "mx**2+my**2 < 1050**2 && mz > -1175 && "
     "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
