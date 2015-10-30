@@ -765,7 +765,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   // From B-12-like event counting, with a bit over 1% stat error. Since
   // the most precise output of this fit has 10% stat errors, I won't
   // obsess over that.
-  const double fq_eff = n_c12cap_for_b12gamma/n_c12cap;
+  const double fq_eff = n_c12cap_forb12gamma/n_c12cap;
 
   const double b12eff = 1
     * light_noise_eff
