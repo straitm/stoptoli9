@@ -307,7 +307,7 @@ void print_results8(const double eff, const double energy,
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
   printtwice("\nTECHNOTE results.tex probLiEightGammaRateSimple: "
-             "%.0fkeV rate 90%% upper limit: %f e-3\n", 2, energy,
+             "%.0fkeV rate 90%% upper limit: %fe-3\n", 2, energy,
   /* See comments in C-13 function below */
        (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
           * bayescorrectionforrate
@@ -354,7 +354,7 @@ void print_results13(const double eff, const double energy,
   const char * const linenumber = fabs(energy - 953) < 10? "One":
                                   fabs(energy - 1674) < 10? "Two":
                                   fabs(energy - 2621) < 10? "Three":
-                                  fans(energy - 3759) < 10? "Four":"??";
+                                  fabs(energy - 3759) < 10? "Four":"??";
 
   const double percentval = 100*n_ec/Nc13cap/probTwelveBFromThirteenC;
   printtwice("\nTECHNOTE results.tex nprobGamma%sFrac, nprobGamma%sFracCent: "
@@ -402,7 +402,8 @@ void print_results13(const double eff, const double energy,
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
   printtwice("\nTECHNOTE results.tex nprobGamma%sRateSimple: "
-             "%.0fkeV rate 90%% upper limit: %f e-3\n", 0, energy,
+             "%.0fkeV rate 90%% upper limit: %fe-3\n", 0,
+             linenumber, energy,
   /* Find upper limit as though there were no bounds, then correct that
      given the bounds of 0-100% production, as found above. */
        (rateval + ratestat_up * ROOT::Math::gaussian_quantile(0.9, 1))
@@ -461,7 +462,7 @@ void print_results(const double eff, const double energy,
   const char * const linenumber = fabs(energy - 953) < 10? "One":
                                   fabs(energy - 1674) < 10? "Two":
                                   fabs(energy - 2621) < 10? "Three":
-                                  fans(energy - 3759) < 10? "Four":"??";
+                                  fabs(energy - 3759) < 10? "Four":"??";
 
   printtwice("\nTECHNOTE results.tex probGamma%sFrac, probGamma%sFracCent: "
              "%.0fkeV per bound B-12 production: "
@@ -881,9 +882,6 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   corrbg->Sumw2();
   ehist->Sumw2();
 
-  TFile * tempfile = new TFile(Form("/tmp/b12gammafit.%d.%d.root",
-                               region, getpid()), "recreate");
-
   printf("Pre-selecting...\n");
   TTree * seltree = t->CopyTree(Form(
          #ifdef HP
@@ -898,7 +896,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
          , b12ecutlow, distcut, fq_per_mev*highfq, lowt, hight));
   seltree->Write();
 
-  printf("%d events in t, %d in seltree\n",
+  printf("%lld events in t, %lld in seltree\n",
          t->GetEntries(), seltree->GetEntries());
   if(seltree->GetEntries() == 0){ printf("No events in seltree\n"); exit(1);}
 
@@ -1054,7 +1052,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   "n_totn",
   };
 
-  mn = new TMinuit(gg->GetNpar() + ggnnpars);
+  const int NMINUITPAR = gg->GetNpar() + ggnnpars;
+  mn = new TMinuit(NMINUITPAR);
   mn->SetPrintLevel(-1);
   mn->fGraphicsMode = false;
   mn->SetFCN(fcn);
@@ -1210,17 +1209,17 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
                         // for the ground state calculation
 
   {
-    double errmatrix[gg->GetNpar() + ggnnpars][gg->GetNpar() + ggnnpars];
-    mn->mnemat(errmatrix, gg->GetNpar() + ggnnpars);
+    double errmat[NMINUITPAR][NMINUITPAR];
+    mn->mnemat(&errmat[0][0], NMINUITPAR);
 
-    // translate gamma lines to MINUIT parameters
-    const double l2p[4] = { 3, 5, 7, 11 };
-    printf("const double b12cov_12 = %f;\n", errmatrix[l2p[0]][l2p[1]]);
-    printf("const double b12cov_13 = %f;\n", errmatrix[l2p[0]][l2p[2]]);
-    printf("const double b12cov_14 = %f;\n", errmatrix[l2p[0]][l2p[3]]);
-    printf("const double b12cov_23 = %f;\n", errmatrix[l2p[1]][l2p[2]]);
-    printf("const double b12cov_24 = %f;\n", errmatrix[l2p[1]][l2p[3]]);
-    printf("const double b12cov_34 = %f;\n", errmatrix[l2p[2]][l2p[3]]);
+    // translate gamma lines to MINUIT *free* parameters
+    const int l2fp[5] = { -1, 2, 3, 4, 5 };
+    // translate gamma lines to MINUIT *parameters*
+    const int l2p[5] = { -1, 3, 5, 7, 11 };
+    for(int i = 1; i <= 4; i++)
+      for(int j = i+1; j <= 4; j++)
+        printf("const double b12cc_%d%d = %g;\n", i, j,
+               errmat[l2fp[i]][l2fp[j]]/geterr(l2p[i])/geterr(l2p[j]));
   }
 
   printf("Finding MINOS errors...\n");
@@ -1259,10 +1258,6 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
 
   mn->Command("show min");
 
-  const double a = gg->GetParameter("er_a");
-  const double b = gg->GetParameter("er_b");
-  const double c = gg->GetParameter("er_c");
-
   TF1 * nh_peak = drawpeak("_hn");
   nh_peak->SetLineStyle(7);
 
@@ -1279,7 +1274,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[2]/gg->GetParameter("n1")*nev;
 
       print_results(b12geff, 953, nev, nevelo, neveup, 
-        sqrt(pow(b12lineEsyst[0], 2) + pow(b12lineNsyst[0], 2));
+        sqrt(pow(b12lineEsyst[0], 2) + pow(b12lineNsyst[0], 2)));
     }
     {
       drawpeak("2");
@@ -1289,7 +1284,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[3]/gg->GetParameter("n2")*nev;
 
       print_results(b12geff, 1674, nev, nevelo, neveup,
-        sqrt(pow(b12lineEsyst[1], 2) + pow(b12lineNsyst[1], 2));
+        sqrt(pow(b12lineEsyst[1], 2) + pow(b12lineNsyst[1], 2)));
     }
     {
       const double nev = getpar(31)/ehist->GetBinWidth(1);
@@ -1322,7 +1317,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[4]/gg->GetParameter("n3")*nev;
 
       print_results(b12geff, 2621, nev, nevelo, neveup,
-        sqrt(pow(b12lineEsyst[2], 2) + pow(b12lineNsyst[2], 2));
+        sqrt(pow(b12lineEsyst[2], 2) + pow(b12lineNsyst[2], 2)));
     }
     {
       drawpeak("5");
@@ -1332,7 +1327,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
       const double nevelo = mn->fErn[5]/gg->GetParameter("n5")*nev;
 
       print_results(b12geff, 3759, nev, nevelo, neveup,
-        sqrt(pow(b12lineEsyst[3], 2) + pow(b12lineNsyst[3], 2));
+        sqrt(pow(b12lineEsyst[3], 2) + pow(b12lineNsyst[3], 2)));
     }
     {
       const double nev = getpar(33)/ehist->GetBinWidth(1);
