@@ -116,13 +116,15 @@ const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
 
 
 #ifdef HP
-const double mum_count =   7.16322e5;
-const double mum_count_e = 0.05388e5;
+const double mum_count_thisselection = mum_count;
+const double mum_count_thisselection_e = mum_count_e;
 const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
 const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
 #else
 const double c12nuc_cap = n_c12cap*livetime;
 const double c13nuc_cap = n_c13cap*livetime;
+const double mum_count_thiselection = n_c12cap*livetime/c_atomic_capture_prob/(1-f13)/capprob12;
+const double mum_count_thiselection_e = n_c12cap_err*livetime/c_atomic_capture_prob/(1-f13)/capprob12;
 #endif
 
 
@@ -525,16 +527,16 @@ void results(const char * const iname, const int mni,
   printtwice("\nTECHNOTE 10.1: %s raw %f +%f %f\n", 0, iname,
     fit, ferrorfitup*fit, ferrorfitlo*fit);
 
-  const double like_central = fit/eff/mum_count * 100/ifrac;
+  const double like_central = fit/eff/mum_count_thiselection * 100/ifrac;
   const double staterrup = ferrorfitup*like_central;
   const double staterrlo = ferrorfitlo*like_central;
-  const double muerr = mum_count_e/mum_count*like_central;
+  const double muerr = mum_count_thiselection_e/mum_count_thiselection*like_central;
   const double err = ferr_energy*like_central;
   const double toterrup = sqrt(pow(ferrorfitup,2) +
-                               pow(mum_count_e/mum_count,2) +
+                               pow(mum_count_thiselection_e/mum_count_thiselection,2) +
                                pow(ferr_energy, 2))*like_central;
   const double toterrlo = -sqrt(pow(ferrorfitlo,2) +
-                               pow(mum_count_e/mum_count,2) +
+                               pow(mum_count_thiselection_e/mum_count_thiselection,2) +
                                pow(ferr_energy, 2))*like_central;
   printtwice("\n%s, eff corrected, percent per C mu- stop "
     "%f +%f %f(fit) +-%f(mu count) +-%f(Li-8 eff), "
@@ -561,7 +563,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\nTECHNOTE results.tex %s: Or percent per nuclear mu- capture on this isotope "
+  printtwice("\nTECHNOTE results.tex %s: percent per nuclear mu- capture "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total),  +%f -%f (non-fit, a.k.a. syst)\n",
          prec2, 
@@ -607,7 +609,7 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\nOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+  printtwice("\n10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
          like_central_rate, staterr_rateup, staterr_ratelo,
@@ -748,7 +750,17 @@ void li8_finalfit(const char * const cut =
 
   mn->SetPrintLevel(0);
   mn->Command("MINOS 2000 4 5");
-  mn->Command("MINOS 2000 4"); // failed, so try again
+
+  for(int cpar = 3; cpar <= 4; cpar++){
+    int tries = 0;
+    // Check for MINOS failure
+    while(sani_minos(mn->fErn[cpar]) == 0 || 
+          sani_minos(mn->fErp[cpar]) == 0){
+      if(tries++ > 3) break;
+      mn->Command(Form("MINOS 2000 %d", cpar+1));
+    }
+  }
+
   puts("");
   mn->Command("show min");
 
