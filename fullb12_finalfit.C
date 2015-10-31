@@ -607,7 +607,7 @@ void results(const char * const iname, const int mni,
                                     pow(err_percap,2)+
                                     pow(capfracerr_percap,2));
 
-  printtwice("\n%sOr percent per nuclear mu- capture on this isotope "
+  printtwice("\n%sPercent per nuclear mu- capture on this isotope "
          "%f +%f %f(fit) +-%f(mu count) +-%f(eff) +-%f(cap frac), "
          "+%f %f(total),  +%f -%f (non-fit)\n",
          prec2, 
@@ -656,7 +656,7 @@ void results(const char * const iname, const int mni,
                                   pow(err_rate,2)+
                                   pow(lifetimeerr_rate,2));
 
-  printtwice("\n%sOr 10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
+  printtwice("\n%s10^3/s: %f +%f %f(fit) +-%f(mu count) +-%f(eff), "
          "+-%f(lifetime) +%f %f(total)  +%f -%f\n",
          prec3,
          !strcmp("C-12 -> B-12", iname)?   "TECHNOTE 4.3: ":
