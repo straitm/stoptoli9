@@ -276,7 +276,7 @@ void print_results8(const double eff, const double energy,
              fraclimit*(1 + li8syst_up/percentval*0.17)
             );
 
-  const double ratemult = capprob12/(Nc12cap*lifetime_c12)*1e6;
+  const double ratemult = capprob12/(Nc12cap*lifetime_c12);
 
   const double ratesyst_f = sqrt(
      pow(n_c12cap_forb12gamma_additional_ferr, 2)
@@ -376,7 +376,7 @@ void print_results13(const double eff, const double energy,
              fraclimit*(1 + b12syst_up/percentval*0.17)
             );
 
-  const double ratemult = capprob13/(Nc13cap*lifetime_c13)*1e6;
+  const double ratemult = capprob13/(Nc13cap*lifetime_c13);
 
   const double ratesyst_f = sqrt(
      pow(n_c12cap_forb12gamma_additional_ferr, 2)
@@ -473,7 +473,7 @@ void print_results(const double eff, const double energy,
              sqrt(pow(b12stat_up,2) + pow(b12syst_up,2))
             );
 
-  const double ratemult = capprob12/(Nc12cap*lifetime_c12)*1e6;
+  const double ratemult = capprob12/(Nc12cap*lifetime_c12);
 
   const double ratesyst_f = sqrt(
      pow(n_c12cap_forb12gamma_additional_ferr, 2)
@@ -867,14 +867,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   ggn->SetParNames("unused0", "unused1", "b12n_n1",
                    "b12n_n2", "b12n_n3", "b12n_n5",
                    "bgnorm", "thrub12hnn"); // incomplete
-  TFile * f = 
-//#define FAST
-#ifdef FAST
-  new TFile(Form("b12gamma.sel%d.root", region), "read");
-  targfrac = 0.181098;
-  if(!f || f->IsZombie()) f =
-#endif
-  new TFile(rootfile3up, "read");
+  TFile * f = new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
   bg->Sumw2();
@@ -890,7 +883,6 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
          "fq < %f && "
          "micht >= %f && micht < %f"
          , b12ecutlow, distcut, fq_per_mev*highfq, lowt*1000, hight*1000));
-  seltree->Write();
 
   printf("%lld events in t, %lld in seltree\n",
          t->GetEntries(), seltree->GetEntries());
