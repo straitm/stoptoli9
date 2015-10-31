@@ -393,6 +393,7 @@ void n16_finalfit()
   printf("%sTECHNOTE results.tex probFifteenCFromSixteenO: C-15 90%% CL upper limit prob: %.0lf%% %s\n", RED, c15lim, CLR);
 
   TCanvas * c2 = new TCanvas("c2", "c2", 1000, 1000);
+  c2->cd();
 
   mn->fUp = 4.6051; // 90% CL contour in 2D
   command(mn, "mncont 4 6 200");

@@ -1,3 +1,13 @@
+#include <stdio.h>
+#include <string>
+using std::string;
+#include "TFile.h"
+#include "TCanvas.h"
+#include "TROOT.h"
+#include "TH1.h"
+#include "TF1.h"
+#include "TTree.h"
+#include "TMinuit.h"
 #include "consts.h"
 #include "carbondenominators_finalfit.out.h"
 
@@ -35,6 +45,7 @@ void b8_finalfit(const int nn = 4)
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas("c1", "c1");
+  c->cd();
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
@@ -45,7 +56,7 @@ void b8_finalfit(const int nn = 4)
   const char * const cut = scut.c_str();
 
   t->Draw("dt/1000 >> hfit(10000, 0.001, 100)", cut);
-  TH1 * hfit = gROOT->FindObject("hfit");
+  TH1 * hfit = (TH1 *)gROOT->FindObject("hfit");
 
   TF1 * ee = new TF1("ee", "[0]*exp(-x*log(2)/0.0202) + "
                "[1]*exp(-x*log(2)/[2]) + "
@@ -80,11 +91,11 @@ void b8_finalfit(const int nn = 4)
 
   if(hfit->GetEntries()){
     t->Draw("dt/1000 >> hdisp(400, 0.001, 20.001)", cut, "hist");
-    TH1 * hdisp = gROOT->FindObject("hdisp");
+    TH1 * hdisp = (TH1 *)gROOT->FindObject("hdisp");
     if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
 
-    TF1 * eedisp = ee->Clone("eedisp");
+    TF1 * eedisp = (TF1 *)ee->Clone("eedisp");
     eedisp->SetNpx(400);
     eedisp->SetLineColor(kRed);
 
@@ -117,7 +128,7 @@ void b8_finalfit(const int nn = 4)
     const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
 
     double Nerrup, Nerrlo;
-    char * errtype = NULL;
+    string errtype;
     if(hfit->GetEntries() < 3){
       errtype = "HESSE";
       Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
@@ -130,7 +141,7 @@ void b8_finalfit(const int nn = 4)
     }
 
     printf("%sN found: %f +%f %f %s%s\n",
-        RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
+        RED, Nfound, Nerrup, Nerrlo, errtype.c_str(), CLR);
 
 
     printf("%sProb: %g +%g %g%s\n", 

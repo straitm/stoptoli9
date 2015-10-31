@@ -12,22 +12,22 @@
 #include <algorithm>
 using std::vector;
 
+// Average isotopic fraction of C-13 in the whole sample and the
+// high-purity sample, where these two values are already so close
+// together that it doesn't matter which is used, so this is really
+// silly.
+const double f13_mean = (f13 + f13_HP)/2;
+
 const double b12life = 20.20/log(2.);
 const double li8life = 839.9/log(2.);
 const double n16life = 7130./log(2.);
 
-
-// Weighted average of T and GC measurements for the HP region
-const double f13 = 0.010921;
-
-const double mulife = 2196.9811e-6;
-
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
-const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
-const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
-                                  +pow(lifetime_c13_err*   f13 ,2));
+const double lifetime_c = lifetime_c12*(1-f13_mean)+lifetime_c13*f13_mean;
+const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13_mean),2)
+                                  +pow(lifetime_c13_err*   f13_mean ,2));
 
 const double capprob12 = 1-lifetime_c12/mulife;
 const double errcapprob12 =-(1-(lifetime_c12+lifetime_c12_err)/mulife)/2
@@ -38,10 +38,10 @@ const double errcapprob13 =-(1-(lifetime_c13+lifetime_c13_err)/mulife)/2
                            +(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
 
 const double capprob = c_atomic_capture_prob *
-                      (capprob12*(1-f13) + capprob13*f13);
+                      (capprob12*(1-f13_mean) + capprob13*f13_mean);
 
-const double errcapprob = sqrt(pow(errcapprob12,2)*(1-f13)
-                             + pow(errcapprob13,2)*f13 +
+const double errcapprob = sqrt(pow(errcapprob12,2)*(1-f13_mean)
+                             + pow(errcapprob13,2)*f13_mean +
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
 struct ev{
@@ -211,16 +211,16 @@ const double mylivetime = -1.0)
       0, iname, mumc_count, mumc_count_e);
     printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures on C-12 "
       "is %f +- %f\n",
-      0, iname, mumc_count*(1-f13), mumc_count_e*(1-f13));
+      0, iname, mumc_count*(1-f13_mean), mumc_count_e*(1-f13_mean));
     printtwice("TECHNOTE 6.1: Number %s of mu- atomic captures on C-12 "
       "per day: %f +- %f\n",
-      0, iname, mumc_count*(1-f13)/livetime, mumc_count_e*(1-f13)/livetime);
+      0, iname, mumc_count*(1-f13_mean)/livetime, mumc_count_e*(1-f13_mean)/livetime);
     printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures on C-13 "
       "is %f +- %f\n",
-      0, iname, mumc_count*f13, mumc_count_e*f13);
+      0, iname, mumc_count*f13_mean, mumc_count_e*f13_mean);
     printtwice("TECHNOTE 6.1: Number %s of mu- atomic captures on C-13 "
       "per day: %f +- %f\n",
-      2, iname, mumc_count*f13/livetime, mumc_count_e*f13/livetime);
+      2, iname, mumc_count*f13_mean/livetime, mumc_count_e*f13_mean/livetime);
   }
 
   sub_muon_eff = sub_muon_eff_in;
@@ -392,16 +392,16 @@ void carbondenominators_finalfit()
   puts("");
 
   printtwice("TECHNOTE 5.2: Atomic captures/day on C-12: %f +- %f\n",
-    0, answer/livetime*(1-f13),
-        error/livetime*(1-f13));
+    0, answer/livetime*(1-f13_mean),
+        error/livetime*(1-f13_mean));
 
-  const double n_c12cap = answer/livetime*(1-f13) * capprob12;
+  const double n_c12cap = answer/livetime*(1-f13_mean) * capprob12;
   const double n_c12cap_err = 
     answer*sqrt(
       pow(error/answer,2) // fractional stat error
       +pow(errcapprob12/capprob12,2) // fractional capture error
       +pow(mumc_count_e/mumc_count,2)
-    )/livetime*(1-f13)*capprob12;
+    )/livetime*(1-f13_mean)*capprob12;
 
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap, n_c12cap_err);
@@ -412,14 +412,14 @@ void carbondenominators_finalfit()
   puts("");
 
   printtwice("TECHNOTE 5.2: Atomic captures/day on C-13: %f +- %f\n",
-    2, answer/livetime*f13, error/livetime*f13);
+    2, answer/livetime*f13_mean, error/livetime*f13_mean);
 
-  const double n_c13cap = answer/livetime*f13 * capprob13;
+  const double n_c13cap = answer/livetime*f13_mean * capprob13;
   const double n_c13cap_err = answer*sqrt(
       pow(error/answer,2) // fractional stat error
       +pow(errcapprob13/capprob13,2) // fractional capture error
       +pow(mumc_count_e/mumc_count,2)
-    )/livetime*f13*capprob13;
+    )/livetime*f13_mean*capprob13;
 
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-13: %f +- %f\n",
     2, n_c13cap, n_c13cap_err);
@@ -433,14 +433,14 @@ void carbondenominators_finalfit()
   puts("These numbers don't depend on the above fits, but I'm putting them");
   puts("in this order in the output to mirror the technote.");
   printtwice("TECHNOTE 6.1: Atomic captures/day on C-12: %f +- %f\n",
-    0, mumc_count/livetime*(1-f13),
-    mumc_count_e/livetime*(1-f13));
+    0, mumc_count/livetime*(1-f13_mean),
+    mumc_count_e/livetime*(1-f13_mean));
 
-  const double n_c12cap_hp = mumc_count/livetime*(1-f13) * capprob12;
+  const double n_c12cap_hp = mumc_count/livetime*(1-f13_mean) * capprob12;
   const double n_c12cap_hp_err = mumc_count*sqrt(
       pow(mumc_count_e/mumc_count,2) // fractional stat error
       +pow(errcapprob12/capprob12,2) // fractional capture error
-    )/livetime*(1-f13)*capprob12;
+    )/livetime*(1-f13_mean)*capprob12;
 
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap_hp, n_c12cap_hp_err);
@@ -451,13 +451,13 @@ void carbondenominators_finalfit()
   puts("");
 
   printtwice("TECHNOTE 6.1: Atomic captures/day on C-13: %f +- %f\n",
-    2, mumc_count/livetime*f13, mumc_count_e/livetime*f13);
+    2, mumc_count/livetime*f13_mean, mumc_count_e/livetime*f13_mean);
 
-  const double n_c13cap_hp = mumc_count/livetime*f13 * capprob13;
+  const double n_c13cap_hp = mumc_count/livetime*f13_mean * capprob13;
   const double n_c13cap_hp_err = mumc_count*sqrt(
       pow(mumc_count_e/mumc_count,2) // fractional stat error
       +pow(errcapprob13/capprob13,2) // fractional capture error
-    )/livetime*f13*capprob13;
+    )/livetime*f13_mean*capprob13;
 
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-13: %f +- %f\n",
     3, n_c13cap_hp, n_c13cap_hp_err);

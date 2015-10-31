@@ -1,5 +1,14 @@
+#include "TFile.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TROOT.h"
+#include "TTree.h"
+#include "TMinuit.h"
+#include "TCanvas.h"
 #include "consts.h"
 #include "noncarbondenominators_finalfit.out.h"
+#include <string>
+using std::string;
 
 void n12_finalfit()
 {
@@ -56,6 +65,7 @@ void n12_finalfit()
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
+  c->cd();
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
@@ -70,7 +80,7 @@ void n12_finalfit()
 
   if(nsel > 0){
     t->Draw(Form("dt/1000 >> hfit%d(10000, 0.001, 100)", nncut), cut);
-    TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
+    TH1 * hfit = (TH1 *)gROOT->FindObject(Form("hfit%d", nncut));
 
     TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
                  "[1]*exp(-x*log(2)/[2]) + "
@@ -102,10 +112,10 @@ void n12_finalfit()
     }
 
     t->Draw(Form("dt/1000 >> hdisp%d(200, 0.001, 2.001)", nncut), cut, "hist");
-    TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
+    TH1 * hdisp = (TH1 *)gROOT->FindObject(Form("hdisp%d", nncut));
     if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
-    TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
+    TF1 * eedisp = (TF1 *)ee->Clone(Form("eedisp%d", nncut));
     eedisp->SetNpx(400);
     eedisp->SetLineColor(kRed);
 
@@ -115,9 +125,9 @@ void n12_finalfit()
       eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
     eedisp->Draw("same");
 
-    TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-    TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
-    TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
+    TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
+    TF1 * b8 = new TF1("b8", "[0]*exp(-x*log(2)/[1])", 0, 100);
+    TF1 * acc = new TF1("acc", "[0]", 0, 100);
 
     b12->SetNpx(400);
     b8->SetNpx(400);
@@ -137,7 +147,7 @@ void n12_finalfit()
 
     const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
     double Nerrup, Nerrlo;
-    char * errtype = NULL;
+    string errtype;
     if(hfit->GetEntries() < 3){
       errtype = "HESSE";
       Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
@@ -150,7 +160,7 @@ void n12_finalfit()
     }
 
     printf("%sN found: %f +%f %f %s%s\n",
-           RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
+           RED, Nfound, Nerrup, Nerrlo, errtype.c_str(), CLR);
 
     printf("%sProb: %g +%g %g%s\n",
         RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);

@@ -6,18 +6,15 @@
  * of knowing how to do an automatic conversion.
  */
 
+#include "TMath.h"
 #include "consts.h"
 #include "carbondenominators_finalfit.out.h" // c12, c13 per day
-
-const double f13 = 0.010921;
 
 const double hydrogenmass = 1.008;
 const double carbonmass = 12.011;
 const double nitrogenmass = 14.007;
 const double oxygenmass = 15.999;
 const double gdmass = 157.25;
-
-const double mulife = 2196.9811e-6;
 
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double capprob_c = 1-lifetime_c/mulife;

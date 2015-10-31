@@ -1,4 +1,6 @@
 #include "TTree.h"
+#include "TH1.h"
+#include "TF1.h"
 #include "TROOT.h"
 #include "consts.h"
 

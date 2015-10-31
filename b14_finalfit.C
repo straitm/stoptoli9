@@ -1,3 +1,9 @@
+#include "TFile.h"
+#include "TTree.h"
+#include "TCanvas.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TMinuit.h"
 #include "consts.h"
 #include "noncarbondenominators_finalfit.out.h"
 
@@ -24,7 +30,7 @@ void b14_finalfit()
     "!earlymich && miche < 12 && b12like < 0.06 && dist < 400 && latennear == 0 && e > 15"
     "&& e < 22 && timeleft > 10e3";
 
-  printf("%sN selected in 10s: %d%s\n", RED, t->GetEntries(Form("%s && dt < 1e4", cut)), CLR);
+  printf("%sN selected in 10s: %d%s\n", RED, (int)t->GetEntries(Form("%s && dt < 1e4", cut)), CLR);
 
   const int nin5 = t->GetEntries(Form("%s && dt < 12.5*5", cut));
   printf("%sN selected in 5 half-lives: %d%s\n", RED, nin5, CLR);
@@ -39,7 +45,9 @@ void b14_finalfit()
   if(nin5 > 0){
     TCanvas c1;
 
-    t->Draw("dt/1000 >> hfit(10000, 0.001, 10)", cut);
+    TH1D * hfit = new TH1D("hfit", "", 10000, 0.001, 10);
+
+    t->Draw("dt/1000 >> hfit", cut);
 
     TF1 ee("ee", "[0]*exp(-x*log(2)/0.0202) + " // b12
                  "[1]*exp(-x*log(2)/[2]) + " // b14
@@ -55,17 +63,19 @@ void b14_finalfit()
 
     hfit->Fit("ee", "le");
 
-    t.Draw("dt/1000 >> hdisp(100, 0.001, 10.001)", cut, "e");
+    TH1D * hdisp = new TH1D("hdisp", "", 100, 0.001, 10.001);
 
-    TF1 * eedisp = ee.Clone("eedisp");
+    t->Draw("dt/1000 >> hdisp", cut, "e");
+
+    TF1 * eedisp = (TF1 *)ee.Clone("eedisp");
     eedisp->SetNpx(400);
     eedisp->SetLineColor(kRed);
 
     int tomult[4] = { 0, 1, 3, 4};
     const double mult = hdisp->GetBinWidth(1)/hfit->GetBinWidth(1);
     for(int i = 0; i < 4; i++)
-      eedisp.SetParameter(tomult[i], eedisp.GetParameter(tomult[i])*mult);
-    eedisp.Draw("same");
+      eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
+    eedisp->Draw("same");
 
     TF1 b12("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
     TF1 b14("b14", "[0]*exp(-x*log(2)/0.0125)", 0, 100);
@@ -76,10 +86,10 @@ void b14_finalfit()
 
     TF1 * parts[4] = { &b12, &b14, &li8, &acc };
 
-    b12.SetParameter(0, eedisp.GetParameter(0));
-    b14.SetParameter(0, eedisp.GetParameter(1));
-    li8.SetParameter(0, eedisp.GetParameter(3));
-    acc.SetParameter(0, eedisp.GetParameter(4));
+    b12.SetParameter(0, eedisp->GetParameter(0));
+    b14.SetParameter(0, eedisp->GetParameter(1));
+    li8.SetParameter(0, eedisp->GetParameter(3));
+    acc.SetParameter(0, eedisp->GetParameter(4));
 
     for(int i = 0; i < 4; i++){
       parts[i]->SetLineStyle(7);
@@ -87,9 +97,9 @@ void b14_finalfit()
       parts[i]->Draw("Same");
     }
 
-    const double Nfound = b14->Integral(0, 20)/hdisp->GetBinWidth(1);
-    const double Nerrup = Nfound * gMinuit.fErp[1]/ee->GetParameter(1);
-    const double Nerrlo = Nfound * gMinuit.fErn[1]/ee->GetParameter(1);
+    const double Nfound = b14.Integral(0, 20)/hdisp->GetBinWidth(1);
+    const double Nerrup = Nfound * gMinuit->fErp[1]/ee.GetParameter(1);
+    const double Nerrlo = Nfound * gMinuit->fErn[1]/ee.GetParameter(1);
 
     printf("%sN found: %f +%f %f%s\n", RED, Nfound, Nerrup, Nerrlo, CLR);
 

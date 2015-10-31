@@ -10,6 +10,9 @@
 #include "TROOT.h"
 #include <stdio.h>
 #include <vector>
+using std::pair;
+using std::string;
+using std::cin;
 #include <algorithm>
 #include "deadtime.C" // <-- note inclusion of source
 
@@ -107,9 +110,7 @@ void printtwice(const char * const msg, const int digits, ...)
 
   va_list ap;
   va_start(ap, digits);
-  printf(RED);
   vprintf(pmsg, ap);
-  printf(CLR);
 
   va_start(ap, digits);
   vprintf(bmsg, ap);
@@ -178,17 +179,12 @@ const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 
 /**********************************************************************/
 
-// Weighted average of T and GC measurements for the HP region
-const double f13 = 0.010921;
-
-const double mulife = 2196.9811e-6;
-
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
-const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
-const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
-                                  +pow(lifetime_c13_err*   f13 ,2));
+const double lifetime_c = lifetime_c12*(1-f13_HP)+lifetime_c13*f13_HP;
+const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13_HP),2)
+                                  +pow(lifetime_c13_err*   f13_HP ,2));
 
 const double capprob12 = 1-lifetime_c12/mulife;
 const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
@@ -199,14 +195,14 @@ const double errcapprob13 = (1-(lifetime_c13+lifetime_c13_err)/mulife)/2
                            -(1-(lifetime_c13-lifetime_c13_err)/mulife)/2;
 
 const double capprob = c_atomic_capture_prob *
-                      (capprob12*(1-f13) + capprob13*f13);
+                      (capprob12*(1-f13_HP) + capprob13*f13_HP);
 
-const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13)
-                              + pow(errcapprob13,2)*f13 +
+const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13_HP)
+                              + pow(errcapprob13,2)*f13_HP +
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
-const double c12nuc_cap = c_atomic_capture_prob*(1-f13)*mum_count*capprob12;
-const double c13nuc_cap = c_atomic_capture_prob*f13    *mum_count*capprob13;
+const double c12nuc_cap = c_atomic_capture_prob*(1-f13_HP)*mum_count*capprob12;
+const double c13nuc_cap = c_atomic_capture_prob*f13_HP    *mum_count*capprob13;
 
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
@@ -684,21 +680,21 @@ void results(const char * const iname, const int mni,
 
 void printc12b12results()
 {
-  results("C-12 -> B-12", 0, 1-f13, b12eff, b12ferr_energy,
+  results("C-12 -> B-12", 0, 1-f13_HP, b12eff, b12ferr_energy,
     capprob12*c_atomic_capture_prob, errcapprob12, lifetime_c12,
     lifetime_c12_err, c12nuc_cap, 3, 2, 2);
 }
 
 void printc13b12nresults()
 {
-  results("C-13 -> B-12+n", 1, f13, b12eff, b12ferr_energy,
+  results("C-13 -> B-12+n", 1, f13_HP, b12eff, b12ferr_energy,
     capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
     lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
 
 void printc13b13results()
 {
-  results("C-13 -> B-13", 2, f13, b13eff, b13ferr_energy,
+  results("C-13 -> B-13", 2, f13_HP, b13eff, b13ferr_energy,
     capprob13*c_atomic_capture_prob, errcapprob13, lifetime_c13,
     lifetime_c13_err, c13nuc_cap, 2, 1, 1);
 }
@@ -716,7 +712,6 @@ void mncommand()
 
 double b13limit()
 {
-  const double scan = 0;
   double sump = 0;
 
   unsigned int smallcount = 0;
@@ -851,6 +846,7 @@ void fullb12_finalfit(const char * const cut =
 
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
+  tmpfile->cd();
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
   selt->Write();
   events.clear();

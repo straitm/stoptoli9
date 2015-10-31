@@ -1,3 +1,11 @@
+/* XXX reads from files not in const.h */
+
+#include <math.h>
+#include <stdio.h>
+#include "TTree.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TMinuit.h"
 #include "consts.h"
 #include "carbondenominators_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
@@ -35,7 +43,8 @@ void be12_finalfit()
     "dist < 400 && dist2 < 400 && "
     "e < 12 && e2 < 14 && dt < 250 && dt2 < 250 && dt2-dt > 1";
 
-  t->Draw("dt2-dt >> hfit(249, 1, 250)", cut, "e");
+  TH1D * hfit = new TH1D("hfit", "", 249, 1, 250);
+  t->Draw("dt2-dt >> hfit", cut, "e");
   const int n = t->Scan("dt:e:dt2-dt:e2", cut);
   double upperlimcount;
   if(n == 0){

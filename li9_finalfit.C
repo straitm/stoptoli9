@@ -501,6 +501,7 @@ void drawhist(TTree * tgsel, TTree * thsel,
   whichh++;
 
   TCanvas * c1 = new TCanvas("c1", "c1", 0, 0,800, 500);
+  c1->cd();
   // XXX c1->Divide(2, 2);
   // XXX c1->cd(1);
   
@@ -1010,7 +1011,11 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
   tg.Draw("dedxslant >> +muqivsig", Form("%s && dt/1000 < 0.4", cut),"same");
 */
 
-  float tim, run, mutrig; // yes, all of them are floats
+  // yes, all of them are floats
+  float tim, run;
+  #ifdef HP
+    float mutrig;
+  #endif
 
   TTree * tsels[2] = { tgsel, thsel };
 
@@ -1120,7 +1125,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
     printf("%sLi-9 prob without other isotopes (%.2f): %g %g +%g%s\n",
            RED, mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
-  const double chi2justli9 = mn->fAmin;
+  //const double chi2justli9 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -1133,7 +1138,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
     printf("%sLi-9 with C-16 only (%.2f): %f %f +%f%s\n", RED,
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
-  const double chi2_li9_c16 = mn->fAmin;
+  //const double chi2_li9_c16 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -1146,7 +1151,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
     printf("%sLi-9 with N-17 only (%.2f): %f %f +%f%s\n", RED,
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
-  const double chi2_li9_n17 = mn->fAmin;
+  //const double chi2_li9_n17 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -1159,7 +1164,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
     printf("%sLi-9 prob with only He-8 (%.2f): %f %f +%f%s\n", RED,
       mn->fAmin, getpar(mn, 2), mn->fErn[2], mn->fErp[2], CLR);
   }
-  const double chi2_li9_he8 = mn->fAmin;
+  //const double chi2_li9_he8 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);
@@ -1204,7 +1209,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
       printf("const double primaryresult = %f ;\n",
              getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap));
   }
-  const double chi2_allbut_he8 = mn->fAmin;
+  //const double chi2_allbut_he8 = mn->fAmin;
 
   {
     setupmn(mn, expectedgdfrac);

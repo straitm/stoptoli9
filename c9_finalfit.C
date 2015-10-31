@@ -1,3 +1,13 @@
+#include <math.h>
+#include <string>
+using std::string;
+#include "TTree.h"
+#include "TCanvas.h"
+#include "TROOT.h"
+#include "TFile.h"
+#include "TMinuit.h"
+#include "TF1.h"
+#include "TH1.h"
 #include "consts.h"
 #include "noncarbondenominators_finalfit.out.h"
 

@@ -1,11 +1,15 @@
 #include "consts.h"
 #include "deadtime.C"
+#include "TTree.h"
+#include "TError.h"
+#include "TFile.h"
+#include "TH1.h"
 
 unsigned int factorial(const unsigned int n)
 {
   if(n < 2) return 1;
   unsigned int a = 2;
-  for(int m = 3; m <= n; m++) a*=m;
+  for(unsigned int m = 3; m <= n; m++) a*=m;
   return a;
 }
 
@@ -16,8 +20,9 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
 
   const unsigned int comb = factorial(ntrue)/factorial(nseen)/factorial(ntrue-nseen);
 
-  t->Draw(Form("%d * (1-eff(fq,mx,my,mz,%d))**%d * eff(fq, mx, my, mz, %d)**%d >> h(1000,0,1)", comb, early, ntrue-nseen, early, nseen), "");
-  h=h;
+  TH1D * h = new TH1D("h", "", 1000,0,1);
+  t->Draw(Form("%d * (1-eff(fq,mx,my,mz,%d))**%d * eff(fq, mx, my, mz, %d)**%d >> h",
+    comb, early, ntrue-nseen, early, nseen), "");
   printf("%sOverall efficiency: %.2f%s\n", RED, h->GetMean()*100, CLR);
 
   const char * drawstring = "%d * (1-eff(fq,mx,my,mz,%d))**%d * eff(fq, mx, my, mz, %d)**%d >> h";

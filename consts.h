@@ -127,7 +127,41 @@ const double b12lineNsyst[4] = { 0,
                                  0 };
 
 // In milliseconds
+const double mulife = 2196.9811e-6;
+
 const double lifetime_c12 = 2028.e-6;
-const double lifetime_c13 = 2037.e-6;
 const double lifetime_c12_err = 2.e-6;
+
+const double lifetime_c13 = 2037.e-6;
 const double lifetime_c13_err = 8.e-6;
+
+const double lifetime_n14   = 1919.e-6;
+const double lifetime_n14_err = 15.e-6;
+
+const double lifetime_o16   = 1796.e-6;
+const double lifetime_o16_err =  3.e-6;
+
+const double lifetime_o18   = 1844.e-6;
+const double lifetime_o18_err =  5.e-6;
+
+const double lifetime_gd   = (80.1+81.8)/2 * 1e-6;
+const double lifetime_gd_err =  2.e-6;
+
+// Isotopic fraction of C-13. Weighted average of T and GC measurements,
+// which are only 0.2% different relative to each other and so really
+// this figure is fine even for samples of events in other the T or only
+// the GC, too.
+const double f13 = 0.010919;
+
+// But just to be obsessive, here's the weighted average of T and GC
+// measurements for the HP region
+const double f13_HP = 0.010921;
+
+
+// isotopic fraction of N-15
+const double f15 = 0.00364; // N-15 NNDC value
+
+// isotopic fraction of O-17 and O-18
+const double f17 = 0.00038; // O-17 NNDC value
+const double f18 = 0.00205; // O-18 NNDC value
+

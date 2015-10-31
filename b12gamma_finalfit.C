@@ -56,7 +56,6 @@ const double paccn = 1.1e-4;
 
 const double hn_e = 2.224573;
 
-const double mulife = 2196.9811e-6;
 const double capprob12 = 1-lifetime_c12/mulife;
 const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
                            -(1-(lifetime_c12-lifetime_c12_err)/mulife)/2;

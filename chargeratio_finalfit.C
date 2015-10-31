@@ -11,11 +11,11 @@ double ff(double * ta, double * par)
 
   double t = *ta;
 
-  const double mulife = 2196.9811;
+  const double mulife_ns = mulife*1e6;
 
   return par[0]*mt->GetBinWidth(1)*(
-      mupeff*(1-par[1])/mulife * exp(-t/mulife)
-    + mumeff*par[1]*(par[3]/mulife-0.0003 /* correction for non-C-12 */)
+      mupeff*(1-par[1])/mulife_ns * exp(-t/mulife_ns)
+    + mumeff*par[1]*(par[3]/mulife_ns-0.0003 /* correction for non-C-12 */)
                           /(par[7]+par[8]+par[9]*par[10])
                           *(par[7]/par[3] * exp(-t/par[3])
                            +par[8]/par[6] * exp(-t/par[6])

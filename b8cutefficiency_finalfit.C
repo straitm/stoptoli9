@@ -1,4 +1,6 @@
 #include "TTree.h"
+#include "TH1.h"
+#include "TF1.h"
 #include "TROOT.h"
 #include "consts.h"
 
@@ -179,8 +181,6 @@ void b8cutefficiency_finalfit(const double cutlow = 4)
    const double lowmc = 3.0; // Must be a bin edge!
 
    h->Fit("abeta", "li", "", lowmc, 14);
-
-   const double qb = abeta->GetParameter(0);
 
    const double eff = (cutlow > lowmc ? 
       h->Integral(h->FindBin(cutlow), h->GetNbinsX()):

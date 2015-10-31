@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <math.h>
 #include "consts.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"

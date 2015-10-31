@@ -1,3 +1,11 @@
+#include "TGraphAsymmErrors.h"
+#include "TFile.h"
+#include "TMinuit.h"
+#include "TH1.h"
+#include "TF1.h"
+#include "TTree.h"
+#include "TCanvas.h"
+#include <stdio.h>
 #include "consts.h"
 
 TGraphAsymmErrors * eh = new TGraphAsymmErrors(),
@@ -13,8 +21,8 @@ double min(double a, double b)
 
 void print()
 {
-  printf("H: %f %f +%f\n", MINUIT->fU[1], MINUIT->fErn[1], MINUIT->fErp[1]);
-  printf("Gd: %f %f +%f\n", MINUIT->fU[4], MINUIT->fErn[4], MINUIT->fErp[4]);
+  printf("H: %f %f +%f\n", gMinuit->fU[1], gMinuit->fErn[1], gMinuit->fErp[1]);
+  printf("Gd: %f %f +%f\n", gMinuit->fU[4], gMinuit->fErn[4], gMinuit->fErp[4]);
 }
 
 void postmuonres_finalfit(const double emin = 60, const double emax = 110)
@@ -69,11 +77,11 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
       "latennear > 0 && fq/8300 < %f && fq/8300 > %f && micht < 3000",
       emax, emin), "e");
     ehist->Fit("g", "liq", "");
-    MINUIT->Command("MINOS 10000 2");
-    MINUIT->Command("MINOS 10000 3");
-    MINUIT->Command("MINOS 10000 5");
-    MINUIT->Command("MINOS 10000 6");
-    MINUIT->Command("showmin");
+    gMinuit->Command("MINOS 10000 2");
+    gMinuit->Command("MINOS 10000 3");
+    gMinuit->Command("MINOS 10000 5");
+    gMinuit->Command("MINOS 10000 6");
+    gMinuit->Command("showmin");
 
     for(int j = 1; j <= 1; j++) bg->SetParameter(j, g->GetParameter(j));
     for(int j = 6; j <= 11; j++) bg->SetParameter(j, g->GetParameter(j));
@@ -87,10 +95,10 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
 
 
     const double xerr = halfw*2/sqrt(12);
-    eh ->SetPointError(0, xerr, xerr, -MINUIT->fErn[1], MINUIT->fErp[1]);
-    wh ->SetPointError(0, xerr, xerr, min(wh->GetY()[0], fabs(MINUIT->fErn[2])/2.223), MINUIT->fErp[2]/2.223);
-    egd->SetPointError(0, xerr, xerr, -MINUIT->fErn[4], MINUIT->fErp[4]);
-    wgd->SetPointError(0, xerr, xerr, -MINUIT->fErn[5]/7.95, MINUIT->fErp[5]/7.95);
+    eh ->SetPointError(0, xerr, xerr, -gMinuit->fErn[1], gMinuit->fErp[1]);
+    wh ->SetPointError(0, xerr, xerr, min(wh->GetY()[0], fabs(gMinuit->fErn[2])/2.223), gMinuit->fErp[2]/2.223);
+    egd->SetPointError(0, xerr, xerr, -gMinuit->fErn[4], gMinuit->fErp[4]);
+    wgd->SetPointError(0, xerr, xerr, -gMinuit->fErn[5]/7.95, gMinuit->fErp[5]/7.95);
 
     print();
   }

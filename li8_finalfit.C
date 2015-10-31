@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
+using std::pair;
+using std::string;
+using std::cin;
 #include "deadtime.C" // <-- note inclusion of source
 
 //#define HP
@@ -69,15 +72,6 @@ vector<ev> events;
 double meaneff[3] = {0};
 int eventc[3] = {0}; // number of events with each n count
 
-void printfr(const char * const msg, ...)
-{
-  va_list ap;
-  va_start(ap, msg);
-  printf(RED);
-  vprintf(msg, ap);
-  printf(CLR);
-}
-
 int reactorpowerbin(const int run)
 {
   bool inited = false;
@@ -97,11 +91,6 @@ int reactorpowerbin(const int run)
   if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
   return 2;
 }
-
-// Weighted average of T and GC measurements for the HP region
-const double f13 = 0.010921;
-
-const double mulife = 2196.9811e-6;
 
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
@@ -192,8 +181,8 @@ const double neff_err = 0.01;
 const double paccn = 1.1e-4;
 
 /*
- * Prints the message once with the requested floating point precision
- * and in RED, then again with all digits in the default color, starting
+ * Prints the message once with the requested floating point precision,
+ * then again with all digits in the default color, starting
  * with the first floating point number.
  */
 void printtwice(const char * const msg, const int digits, ...)
@@ -235,9 +224,7 @@ void printtwice(const char * const msg, const int digits, ...)
   
   va_list ap;
   va_start(ap, digits);
-  printf(RED);
   vprintf(pmsg, ap);
-  printf(CLR);
 
   va_start(ap, digits);
   vprintf(bmsg, ap);
@@ -657,53 +644,6 @@ void mncommand()
   }
 }
 
-double b13limit()
-{
-  const double scan = 0;
-  double sump = 0;
-
-  unsigned int smallcount = 0;
-  const double increment = 0.01;
-  const int N = 70;
-  double ps[N];
-
-  const double bestchi2 = mn->fAmin;
-
-  mn->Command("fix 3");
-  for(int i = 0; i < N; i++){
-    const double prob = i*increment;
-    mn->Command(Form("set par 3 %f", prob));
-    mn->Command("Migrad");
-    const double p = exp(bestchi2-mn->fAmin);
-    printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
-    for(int j = 0; j < p*10 - 1; j++) printf("#");
-    if     (p*10 - int(p*10) > 0.67) printf("+");
-    else if(p*10 - int(p*10) > 0.33) printf("|");
-    printf("\n");
-    sump += p;
-    ps[i] = p;
-    if(p < 1e-9 && ++smallcount > 3) break;
-  }
-  
-  printf("Norm: %f\n", sump);
-
-  double sump2 = 0;
-  double answer = 0;
-  for(int i = 0; i < N; i++){
-    const double prob = i*increment;
-    sump2 += ps[i]/sump;
-    if(sump2 > 0.9){
-       answer = prob-increment/2;
-       printf("Bays limit = %f\n", answer);
-       break;
-    }
-  }
-
-  if(smallcount <= 3)
-    printf("Not sure you integrated out far enough\n");
-
-  return answer;
-}
 
 void li8_finalfit(const char * const cut =
 #ifdef HP
@@ -753,6 +693,7 @@ void li8_finalfit(const char * const cut =
 
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
+  tmpfile->cd();
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
   selt->Write();
   events.clear();

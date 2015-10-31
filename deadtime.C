@@ -1,3 +1,5 @@
+#include "TF1.h"
+
 TF1 *efffitg = new TF1("efffitg","min(1-0.0726, [0]*exp(-x/[1])+gaus(2))", 0, 800);
 TF1 *efffith = new TF1("efffith","min(exp(-5.5/179) - exp(-800/179.), [0]*exp(-x/[1])+gaus(2))",0, 800);
 
