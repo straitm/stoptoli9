@@ -160,8 +160,15 @@ b12cutefficiency_finalfit.out.h: \
   b12spectrum.C
 	./run_analysis_b12cutefficiency.sh
 
+totallivetime_finalfit.out.h: \
+  totallivetime_finalfit.C \
+  run_analysis_totallivetime.sh \
+  runlist
+	./run_analysis_totallivetime.sh
+
 carbondenominators_finalfit.out.h: \
   consts.h \
+  totallivetime_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \
   mucount_finalfit.C \

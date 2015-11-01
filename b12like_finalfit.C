@@ -145,8 +145,8 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-// time until end of run
-static const double eor_eff = 1-(1-0.9709)*hightime/100e3;
+// Efficiency due to time-until-end-of-run cut
+static const double eor_eff = (runtime_s - num_runs*(hightime+offset))/runtime_s;
 
 // Subsequent muon veto efficiency (an efficiency on the isotope decay,
 // NOT on the muon), for the hard cut imposed on events in order to get
@@ -343,6 +343,9 @@ const double mylivetime = -1.0)
 
 void carbondenominators_finalfit()
 {
+  printwice("TECHNOTE 4.1.2: time-until-end-of-run efficiency: %f percent\n", 
+    2, eor_eff);
+
   printtwice("TECHNOTE 2.2: Nuclear capture probability on C-12 "
     "(%f +- %f)percent\n", 2, capprob12*100, errcapprob12*100);
   printtwice("TECHNOTE 2.3: Nuclear capture probability on C-13 "
