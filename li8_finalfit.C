@@ -137,7 +137,7 @@ const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
 const double li9eff_energy_e = 0.05;
 
 // time until end of run
-const double eor_eff = (runtime_s - num_runs*(hightime+offset))/runtime_s;
+const double eor_eff = (runtime_s - num_runs*(hightime+offset)/1e3)/runtime_s;
 
 const double b12likelihood_eff = 0.906; // For 0.02
 
