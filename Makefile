@@ -160,6 +160,12 @@ b12cutefficiency_finalfit.out.h: \
   b12spectrum.C
 	./run_analysis_b12cutefficiency.sh
 
+distcuteff_finalfit.out.h: \
+  distcuteff_finalfit.C \
+  b12like_finalfit.C \
+  run_analysis_distcuteff.sh
+	./run_analysis_distcuteff.sh
+
 totallivetime_finalfit.out.h: \
   totallivetime_finalfit.C \
   run_analysis_totallivetime.sh \
