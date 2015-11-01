@@ -130,6 +130,32 @@ const double b12lineNsyst[4] = { 0,
 const double c_atomic_capture_prob = 0.998;
 const double c_atomic_capture_prob_err = 0.001;
 
+
+// All in milliseconds
+const double b12life = 20.20/log(2.);
+const double b12life_err = 0.02/log(2.); // 0.1%
+
+const double n16life = 7130./log(2.);
+const double n16life_err = 20./log(2.); // 0.3%
+
+const double b13life = 17.33/log(2.);
+const double b13life_err = 0.17/log(2.);
+
+const double be11life=13.81  /log(2.);
+const double be11life_err= 0.08  /log(2.); // +- 0.08 (0.6%)
+
+const double c15life = 2.449 /log(2.);
+const double c15life_err = 0.005 /log(2.); // +- 0.005 (0.2%)
+
+// This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
+// 82, 027309
+const double li8life = 839.9/log(2.);
+const double li8life_err = 0.9/log(2.); // 0.1%
+
+const double li9life = 178.3/log(2.);
+const double li9life_err = 0.4/log(2.);
+
+
 // In milliseconds
 const double mulife = 2196.9811e-6;
 

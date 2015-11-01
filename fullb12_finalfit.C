@@ -23,23 +23,6 @@ using std::vector;
 
 bool unitarity = true;
 
-const double nom_b12life = 20.20/log(2.);
-const double b12life_err = 0.02/log(2.);
-
-const double nom_n16life = 7130./log(2.);
-const double n16life_err = 20./log(2.);
-
-const double nom_b13life = 17.33/log(2.);
-const double b13life_err = 0.17/log(2.);
-
-// This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
-// 82, 027309
-const double nom_li8life = 839.9/log(2.);
-const double li8life_err = 0.9/log(2.);
-
-const double nom_li9life = 178.3/log(2.);
-const double li9life_err = 0.4/log(2.);
-
 struct ev{
   double t; // time
   int n; // number of neutrons
@@ -378,11 +361,11 @@ const double n_li9n, const double li9t)
                acc   = par[8], \
                accn  = par[9], \
                accn2 = par[10], \
-               b12t  = par[11]*b12life_err + nom_b12life, \
-               b13t  = par[12]*b13life_err + nom_b13life, \
-               li8t  = par[13]*li8life_err + nom_li8life, \
-               li9t  = par[14]*li9life_err + nom_li9life, \
-               n16t  = par[15]*n16life_err + nom_n16life, \
+               b12t  = par[11]*b12life_err + b12life, \
+               b13t  = par[12]*b13life_err + b13life, \
+               li8t  = par[13]*li8life_err + li8life, \
+               li9t  = par[14]*li9life_err + li9life, \
+               n16t  = par[15]*n16life_err + n16life, \
                neffdelta = par[16];
 
 double priorerf(const double sig)
@@ -459,14 +442,14 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like *= 2; // Convert to "chi2"
 
   // pull terms for lifetimes
-  like += pow((b12t - nom_b12life)/b12life_err, 2)
-        + pow((b13t - nom_b13life)/b13life_err, 2)
+  like += pow((b12t - b12life)/b12life_err, 2)
+        + pow((b13t - b13life)/b13life_err, 2)
 #ifndef DISABLELI
-        + pow((li8t - nom_li8life)/li8life_err, 2)
-        + pow((li9t - nom_li9life)/li9life_err, 2)
+        + pow((li8t - li8life)/li8life_err, 2)
+        + pow((li9t - li9life)/li9life_err, 2)
 #endif
 #ifndef DISABLEN16
-        + pow((n16t - nom_n16life)/n16life_err, 2)
+        + pow((n16t - n16life)/n16life_err, 2)
 #endif
           // and the neutron efficiency
         + pow(neffdelta/neff_err, 2);
@@ -813,11 +796,11 @@ void fullb12_finalfit(const char * const cut =
 
   // Sometimes the B-12 lifetime spins out of control.  Not sure why,
   // but constrain it to be somewhat reasonable.
-  mn->mnparm(11, "b12t", 0,  b12life_err/nom_b12life, -5, +5, err);
-  mn->mnparm(12, "b13t", 0,  b13life_err/nom_b13life, -5, +5, err);
-  mn->mnparm(13, "li8t", 0,  li8life_err/nom_li8life, -5, +5, err);
-  mn->mnparm(14, "li9t", 0,  li9life_err/nom_li9life, -5, +5, err);
-  mn->mnparm(15, "n16t", 0,  n16life_err/nom_n16life, -5, +5, err);
+  mn->mnparm(11, "b12t", 0,  b12life_err/b12life, -5, +5, err);
+  mn->mnparm(12, "b13t", 0,  b13life_err/b13life, -5, +5, err);
+  mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
+  mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
+  mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
   mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
 
 #ifdef DISABLEN16

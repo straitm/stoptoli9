@@ -44,11 +44,6 @@ static double hightime = 300;
 static double binwidth = (hightime - lowtime)/nbins;
 static double sig[nbins] = {0};
 
-static double b12life = 0.0202/log(2.), // +- 0.00002 (0.02ms) (0.1%)
-              li8life = 0.8399/log(2.), // +- 0.0009 (0.9ms) (0.1%)
-              c15life = 2.449 /log(2.), // +- 0.005 (0.2%)
-              n16life = 7.13  /log(2.), // +- 0.02 (0.3%)
-              be11life=13.81  /log(2.); // +- 0.08 (0.6%)
 
 static const double n16eff = 1
   * light_noise_eff
