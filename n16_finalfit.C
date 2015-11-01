@@ -12,6 +12,7 @@
 #include "TMinuit.h"
 #include "TGaxis.h"
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include <string>
@@ -50,7 +51,7 @@ static const double n16eff = 1
   * mich_eff
   * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.8 // delta r for 200mm near acrlyic, fudged down for 6.1MeV gammas
-  * 0.9709 // 100s from end of run
+  * (runtime_s - num_runs*100.)/runtime_s
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
   * 0.906 // b12
@@ -59,7 +60,7 @@ static const double n16eff = 1
 static const double be11eff = 1
   * sub_muon_eff10 // subsequent muons, 1ms
   * wholedet_dist200eff // delta r for 200mm
-  * 0.9709 // 100s from end of run
+  * (runtime_s - num_runs*100.)/runtime_s
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
   * 0.906 // b12
@@ -68,7 +69,7 @@ static const double be11eff = 1
 static const double c15eff = 1
   * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.82 // delta r for 200mm near acrlyic, fudged down for 5.X MeV gammas
-  * 0.9709 // 100s from end of run
+  * (runtime_s - num_runs*100.)/runtime_s
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
   * 0.906 // b12

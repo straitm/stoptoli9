@@ -6,6 +6,7 @@
 #include "TMinuit.h"
 #include "TCanvas.h"
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 #include <string>
 using std::string;
@@ -48,7 +49,7 @@ void n12_finalfit()
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * 0.897 // delta r
-    * 0.99709 // 10s from end of run
+    * (runtime_s - num_runs*10.)/runtime_s
     * 0.9481 // energy
     * neff
   ;

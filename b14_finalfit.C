@@ -5,6 +5,7 @@
 #include "TH1.h"
 #include "TMinuit.h"
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 
 void b14_finalfit()
@@ -18,7 +19,7 @@ void b14_finalfit()
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
-    * 0.99709 // 10s from end of run
+    * (runtime_s - num_runs*10)/runtime_s
     * 0.387 // energy from my toy MC, probably a bit conservative
             // since when I try to evaluate B-12 it is low
     * 0.96 // b12like

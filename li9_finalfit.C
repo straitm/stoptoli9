@@ -3,6 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 
@@ -153,7 +154,8 @@ const double distcuteffgc = 0.7487,
 
 // 100s begin-of-run requirement taken into account here
 const double rrmlivetime=rrmlivetimes[0]+rrmlivetimes[1]+rrmlivetimes[2];
-const double denominator = 0.9709*rrmlivetime*Nc12cap;
+const double denominator = (runtime_s - num_runs*100.)/runtime_s
+                           *rrmlivetime*Nc12cap;
 
 /* DC3rdPub product of muon, light noise, OV, multiplicity,
    neutron (E, t, R), FV and IV efficiencies */

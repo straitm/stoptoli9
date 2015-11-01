@@ -11,6 +11,7 @@
 #include "TF1.h"
 #include <stdio.h>
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 
 // Turn on to use the high-purity muon sample.  I found that this 
@@ -173,7 +174,7 @@ void he6_finalfit(const int nreq_ = 0,
     * light_noise_eff
     * mich_eff
     * sub_muon_eff10 // subsequent muons with 1ms veto
-    * 0.9709 // 100s from end of run
+    * (runtime_s - num_runs*100.)/runtime_s
     * 0.986 // ttlastvalid
     * 0.994 // b12like
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))

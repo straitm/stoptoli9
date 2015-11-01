@@ -1,5 +1,6 @@
 #include <fstream>
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "TFile.h"
@@ -136,7 +137,7 @@ const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
 const double li9eff_energy_e = 0.05;
 
 // time until end of run
-const double eor_eff = 1-(1-0.9709)*hightime/100e3;
+const double eor_eff = (runtime_s - num_runs*(hightime+offset))/runtime_s;
 
 const double b12likelihood_eff = 0.906; // For 0.02
 

@@ -1,5 +1,6 @@
 #include <fstream>
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
@@ -210,7 +211,7 @@ const double li9eff_energy = 0.8069+0.05; // DOGS, with ad hoc
 const double li9eff_energy_e = 0.05; // made up!
 
 // time until end of run
-const double eor_eff = 1-(1-0.9709)*hightime/100e3;
+const double eor_eff = (runtime_s - num_runs*(hightime+offset))/runtime_s;
 
 const double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;

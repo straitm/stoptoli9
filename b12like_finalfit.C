@@ -1,5 +1,7 @@
 #include <fstream>
+#include <math.h>
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
@@ -343,7 +345,7 @@ const double mylivetime = -1.0)
 
 void carbondenominators_finalfit()
 {
-  printwice("TECHNOTE 4.1.2: time-until-end-of-run efficiency: %f percent\n", 
+  printtwice("TECHNOTE 4.1.2: time-until-end-of-run efficiency: %f percent\n", 
     2, eor_eff);
 
   printtwice("TECHNOTE 2.2: Nuclear capture probability on C-12 "

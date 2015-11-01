@@ -37,9 +37,13 @@ double getrunlivetime(const int run)
   return runtime;
 }
 
-double totallivetime_finalfit()
+int totallivetime_finalfit()
 {
   ifstream infile("runlist");
+  if(!infile.is_open()){
+    fprintf(stderr, "totallivetime_finalfit: Couldn't open runlist\n");
+    return 1;
+  }
   double runtime = 0;
   double shortesttime = 1e30;
   int run;
@@ -50,9 +54,9 @@ double totallivetime_finalfit()
     runtime += thisruntime;
     if(thisruntime < shortesttime) shortesttime = thisruntime;
   }
-  printf("const int num_runs = %d\n", num_runs); 
-  printf("const double runtime_s = %.9f\n", runtime); 
-  printf("const double shortest_run_s = %.9f\n", shortesttime); 
-  printf("TECHNOTE run time: %.3f days\n", runtime/86400); 
-  return runtime;
+  printf("const int num_runs = %d;\n", num_runs); 
+  printf("const double runtime_s = %.9f;\n", runtime); 
+  printf("const double shortest_run_s = %.9f;\n", shortesttime); 
+  printf("TECHNOTE run time: %.3f days;\n", runtime/86400); 
+  return 0;
 }

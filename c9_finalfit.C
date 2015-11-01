@@ -9,6 +9,7 @@ using std::string;
 #include "TF1.h"
 #include "TH1.h"
 #include "consts.h"
+#include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 
 void c9_finalfit(const char elem = 'o')
@@ -55,7 +56,7 @@ void c9_finalfit(const char elem = 'o')
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * (elem=='o'?0.897:0.9405) // delta r
-    * 0.99709 // 100s from end of run
+    * (runtime_s - num_runs*10.)/runtime_s
     * 0.969 // energy -- maybe a little optimistic: 60%
             // goes to the ground state, rest to excited
             // states between 2-3 MeV, which isn't too bad,
