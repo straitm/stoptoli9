@@ -179,9 +179,6 @@ const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 
 /**********************************************************************/
 
-const double c_atomic_capture_prob = 0.998;
-const double c_atomic_capture_prob_err = 0.001;
-
 const double lifetime_c = lifetime_c12*(1-f13_HP)+lifetime_c13*f13_HP;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13_HP),2)
                                   +pow(lifetime_c13_err*   f13_HP ,2));

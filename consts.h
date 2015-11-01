@@ -126,6 +126,10 @@ const double b12lineNsyst[4] = { 0,
                                  0.01,
                                  0 };
 
+// Given a mu- stop, the fraction that capture atomicly on carbon
+const double c_atomic_capture_prob = 0.998;
+const double c_atomic_capture_prob_err = 0.001;
+
 // In milliseconds
 const double mulife = 2196.9811e-6;
 

@@ -92,9 +92,6 @@ int reactorpowerbin(const int run)
   return 2;
 }
 
-const double c_atomic_capture_prob = 0.998;
-const double c_atomic_capture_prob_err = 0.001;
-
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13),2)
                                   +pow(lifetime_c13_err*   f13 ,2));

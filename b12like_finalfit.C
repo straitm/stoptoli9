@@ -22,9 +22,6 @@ const double b12life = 20.20/log(2.);
 const double li8life = 839.9/log(2.);
 const double n16life = 7130./log(2.);
 
-const double c_atomic_capture_prob = 0.998;
-const double c_atomic_capture_prob_err = 0.001;
-
 const double lifetime_c = lifetime_c12*(1-f13_mean)+lifetime_c13*f13_mean;
 const double lifetime_c_err = sqrt(pow(lifetime_c12_err*(1-f13_mean),2)
                                   +pow(lifetime_c13_err*   f13_mean ,2));
