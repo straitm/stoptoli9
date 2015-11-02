@@ -7,4 +7,4 @@ if ! root -b -q ${macro}+O &> $tmp; then
   fail $name
 else
   finish $name
-f
+fi
