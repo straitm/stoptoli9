@@ -2,8 +2,9 @@ he6out
 he6out/*
 li9ntuples/*
 AutoDict*
-*.d
 .nfs*
+*_C.d
+*_cxx.d
 *.o
 *.pdf
 *.so
