@@ -1,5 +1,6 @@
 #include <fstream>
 #include <math.h>
+#include <stdlib.h>
 #include "consts.h"
 #include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
@@ -226,24 +227,32 @@ const double mylivetime = -1.0)
   mn->mnparm(1, "n_li8", 5e2,  1e1, 0, 1e4, err);
   mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
+
   printf("Making cuts...\n");
   char filename[100];
-  tmpnam(filename);
-  TFile tmpfile(filename, "recreate");
+  strcpy(filename, "/tmp/b12like.XXXXXX");
+  close(mkstemp(filename));
+  TFile * tmpfile = new TFile(filename, "recreate");
+  if(!tmpfile || tmpfile->IsZombie()){
+    fprintf(stderr, "Could not open temp file %s\n", filename);
+    exit(1);
+  }
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  selt->Write();
   events.clear();
 
   float dt;
   selt->SetBranchAddress("dt", &dt);
 
-  printf("Filling in data array...\n");
+  printf("Filling in data array...");
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     events.push_back(ev(dt-offset));
+    if(i%128 == 0) printf(".");
   }
+  printf("Filled.\n");
 
-  tmpfile.Close();
-  delete selt;
+  tmpfile->Close(); // this deletes selt
   selt = NULL;
 
   printf("MIGRAD");

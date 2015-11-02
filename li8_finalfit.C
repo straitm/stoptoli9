@@ -1,4 +1,5 @@
 #include <fstream>
+#include <math.h>
 #include "consts.h"
 #include "distcuteff_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
