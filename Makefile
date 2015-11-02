@@ -62,6 +62,7 @@ b14_finalfit.out: \
 n12_finalfit.out: \
   consts.h \
   distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_n12.sh \
   n12_finalfit.C
@@ -106,6 +107,8 @@ he6_finalfit_3.out: \
 
 b8_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_b8.sh \
   b8_finalfit.C
@@ -113,7 +116,9 @@ b8_finalfit.out: \
 
 be12_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_be12.sh \
   be12_finalfit.C
@@ -123,6 +128,7 @@ li8_finalfit.out.h: \
   consts.h \
   distcuteff_finalfit.out.h \
   carbondenominators_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_li8.sh \
   li8_finalfit.C
@@ -131,6 +137,7 @@ li8_finalfit.out.h: \
 b12groundstate_finalfit.out: \
   consts.h \
   fullb12_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   b12gamma_finalfit_0.out.h \
@@ -143,6 +150,7 @@ b12gamma_finalfit_C.so: \
   b12gamma_finalfit.C \
   consts.h \
   b12cutefficiency_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   li8_finalfit.out.h \
   fullb12_finalfit.out.h \
   carbondenominators_finalfit.out.h
@@ -175,6 +183,8 @@ b12cutefficiency_finalfit.out.h: \
 distcuteff_finalfit.out.h: \
   distcuteff_finalfit.C \
   b12like_finalfit.C \
+  b12cutefficiency_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   run_analysis_distcuteff.sh
 	./run_analysis_distcuteff.sh
 

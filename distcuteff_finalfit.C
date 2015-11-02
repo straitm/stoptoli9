@@ -39,9 +39,9 @@ ve geteff(const ve pass, const ve fail)
 void doit_wholedet_dist(const double distcut)
 {
   const ve deltar_result = b12like_finalfit("eff",
-      Form("%s && dist < %f", othercuts, distcut), false, false);
+      string(Form("%s && dist < %f", othercuts, distcut)).c_str(), false, false);
   const ve inverse_deltar_result = b12like_finalfit("eff",
-      Form("%s && dist >= %f", othercuts, distcut), false, false);
+      string(Form("%s && dist >= %f", othercuts, distcut)).c_str(), false, false);
 
   const ve result = geteff(deltar_result, inverse_deltar_result);
 
@@ -55,9 +55,9 @@ void doit_other(const char * const basecut, const char * const effcut,
                 const char * const verbiage, const char * const headername = NULL)
 {
   const ve cut =
-    b12like_finalfit("eff", Form("%s &&   %s ", basecut, effcut), false, false);
+    b12like_finalfit("eff", string(Form("%s &&   %s ", basecut, effcut)).c_str(), false, false);
   const ve anticut =
-    b12like_finalfit("eff", Form("%s && !(%s)", basecut, effcut), false, false);
+    b12like_finalfit("eff", string(Form("%s && !(%s)", basecut, effcut)).c_str(), false, false);
 
   printf("%s: (%f +- %f)%%\n", verbiage, 100*geteff(cut, anticut).val,
                                          100*geteff(cut, anticut).err);
