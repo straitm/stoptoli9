@@ -79,8 +79,8 @@ c9_finalfit.out: \
 he6_finalfit_C.so: \
   he6_finalfit.C \
   consts.h \
-  distcuteff_finalfit.out.h
-  totallivetime_finalfit.out.h
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h
 	root -n -l -b -q he6_finalfit.C++'(-1)'
 

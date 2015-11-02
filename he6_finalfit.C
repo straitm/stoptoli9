@@ -49,11 +49,11 @@ TH1D * li8spec[5] = {NULL}, * he6spec[5] = {NULL}, * n16spec[5] = {NULL};
 TH2D * mdispbg = NULL;
 
 const double disteff[nrbins] = {
-0.7444, // +-0.86e-2
-0.6645, // +-0.96e-2
-0.6280, // +-1.02e-2
-0.5932, // +-1.11e-2
-0.4606  // +-0.40e-2
+t0_dist200eff, //0.7444, // +-0.86e-2
+t1_dist200eff, //0.6645, // +-0.96e-2
+t2_dist200eff, //0.6280, // +-1.02e-2
+t3_dist200eff, //0.5932, // +-1.11e-2
+gc_dist200eff, //0.4606  // +-0.40e-2
 };
 
 // The number of stopping muons in each region, from the inside out,

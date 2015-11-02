@@ -108,4 +108,7 @@ void distcuteff_finalfit()
   doit_other((string(othercuts) + " && classi(dx, dy, dz) == 3").c_str(), "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T3"
          "t3_dist200eff");
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 4").c_str(), "dist < 200",
+         "TECHNOTE 10.4: Efficiency for 200mm, loose sample, GC"
+         "gc_dist200eff");
 }
