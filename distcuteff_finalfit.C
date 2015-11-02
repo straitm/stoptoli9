@@ -84,31 +84,40 @@ void distcuteff_finalfit()
   doit_other((string(othercuts) + "&& dz < 0").c_str(), "dist < 400",
          "TECHNOTE 7: Efficiency for 400mm, loose sample, bottom half");
 
-  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(), "dist < 400",
+  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(),
+         "dist < 400",
          "TECHNOTE 7: Efficiency for 400mm, loose sample, target");
-  doit_other((string(othercuts) + "&& !(" + string(target_cut) + ")").c_str(), "dist < 400",
+  doit_other((string(othercuts)+"&& !("+string(target_cut)+")").c_str(),
+         "dist < 400",
          "TECHNOTE 7: Efficiency for 400mm, loose sample, GC");
 
-  doit_other((string(othercuts) + " && !(" + string(target_cut) + ")").c_str(), "dist < 300",
+  doit_other((string(othercuts)+"&&!("+string(target_cut)+")").c_str(),
+         "dist < 300",
          "TECHNOTE 7: Efficiency for 300mm, loose sample, GC"
          "gc_dist300eff");
-  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(), "dist < 300",
+  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(),
+         "dist < 300",
          "TECHNOTE 7: Efficiency for 300mm, loose sample, target",
          "targ_dist300eff");
 
-  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 0").c_str(), "dist < 200",
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 0").c_str(),
+         "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T0"
          "t0_dist200eff");
-  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 1").c_str(), "dist < 200",
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 1").c_str(),
+         "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T1"
          "t1_dist200eff");
-  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 2").c_str(), "dist < 200",
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 2").c_str(),
+         "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T2"
          "t2_dist200eff");
-  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 3").c_str(), "dist < 200",
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 3").c_str(),
+         "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T3"
          "t3_dist200eff");
-  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 4").c_str(), "dist < 200",
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 4").c_str(),
+         "dist < 200",
          "TECHNOTE 10.4: Efficiency for 200mm, loose sample, GC"
          "gc_dist200eff");
 }
