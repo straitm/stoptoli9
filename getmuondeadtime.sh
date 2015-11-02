@@ -27,10 +27,15 @@ fi
 (root -l -b $runfile << EOF
 
 data->SetScanField(0)
+data->SetBranchStatus("*", 0)
+data->SetBranchStatus("trgtime", 1)
+data->SetBranchStatus("coinov", 1)
+data->SetBranchStatus("fido_qiv", 1)
+data->SetBranchStatus("ctEvisID", 1)
 data->Scan("trgtime", "coinov || fido_qiv > 5000 || ctEvisID > 60", "colsize=20 col=.17f")
 .q
 EOF
-) 2> /dev/null | grep -Ev '[A-Za-z]|^$|^\*\*' | awk \
+) 2> /dev/null | grep -E '^\* +[0-9]' | awk \
  'BEGIN{
     window[500000] = 500000.;
     window[1000000]=1000000.;

@@ -17,7 +17,7 @@ tmp2=/tmp/$$.$name.out2
 # This is at least mostly CPU-bound
 for n in $(cat runlist); do
   echo ./getliveanddeadtime.sh $n
-done | parallel -j 10 | tee $tmp1 | awk '{\
+done | parallel -j 8 | tee $tmp1 | awk '{\
   tot+=$2;\
   dead05+=$3;\
   dead10+=$4\

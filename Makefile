@@ -201,6 +201,8 @@ distcuteff_finalfit.out.h: \
 	./run_analysis_distcuteff.sh
 
 sub_muon_eff.out.h: \
+  getmuondeadtime.sh \
+  getliveanddeadtime.sh \
   run_analysis_sub_muon_eff.sh
 	./run_analysis_sub_muon_eff.sh
 
