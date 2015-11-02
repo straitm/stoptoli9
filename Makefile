@@ -17,6 +17,8 @@ analysis: \
 
 li9_finalfit_C.so: \
   consts.h \
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   li9_finalfit.C
@@ -40,6 +42,8 @@ li9_finalfit_1.out: \
 
 n16_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_n16.sh \
@@ -48,6 +52,8 @@ n16_finalfit.out: \
 
 b14_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_b14.sh \
   b14_finalfit.C
@@ -55,6 +61,7 @@ b14_finalfit.out: \
 
 n12_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_n12.sh \
   n12_finalfit.C
@@ -62,6 +69,8 @@ n12_finalfit.out: \
 
 c9_finalfit.out: \
   consts.h \
+  distcuteff_finalfit.out.h \
+  totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_c9.sh \
   c9_finalfit.C
@@ -70,6 +79,8 @@ c9_finalfit.out: \
 he6_finalfit_C.so: \
   he6_finalfit.C \
   consts.h \
+  distcuteff_finalfit.out.h
+  totallivetime_finalfit.out.h
   carbondenominators_finalfit.out.h
 	root -n -l -b -q he6_finalfit.C++'(-1)'
 
@@ -110,6 +121,7 @@ be12_finalfit.out: \
 
 li8_finalfit.out.h: \
   consts.h \
+  distcuteff_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_li8.sh \

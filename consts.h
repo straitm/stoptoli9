@@ -108,10 +108,6 @@ const double neff_dr_1000_targ = neff_dr_1000_gd*gd_fraction +
 // number.
 const double lim_inflation_for_obeta = 1.055239;
 
-const double wholedet_dist400eff = 0.9148;
-const double wholedet_dist300eff = 0.8121;
-const double wholedet_dist200eff = 0.5343;
-
 // Systematic error on B-12 gamma lines due to uncertainty in the energy
 // correction function.  Technote section 11.7
 const double b12lineEsyst[4] = { 0.00170994 / 0.315747,

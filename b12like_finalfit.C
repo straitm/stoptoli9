@@ -163,7 +163,11 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like = 2*(par[0]*exp(-lowtime/b12life) + par[1]*exp(-lowtime/li8life)
           + par[2]*exp(-lowtime/n16life) + totaltime*par[3]);
 
-  printf(".");  fflush(stdout);
+  static int calls = 0;
+  if(calls++%64 == 0){
+    printf(".");
+    fflush(stdout);
+  }
 
   for(unsigned int i = 0; i < events.size(); i++){
     const double mt = -events[i].t;
@@ -171,8 +175,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
                      par[1]/li8life*exp(mt/li8life) +
                      par[2]/n16life*exp(mt/n16life) +
                      par[3];
-    if(f > 0) like -= 2*log(f);
+    if(f > 0) like -= log(f);
   }
+  like *= 2;
 }
 
 static double getpar(TMinuit * mn, int i)
@@ -185,6 +190,12 @@ static double getpar(TMinuit * mn, int i)
 struct ve{
   double val, err;
 };
+
+double sani_minos(const double in)
+{
+  if(in == -54321) return 0;
+  return in;
+}
 
 ve b12like_finalfit(const char * const iname = "loose",
 const char * const cut =
@@ -235,9 +246,9 @@ const double mylivetime = -1.0)
   mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(0, "n_b12", 1e5,  1e2, 0, 1e7, err);
-  mn->mnparm(1, "n_li8", 1e3,  1e1, 0, 1e4, err);
-  mn->mnparm(2, "n_n16", 1e3,  1e1, 0, 1e3, err);
+  mn->mnparm(0, "n_b12", 1e4,  1e2, 0, 1e7, err);
+  mn->mnparm(1, "n_li8", 5e2,  1e1, 0, 1e4, err);
+  mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
   printf("Making cuts...\n");
   TFile tmpfile("/tmp/b12tmp.root", "recreate");
@@ -254,10 +265,18 @@ const double mylivetime = -1.0)
   }
 
   printf("MIGRAD");
-  mn->Command("MIGRAD");
+  while(4 == mn->Command("MIGRAD")){
+    static int tries = 0;
+    if(tries++ > 3) exit(1);
+  }
   puts(""); mn->Command("show par");
   printf("MINOS");
-  mn->Command("MINOS 10000 1");
+  do{
+    static int tries = 0;
+    if(tries++ > 3) exit(1);
+    mn->Command("MINOS 10000 1");
+  }while(sani_minos(mn->fErp[0]) == 0 || sani_minos(mn->fErn[0]) == 0);
+
   puts(""); mn->Command("show min");
 
   const double ferrorfit = (mn->fErp[0]-mn->fErn[0])/2/getpar(mn, 0);

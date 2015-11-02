@@ -5,6 +5,7 @@
 #include "TH1.h"
 #include "TMinuit.h"
 #include "consts.h"
+#include "distcuteff_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 

@@ -12,6 +12,20 @@ const char * const othercuts =
   "timeleft > %f && miche < 12 && !earlymich && "
   "e > 4 && e < 15 && dt < %f";
 
+// He-6 detector regions, copied from he6_finalfit.C because I couldn't
+// think of a better way that I wanted to do.
+int classi(const double x, const double y, const double z)
+{
+  const double r2 = x*x+y*y;
+  const double r = sqrt(r2);
+  const double az = abs(z);
+  if(r2 > 1154*1154 || az > 1233 + 0.03*(1154-r)) return 4;
+  if(r2 > 1068.*1068. || az > 1068.) return 3;
+  if(r2 > 933.*933. || az > 933.) return 2;
+  if(r2 > 740.*740. || az > 740) return 1;
+  return 0;
+}
+
 ve geteff(const ve pass, const ve fail)
 {
   ve answer;
@@ -38,7 +52,7 @@ void doit_wholedet_dist(const double distcut)
 }
 
 void doit_other(const char * const basecut, const char * const effcut, 
-                const char * const verbiage)
+                const char * const verbiage, const char * const headername = NULL)
 {
   const ve cut =
     b12like_finalfit("eff", Form("%s &&   %s ", basecut, effcut), false, false);
@@ -47,6 +61,11 @@ void doit_other(const char * const basecut, const char * const effcut,
 
   printf("%s: (%f +- %f)%%\n", verbiage, 100*geteff(cut, anticut).val,
                                          100*geteff(cut, anticut).err);
+
+  if(headername != NULL){
+    printf("const double %s = %f;\n", headername, geteff(cut, anticut).val);
+    printf("const double %s_err = %f;\n", headername, geteff(cut, anticut).val);
+  }
 }
 
 void distcuteff_finalfit()
@@ -55,18 +74,38 @@ void distcuteff_finalfit()
   doit_wholedet_dist(300);
   doit_wholedet_dist(400);
 
-  doit_other((string(othercuts) + "e > 8").c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm cut over 8MeV");
-  doit_other((string(othercuts) + "e < 8").c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm cut under 8MeV");
+  doit_other((string(othercuts) + "&& e > 8").c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm cut, loose sample, over 8MeV");
+  doit_other((string(othercuts) + "&& e < 8").c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm cut, loose sample, under 8MeV");
 
-  doit_other((string(othercuts) + "dz > 0").c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, top half");
-  doit_other((string(othercuts) + "dz < 0").c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, bottom half");
+  doit_other((string(othercuts) + "&& dz > 0").c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, top half");
+  doit_other((string(othercuts) + "&& dz < 0").c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, bottom half");
 
-  doit_other((string(othercuts) + target_cut).c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, target");
-  doit_other((string(othercuts) + "!(" + string(target_cut) + ")").c_str(), "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, GC");
+  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, target");
+  doit_other((string(othercuts) + "&& !(" + string(target_cut) + ")").c_str(), "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, GC");
+
+  doit_other((string(othercuts) + " && !(" + string(target_cut) + ")").c_str(), "dist < 300",
+         "TECHNOTE 7: Efficiency for 300mm, loose sample, GC"
+         "gc_dist300eff");
+  doit_other((string(othercuts) + " && " + string(target_cut)).c_str(), "dist < 300",
+         "TECHNOTE 7: Efficiency for 300mm, loose sample, target",
+         "targ_dist300eff");
+
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 0").c_str(), "dist < 200",
+         "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T0"
+         "t0_dist200eff");
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 1").c_str(), "dist < 200",
+         "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T1"
+         "t1_dist200eff");
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 2").c_str(), "dist < 200",
+         "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T2"
+         "t2_dist200eff");
+  doit_other((string(othercuts) + " && classi(dx, dy, dz) == 3").c_str(), "dist < 200",
+         "TECHNOTE 10.4: Efficiency for 200mm, loose sample, He-6 T3"
+         "t3_dist200eff");
 }

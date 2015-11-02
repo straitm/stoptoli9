@@ -3,6 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
+#include "distcuteff_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
@@ -149,8 +150,8 @@ const double li9ebn = 0.5080,
              b13ebn = 0.00286 * Nc13cap/Nc12cap,
              li11ebn = 0.789 * Nc13cap/Nc12cap;
              
-const double distcuteffgc = 0.7487,
-             distcutefftarg = 0.9202;
+const double distcuteffgc = targ_dist300eff,
+             distcutefftarg = gc_dist300eff;
 
 // 100s begin-of-run requirement taken into account here
 const double rrmlivetime=rrmlivetimes[0]+rrmlivetimes[1]+rrmlivetimes[2];
