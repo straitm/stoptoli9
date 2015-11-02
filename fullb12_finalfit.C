@@ -1,4 +1,5 @@
 #include <fstream>
+#include <math.h>
 #include "consts.h"
 #include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
@@ -131,35 +132,31 @@ int reactorpowerbin(const int run)
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
-// The number of mu- stopping, regardless of what they atomicly or
-// nuclearly capture on
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSPOS
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSSLANT
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
   "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
 
 #ifdef LESSCHI2
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25";
-const double mum_count   = mucountfinalfit_cut(countcut, false);
-const double mum_count_e =  mucountfinalfit_cut(countcut, true);
 #endif
+
+// The number of mu- stopping, regardless of what they atomicly or
+// nuclearly capture on
+const ve mum_count_ve = mucountfinalfit_cut(countcut);
+const double mum_count   = mum_count_ve.val;
+const double mum_count_e =  mum_count_ve.err;
 
 /**********************************************************************/
 
