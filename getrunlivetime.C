@@ -55,8 +55,9 @@ int totallivetime_finalfit()
     if(thisruntime < shortesttime) shortesttime = thisruntime;
   }
   printf("const int num_runs = %d;\n", num_runs); 
-  printf("const double runtime_s = %.9f;\n", runtime); 
   printf("const double shortest_run_s = %.9f;\n", shortesttime); 
+  printf("const double livetime_s = %.9f;\n", runtime); 
+  printf("const double livetime = %.9f;\n", runtime/86400.); 
   printf("TECHNOTE run time: %.3f days;\n", runtime/86400); 
   return 0;
 }
