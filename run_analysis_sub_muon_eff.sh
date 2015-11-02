@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Subsequent muon veto efficiency (an efficiency on the isotope decay,
+# NOT on the muon), for the hard cut imposed on events in order to get
+# into the ntuples of 0.5ms. Also the value for the stricter cut of
+# 1.0ms.
+#
+# This is seasonally dependent! But the variation is only 0.9773-0.9780
+# (on the 0.5ms veto). The blessed value of Sept 2015 for this is 0.981,
+# but a more careful evaluation gets that range.
+
 name=sub_muon_eff
 tmp=/tmp/$$.$name.out
 tmp1=/tmp/$$.$name.out1
