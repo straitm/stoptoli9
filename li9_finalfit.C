@@ -23,6 +23,8 @@
 #include "TFile.h"
 #include "TRandom3.h"
 
+#include "reactorpowerbin.C"
+
 using std::vector;
 using std::string;
 using std::cin;
@@ -231,39 +233,6 @@ void fixatzero(TMinuit * mn, int i)
   mn->Command(Form("SET PAR %d 0", i));
   mn->Command(Form("FIX %d", i));
 }
-
-int reactorpowerbin(const int run)
-{
-  static bool inited = false;
-  static vector<int> on_off, off_off;
-  if(!inited){
-    inited = true;
-    // From doc-5095-v2. I see that most are included in the on-off
-    ifstream offofffile("offoff.h");
-    if(!offofffile.is_open()){
-      fprintf(stderr, "Could not open offoff.h\n");
-      exit(1);
-    }
-    // From doc-5341
-    ifstream onofffile ("onoff.h");
-    if(!onofffile.is_open()){
-      fprintf(stderr, "Could not open onoff.h\n");
-      exit(1);
-    }
-    int r;
-    while(offofffile >> r) off_off.push_back(r);
-    while(onofffile  >> r) on_off.push_back(r);
-    if(off_off.empty() || on_off.empty()){
-      fprintf(stderr, "Off-off has %d runs, on-off has %d: Bad(?)\n",
-              (int)off_off.size(), (int)on_off.size());
-    }
-  }
-
-  if(std::binary_search(off_off.begin(), off_off.end(), run)) return 0;
-  if(std::binary_search( on_off.begin(),  on_off.end(), run)) return 1;
-  return 2;
-}
-
 
 static bool fcnearlystop = false;
 static float fcnstopat = 0;

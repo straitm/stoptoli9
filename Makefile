@@ -21,6 +21,7 @@ li9_finalfit_C.so: \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
+  reactorpowerbin.C \
   li9_finalfit.C
 	root -n -l -b -q li9_finalfit.C++'(-2)'
 
@@ -183,12 +184,14 @@ b12cutefficiency_finalfit.out.h: \
 distcuteff_finalfit.out.h: \
   distcuteff_finalfit.C \
   b12like_finalfit.C \
+  reactorpowerbin.C \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
   run_analysis_distcuteff.sh
 	./run_analysis_distcuteff.sh
 
 totallivetime_finalfit.out.h: \
+  reactorpowerbin.C \
   totallivetime_finalfit.C \
   run_analysis_totallivetime.sh \
   runlist

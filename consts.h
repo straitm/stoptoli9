@@ -23,9 +23,6 @@ const double mum_frac = 0.4410,
              mum_contamination = 0.0028,
              mum_contamination_err = 0.0019;
 
-// XXX should be generated automatically
-const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
-
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
 const double mass_o16targ = 20.865041,
              mass_o16targves = 138.24*85./(85.+58.),
