@@ -169,10 +169,26 @@ static double getpar(TMinuit * mn, int i)
   return answer;
 }
 
+double getparaerr(TMinuit * mn, int i) // zero indexed!
+{
+  double val, err;
+  mn->GetParameter(i, val, err);
+  return err;
+}
+
 double sani_minos(const double in)
 {
   if(in == -54321) return 0;
   return in;
+}
+
+// MINOS errors if available, otherwise MIGRAD's.  Always returns
+// a positive number, even for MINOS errors.
+double best_error(TMinuit * mn, int i, bool up)
+{
+  const double minoserr = up?mn->fErp[i]:mn->fErn[i];
+  if(sani_minos(minoserr) != 0) return fabs(minoserr);
+  return getparaerr(mn, i);
 }
 
 ve b12like_finalfit(const char * const iname = "loose",
@@ -285,15 +301,18 @@ const double mylivetime = -1.0)
     printf("MINOS");
     static int tries = 0;
     if(tries++ >= 3){
-      fprintf(stderr, "Couldn't manage to get MINOS errors\n");
-      exit(1);
+      printf(
+       "Couldn't get MINOS errors, going ahead with MIGRAD's for one\n"
+       "or both, since honestly, in this case, the two results are\n"
+       "very very close\n");
+      break;
     }
     mn->Command("MINOS 10000 1");
+    puts(""); mn->Command("show min");
   }while(sani_minos(mn->fErp[0]) == 0 || sani_minos(mn->fErn[0]) == 0);
 
-  puts(""); mn->Command("show min");
-
-  const double ferrorfit = (mn->fErp[0]-mn->fErn[0])/2/getpar(mn, 0);
+  const double ferrorfit =
+    (best_error(mn, 0, true)+best_error(mn, 0, false))/2/getpar(mn, 0);
 
   // The "stuff with b12 lifetime raw" result is the one we need
   // to find the ratio between high-purity and loose selections
