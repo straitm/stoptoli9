@@ -121,12 +121,11 @@ static void printtwice(const char * const msg, const int digits, ...)
 #include "mucount_finalfit.C"
 
 // The number of stopping mu-.
-const double mum_count = mucountfinalfit_cut(
+const ve mum_count_ve = mucountfinalfit_cut(
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", false);
-const double mum_count_e = mucountfinalfit_cut(
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", true);
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
+const double mum_count = mum_count_ve.val;
+const double mum_count_e = mum_count_ve.err;
 
 // The number of mu- stopping and entering atomic orbitals of
 // any isotope of carbon.  Subtly different from the number of
@@ -186,10 +185,6 @@ static double getpar(TMinuit * mn, int i)
   mn->GetParameter(i, answer, dum);
   return answer;
 }
-
-struct ve{
-  double val, err;
-};
 
 double sani_minos(const double in)
 {
@@ -251,7 +246,9 @@ const double mylivetime = -1.0)
   mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
   printf("Making cuts...\n");
-  TFile tmpfile("/tmp/b12tmp.root", "recreate");
+  char filename[100];
+  tmpnam(filename);
+  TFile tmpfile(filename, "recreate");
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
   events.clear();
 
@@ -264,14 +261,19 @@ const double mylivetime = -1.0)
     events.push_back(ev(dt-offset));
   }
 
+  tmpfile.Close();
+  delete selt;
+  selt = NULL;
+
   printf("MIGRAD");
   while(4 == mn->Command("MIGRAD")){
+    printf("Retrying MIGRAD");
     static int tries = 0;
     if(tries++ > 3) exit(1);
   }
   puts(""); mn->Command("show par");
-  printf("MINOS");
   do{
+    printf("MINOS");
     static int tries = 0;
     if(tries++ > 3) exit(1);
     mn->Command("MINOS 10000 1");
