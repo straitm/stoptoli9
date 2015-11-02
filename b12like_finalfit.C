@@ -246,7 +246,7 @@ const double mylivetime = -1.0)
   mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
 
-  printf("Making cuts...\n");
+  printf("Making cuts...\n"); fflush(stdout);
   char filename[100];
   strcpy(filename, "/tmp/b12like.XXXXXX");
   close(mkstemp(filename));
@@ -266,14 +266,14 @@ const double mylivetime = -1.0)
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     events.push_back(ev(dt-offset));
-    if(i%0x1000 == 0) printf(".");
+    if(i%0x1000 == 0) printf("."); fflush(stdout);
   }
   printf("Filled.\n");
 
   tmpfile->Close(); // this deletes selt
   selt = NULL;
 
-  printf("MIGRAD");
+  printf("MIGRAD"); fflush(stdout);
   if(4 == mn->Command("MIGRAD")){
     do{
       puts(""); mn->Command("show par");
@@ -299,11 +299,11 @@ const double mylivetime = -1.0)
   }
   puts(""); mn->Command("show par");
   do{
-    printf("MINOS");
+    printf("MINOS"); fflush(stdout);
     static int tries = 0;
-    if(tries++ >= 3){
+    if(tries++ >= 2){
       printf(
-       "Couldn't get MINOS errors, going ahead with MIGRAD's for one\n"
+       "\nCouldn't get MINOS errors, going with MIGRAD's for one\n"
        "or both, since honestly, in this case, the two results are\n"
        "very very close\n");
       break;

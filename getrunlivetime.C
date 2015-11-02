@@ -77,6 +77,6 @@ int totallivetime_finalfit()
     rrmlivetimes[0]/86400.,
     rrmlivetimes[1]/86400.,
     rrmlivetimes[2]/86400.); 
-  printf("TECHNOTE run time: %.3f days;\n", livetime/86400); 
+  printf("TECHNOTE run time: %.3f days\n", livetime/86400); 
   return 0;
 }
