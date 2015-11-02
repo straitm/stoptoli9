@@ -32,7 +32,7 @@ void b8_finalfit(const int nn = 4)
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
-    * (runtime_s - num_runs*100.)/runtime_s
+    * (livetime_s - num_runs*100.)/livetime_s
     * 0.9403// energy
     * neff
   ;

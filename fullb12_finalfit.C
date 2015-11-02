@@ -187,7 +187,7 @@ const double li9eff_energy = 0.8069+0.05; // DOGS, with ad hoc
 const double li9eff_energy_e = 0.05; // made up!
 
 // time until end of run
-const double eor_eff = (runtime_s - num_runs*(hightime+offset)/1e3)/runtime_s;
+const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
 
 const double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;

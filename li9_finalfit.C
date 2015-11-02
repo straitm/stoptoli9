@@ -157,7 +157,7 @@ const double distcuteffgc = targ_dist300eff,
 
 // 100s begin-of-run requirement taken into account here
 const double rrmlivetime=rrmlivetimes[0]+rrmlivetimes[1]+rrmlivetimes[2];
-const double denominator = (runtime_s - num_runs*100.)/runtime_s
+const double denominator = (livetime_s - num_runs*100.)/livetime_s
                            *rrmlivetime*Nc12cap;
 
 /* DC3rdPub product of muon, light noise, OV, multiplicity,

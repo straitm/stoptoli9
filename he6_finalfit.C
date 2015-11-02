@@ -174,7 +174,7 @@ void he6_finalfit(const int nreq_ = 0,
     * light_noise_eff
     * mich_eff
     * sub_muon_eff10 // subsequent muons with 1ms veto
-    * (runtime_s - num_runs*100.)/runtime_s
+    * (livetime_s - num_runs*100.)/livetime_s
     * 0.986 // ttlastvalid
     * 0.994 // b12like
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))

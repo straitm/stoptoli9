@@ -79,7 +79,7 @@ const double b12hl = 20.20; // b12 half life, ms
 const double b12lowt = 2, b12hight = 60;
 const double acclowt = 10e3, acchight = 100e3;
 
-const double eff_eor_100s  = (runtime_s - num_runs*100.)/runtime_s;
+const double eff_eor_100s  = (livetime_s - num_runs*100.)/livetime_s;
 const double eff_eor_b12 = 1-(1-eff_eor_100s)*b12hight/100e3;
 const double eff_eor_li8 = 1-(1-eff_eor_100s)*li8hight/100e3;
 const double eff_eor_acc = 1-(1-eff_eor_100s)*acchight/100e3;

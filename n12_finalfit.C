@@ -50,7 +50,7 @@ void n12_finalfit()
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * 0.897 // delta r
-    * (runtime_s - num_runs*10.)/runtime_s
+    * (livetime_s - num_runs*10.)/livetime_s
     * 0.9481 // energy
     * neff
   ;

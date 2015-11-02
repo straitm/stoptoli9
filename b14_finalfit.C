@@ -20,7 +20,7 @@ void b14_finalfit()
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
-    * (runtime_s - num_runs*10)/runtime_s
+    * (livetime_s - num_runs*10)/livetime_s
     * 0.387 // energy from my toy MC, probably a bit conservative
             // since when I try to evaluate B-12 it is low
     * 0.96 // b12like

@@ -128,7 +128,7 @@ const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
 // Efficiency due to time-until-end-of-run cut
-static const double eor_eff = (runtime_s - num_runs*(hightime+offset)/1e3)/runtime_s;
+static const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
 
 // Subsequent muon veto efficiency (an efficiency on the isotope decay,
 // NOT on the muon), for the hard cut imposed on events in order to get
