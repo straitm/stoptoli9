@@ -43,6 +43,7 @@ li9_finalfit_1.out: \
 
 n16_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -53,6 +54,7 @@ n16_finalfit.out: \
 
 b14_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -62,6 +64,7 @@ b14_finalfit.out: \
 
 n12_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -71,6 +74,7 @@ n12_finalfit.out: \
 
 c9_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -80,6 +84,7 @@ c9_finalfit.out: \
 
 he6_finalfit_C.so: \
   he6_finalfit.C \
+  sub_muon_eff.out.h \
   consts.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -108,6 +113,7 @@ he6_finalfit_3.out: \
 
 b8_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \
@@ -117,6 +123,7 @@ b8_finalfit.out: \
 
 be12_finalfit.out: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -127,6 +134,7 @@ be12_finalfit.out: \
 
 li8_finalfit.out.h: \
   consts.h \
+  sub_muon_eff.out.h \
   distcuteff_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -150,6 +158,7 @@ b12groundstate_finalfit.out: \
 b12gamma_finalfit_C.so: \
   b12gamma_finalfit.C \
   consts.h \
+  sub_muon_eff.out.h \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
   li8_finalfit.out.h \
@@ -169,6 +178,7 @@ b12gamma_finalfit_1.out.h: \
 
 fullb12_finalfit.out.h: \
   consts.h \
+  sub_muon_eff.out.h \
   b12cutefficiency_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_fullb12.sh \
@@ -190,6 +200,10 @@ distcuteff_finalfit.out.h: \
   run_analysis_distcuteff.sh
 	./run_analysis_distcuteff.sh
 
+sub_muon_eff.out.h: \
+  run_analysis_sub_muon_eff.sh
+	./run_analysis_sub_muon_eff.sh
+
 totallivetime_finalfit.out.h: \
   reactorpowerbin.C \
   totallivetime_finalfit.C \
@@ -199,6 +213,7 @@ totallivetime_finalfit.out.h: \
 
 carbondenominators_finalfit.out.h: \
   consts.h \
+  sub_muon_eff.out.h \
   totallivetime_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \

@@ -1502,12 +1502,13 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     if(coinovbr) coinovbr->GetEntry(mi);
     fido_qivbr->GetEntry(parts.trgId);
 
-    // Note-lungbloke: Notice how this cut is slightly different from
-    // the other one at. In the tech note, the additional cut for > 60
-    // MeV in the ID isn't mentioned. Fortunately, it makes very close
-    // to no difference (3e-8 -- 0.04%, depending on run) since almost
-    // all events with > 60 MeV in the ID either have an OV coincidenece
-    // or some IV energy.
+    // Note-lungbloke: Notice how this cut (which vetos muons) is 
+    // slightly different from the other one at lungbloke (which vetos 
+    // beta decays). In the tech note, the additional cut for > 60 MeV 
+    // in the ID isn't mentioned. Fortunately, it makes very close to 
+    // no difference (3e-8 -- 0.04%, depending on run) since almost all 
+    // events with > 60 MeV in the ID either have an OV coincidenece or 
+    // some IV energy.
     if(parts.coinov || parts.fido_qiv > fido_qiv_muon_def){
       trgtimebr->GetEntry(mi);
       lastmuontime = parts.trgtime;

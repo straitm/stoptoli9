@@ -3,12 +3,12 @@
 # Finds the amount of deadtime in a run due to my muon cut. My cut for
 # selecting a stopping muon (as distinct from the cut for selecting
 # decay events *after* a stopping muon!) is for 0.5ms after each "muon",
-# where a muon is defined as coinov || fido_qiv > 5000. Since these
-# 0.5ms windows can overlap AND muons can be correlated to each other,
-# this is not as easy as just counting the number of events in a run and
-# multiplying by the window size, nor as easy as a small correction on
-# that. You have to step through the run and see what it really adds up
-# to if you want an exact answer.
+# where a muon is defined as coinov || fido_qiv > 5000 || ctEvisID > 60.
+# Since these 0.5ms windows can overlap AND muons can be correlated to
+# each other, this is not as easy as just counting the number of events
+# in a run and multiplying by the window size, nor as easy as a small
+# correction on that. You have to step through the run and see what it
+# really adds up to if you want an exact answer.
 
 run=$1
 
