@@ -141,11 +141,12 @@ static const double ferr_energy = b12energyeff_e/b12energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
-  like = 2*(par[0]*exp(-lowtime/b12life) + par[1]*exp(-lowtime/li8life)
-          + par[2]*exp(-lowtime/n16life) + totaltime*par[3]);
+  like = par[0]*exp(-lowtime/b12life)
+       + par[1]*exp(-lowtime/li8life)
+       + par[2]*exp(-lowtime/n16life) + totaltime*par[3];
 
   static int calls = 0;
-  if(calls++%64 == 0){
+  if(calls++%16 == 0){
     printf(".");
     fflush(stdout);
   }
@@ -248,7 +249,7 @@ const double mylivetime = -1.0)
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     events.push_back(ev(dt-offset));
-    if(i%128 == 0) printf(".");
+    if(i%0x1000 == 0) printf(".");
   }
   printf("Filled.\n");
 
@@ -256,16 +257,37 @@ const double mylivetime = -1.0)
   selt = NULL;
 
   printf("MIGRAD");
-  while(4 == mn->Command("MIGRAD")){
-    printf("Retrying MIGRAD");
-    static int tries = 0;
-    if(tries++ > 3) exit(1);
+  if(4 == mn->Command("MIGRAD")){
+    do{
+      puts(""); mn->Command("show par");
+      printf("MIGRAD failed, doing SIMPLEX with N-16 constant\n");
+
+      // Holding N-16 constant while doing SIMPLEX allows convergence
+      // in some cases, such as doing the anti-cut for dist < 200, which
+      // obviously has a lot of background.
+      mn->Command("FIX 3");
+      mn->Command("SIMPLEX");
+      puts(""); mn->Command("show par");
+
+      static int tries = 0;
+      if(tries < 3) mn->Command("REL 3");
+      else printf("Keeping N-16 fixed as a last ditch effort\n");
+
+      printf("Retrying MIGRAD with tolerance 1.0");
+      if(tries++ >= 3){
+        fprintf(stderr, "\nCouldn't manage to minimize\n");
+        exit(1);
+      }
+    }while(4 == mn->Command("MIGRAD 10000 1.0"));
   }
   puts(""); mn->Command("show par");
   do{
     printf("MINOS");
     static int tries = 0;
-    if(tries++ > 3) exit(1);
+    if(tries++ >= 3){
+      fprintf(stderr, "Couldn't manage to get MINOS errors\n");
+      exit(1);
+    }
     mn->Command("MINOS 10000 1");
   }while(sani_minos(mn->fErp[0]) == 0 || sani_minos(mn->fErn[0]) == 0);
 
