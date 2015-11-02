@@ -1,3 +1,7 @@
+struct ve{
+  double val, err;
+};
+
 // Disable coloring now that I am marking important output with "TECHNOTE"
 // and "^const "
 const char * const RED     = ""; // bold red
@@ -19,7 +23,7 @@ const double mum_frac = 0.4410,
              mum_contamination = 0.0028,
              mum_contamination_err = 0.0019;
 
-const double livetime = 489.509;
+// XXX should be generated automatically
 const double rrmlivetimes[3] = { 7.570, 201.505, 280.434 };
 
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
@@ -42,16 +46,14 @@ const double light_noise_eff = 0.999938;
 // into the ntuples of 0.5ms.
 // 
 // This is seasonally dependent! But the variation is only
-// 0.9773-0.9780. XXX. The blessed value of Sept 2015 for this is 0.981, but
+// 0.9773-0.9780. The blessed value of Sept 2015 for this is 0.981, but
 // a more careful evaluation gets that range.  Hopefully I can update it
 // for the paper.  The DC3rdpub period average is 0.977614.
-const double sub_muon_eff05 = 0.981;
-//const double sub_muon_eff05 = 0.977614;
+const double sub_muon_eff05 = 0.977614;
 
-// XXX. The more careful (but unblessed) value is 0.955744 for the
+// The more careful (but unblessed) value is 0.955744 for the
 // DC3rdpub period.
-const double sub_muon_eff10 = 0.962;
-//const double sub_muon_eff10 = 0.955744;
+const double sub_muon_eff10 = 0.955744;
 
 // I made this up, with some studies to back it.
 const double f_neff_dt_error = 0.01;
