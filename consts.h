@@ -13,6 +13,8 @@ const char * const rootfile3up =
   "/cp/s4/strait/fullfido-300s-3-25MeV-20151023.root";
 const char * const rootfile0up =
   "/cp/s4/strait/fullfido-100s-0-25MeV-20151023.root";
+const char * const rootfile_be12 =
+  "/cp/s4/strait/be12-20151102.root";
 const char * const rootfilethru = // XXX now out of date -- but doesn't matter, since it is only for energy calibration
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 const char * const rootfilemusic =
@@ -115,6 +117,9 @@ const double c_atomic_capture_prob_err = 0.001;
 // All in milliseconds
 const double b12life = 20.20/log(2.);
 const double b12life_err = 0.02/log(2.); // 0.1%
+
+const double be12life = 21.49/log(2.);
+const double be12life_err = 0.03/log(2.);
 
 const double n16life = 7130./log(2.);
 const double n16life_err = 20./log(2.); // 0.3%
