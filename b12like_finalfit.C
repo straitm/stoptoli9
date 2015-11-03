@@ -250,20 +250,36 @@ const double mylivetime = -1.0)
   mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
 
-  printf("Making cuts...\n"); fflush(stdout);
+  printf("Opening temp file...\n"); fflush(stdout);
   char filename[100];
   strcpy(filename, "/tmp/b12like.XXXXXX");
   close(mkstemp(filename));
-  TFile * tmpfile = new TFile(filename, "recreate");
+  TFile * tmpfile = new TFile(filename, "recreate", "", 0);
   if(!tmpfile || tmpfile->IsZombie()){
     fprintf(stderr, "Could not open temp file %s\n", filename);
     exit(1);
   }
+
+  for(int i = 0; i < t->GetListOfBranches()->GetEntries(); i++){
+    const char * name = t->GetListOfBranches()->At(i)->GetName();
+    if(strstr(cut, name) == NULL){
+      printf("Cut does not use %s, turning off\n", name);
+      t->SetBranchStatus(name, 0);
+    }
+    else{
+      printf("Leaving %s on\n", name);
+    }
+  }
+
+  printf("Making cuts...\n"); fflush(stdout);
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  printf("Writing, maybe for no reason...\n"); fflush(stdout);
   selt->Write();
   events.clear();
 
   float dt;
+  selt->SetBranchStatus("*", 0);
+  selt->SetBranchStatus("dt", 1);
   selt->SetBranchAddress("dt", &dt);
 
   printf("Filling in data array...");
