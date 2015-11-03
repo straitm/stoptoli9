@@ -90,18 +90,9 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
 
 void deadtime_finalfit(const int ntrue)
 {
-  gErrorIgnoreLevel = kError;
-  TFile * f = new TFile(//rootfile3up, "read");
-     "/cp/s4/strait/fullfido-300s-3-25MeV-20150219-b12deadtimepass.root", "read");
+  TFile * f = new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
-/*  TFile * temp = new TFile("/tmp/tmp.root", "recreate");
-  TTree * sel = t->CopyTree("ndecay == 0 && dt < 30 && e < 15 && miche < 12 && !earlymich && e > 4");
-  sel->Write();
-  temp->Close();
-   return; */
-
-  printf("\n\n\n");
   for(int e = 0; e < 2; e++) for(int i = 1; i <= ntrue; i++) doit(t, ntrue, i, e);
 
   printf("These are ONLY the dt efficiencies.  Don't forget the dr efficiencies!\n");

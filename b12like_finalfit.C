@@ -42,9 +42,13 @@ const double errcapprob = sqrt(pow(errcapprob12,2)*(1-f13_mean)
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
 struct ev{
-  double t; // time
+  double etob12; // exp(-time/b12life)
+  double etoli8; // exp(-time/li8life)
+  double eton16; // exp(-time/n16life)
   ev(double t_){
-    t = t_;
+    etob12 = exp(-t_/b12life)/b12life;
+    etoli8 = exp(-t_/li8life)/li8life;
+    eton16 = exp(-t_/n16life)/n16life;
   }
 };
 
@@ -142,9 +146,10 @@ static const double ferr_energy = b12energyeff_e/b12energyeff;
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
-  like = par[0]*exp(-lowtime/b12life)
-       + par[1]*exp(-lowtime/li8life)
-       + par[2]*exp(-lowtime/n16life) + totaltime*par[3];
+  like = par[0]*(exp(-lowtime/b12life) - exp(-hightime/b12life))
+       + par[1]*(exp(-lowtime/li8life) - exp(-hightime/li8life))
+       + par[2]*(exp(-lowtime/n16life) - exp(-hightime/n16life))
+       + par[3]*totaltime;
 
   static int calls = 0;
   if(calls++%16 == 0){
@@ -153,10 +158,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   }
 
   for(unsigned int i = 0; i < events.size(); i++){
-    const double mt = -events[i].t;
-    const double f = par[0]/b12life*exp(mt/b12life) +
-                     par[1]/li8life*exp(mt/li8life) +
-                     par[2]/n16life*exp(mt/n16life) +
+    const double f = par[0]*events[i].etob12 +
+                     par[1]*events[i].etoli8 +
+                     par[2]*events[i].eton16 +
                      par[3];
     if(f > 0) like -= log(f);
   }
@@ -290,11 +294,11 @@ const double mylivetime = -1.0)
       if(tries < 3) mn->Command("REL 3");
       else printf("Keeping N-16 fixed as a last ditch effort\n");
 
-      printf("Retrying MIGRAD with tolerance 1.0");
       if(tries++ >= 3){
         fprintf(stderr, "\nCouldn't manage to minimize\n");
         exit(1);
       }
+      printf("Retrying MIGRAD with tolerance 1.0");
     }while(4 == mn->Command("MIGRAD 10000 1.0"));
   }
   puts(""); mn->Command("show par");

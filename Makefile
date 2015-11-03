@@ -1,6 +1,13 @@
 all: stoptoli9 b12search
 
+# No code depends on these results.  They are just to illustrate examples 
+# in the technote.
+technote: \
+  distcuteff_byenergy_finalfit.out.technote \
+  distcuteff_topbottom_finalfit.out.technote
+
 analysis: \
+  technote \
   b12groundstate_finalfit.out \
   c9_finalfit.out \
   be12_finalfit.out \
@@ -17,7 +24,7 @@ analysis: \
 
 li9_finalfit_C.so: \
   consts.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_targetgc_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
@@ -44,7 +51,7 @@ li9_finalfit_1.out: \
 n16_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   carbondenominators_finalfit.out.h \
@@ -55,7 +62,7 @@ n16_finalfit.out: \
 b14_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_b14.sh \
@@ -65,7 +72,7 @@ b14_finalfit.out: \
 n12_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_n12.sh \
@@ -75,7 +82,7 @@ n12_finalfit.out: \
 c9_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_c9.sh \
@@ -86,7 +93,7 @@ he6_finalfit_C.so: \
   he6_finalfit.C \
   sub_muon_eff.out.h \
   consts.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_he6_finalfit.out.h \
   totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h
 	root -n -l -b -q he6_finalfit.C++'(-1)'
@@ -114,7 +121,7 @@ he6_finalfit_3.out: \
 b8_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   run_analysis_b8.sh \
@@ -124,7 +131,7 @@ b8_finalfit.out: \
 be12_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \
@@ -135,7 +142,7 @@ be12_finalfit.out: \
 li8_finalfit.out.h: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_finalfit.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   totallivetime_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
@@ -191,14 +198,35 @@ b12cutefficiency_finalfit.out.h: \
   b12spectrum.C
 	./run_analysis_b12cutefficiency.sh
 
-distcuteff_finalfit.out.h: \
-  distcuteff_finalfit.C \
-  b12like_finalfit.C \
-  reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h \
-  totallivetime_finalfit.out.h \
-  run_analysis_distcuteff.sh
-	./run_analysis_distcuteff.sh
+distcuteff_byenergy_finalfit.out.technote: \
+  distcuteff_byenergy_finalfit.C run_analysis_distcuteff.sh \
+  distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+	./run_analysis_distcuteff.sh byenergy
+
+distcuteff_he6_finalfit.out.h: \
+  distcuteff_he6_finalfit.C run_analysis_distcuteff.sh \
+  distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+	./run_analysis_distcuteff.sh he6
+
+distcuteff_targetgc_finalfit.out.h: \
+  distcuteff_targetgc_finalfit.C run_analysis_distcuteff.sh \
+  distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+	./run_analysis_distcuteff.sh targetgc
+
+distcuteff_topbottom_finalfit.out.technote: \
+  distcuteff_topbottom_finalfit.C run_analysis_distcuteff.sh \
+  distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+	./run_analysis_distcuteff.sh topbottom
+
+distcuteff_wholeloose_finalfit.out.h: \
+  distcuteff_wholeloose_finalfit.C run_analysis_distcuteff.sh \
+  distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+	./run_analysis_distcuteff.sh wholeloose
 
 sub_muon_eff.out.h: \
   getmuondeadtime.sh \

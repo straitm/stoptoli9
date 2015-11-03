@@ -3,7 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include "consts.h"
-#include "distcuteff_finalfit.out.h"
+#include "distcuteff_targetgc_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"

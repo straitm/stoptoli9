@@ -10,7 +10,7 @@ using std::string;
 #include "TMinuit.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
-#include "distcuteff_finalfit.out.h"
+#include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 
