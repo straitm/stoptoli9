@@ -166,6 +166,7 @@ b12gamma_finalfit_C.so: \
   b12gamma_finalfit.C \
   consts.h \
   sub_muon_eff.out.h \
+  distcuteff_wholeloose_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
   li8_finalfit.out.h \
