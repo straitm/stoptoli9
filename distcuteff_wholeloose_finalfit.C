@@ -5,11 +5,11 @@ void distcuteff_wholeloose_finalfit()
 {
   do_distcuteff(othercuts, "dist < 400",
          "TECHNOTE 7: Efficiency for 400mm cut, loose sample",
-         "wholedet_dist400");
+         "wholedet_dist400eff");
   do_distcuteff(othercuts, "dist < 300",
          "TECHNOTE 7: Efficiency for 300mm cut, loose sample",
-         "wholedet_dist300");
+         "wholedet_dist300eff");
   do_distcuteff(othercuts, "dist < 200",
          "TECHNOTE 7: Efficiency for 200mm cut, loose sample",
-         "wholedet_dist200");
+         "wholedet_dist200eff");
 }
