@@ -66,7 +66,7 @@ static const double be11eff = 1
   * (livetime_s - num_runs*hightime)/livetime_s
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
-  * b12like_eff_dist200_ttlv01_ttlm1_002
+  * b12like002_dist200_ttlv01_ttlm1_eff
 ;
 
 static const double c15eff = 1
@@ -75,7 +75,7 @@ static const double c15eff = 1
   * (livetime_s - num_runs*hightime)/livetime_s
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
-  * b12like_eff_dist200_ttlv01_ttlm1_002
+  * b12like002_dist200_ttlv01_ttlm1_eff
 ;
 
 static int dopull;
