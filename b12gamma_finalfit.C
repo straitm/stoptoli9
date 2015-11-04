@@ -731,9 +731,23 @@ double lratsig(const double l1, const double l2)
   return TMath::NormQuantile(1-1/(2*rat));
 }
 
+const char * parname2resultstexname(const char * const parname)
+{
+  if(!strcmp(parname, "n1")) return "GammaOneSig";
+  if(!strcmp(parname, "n2")) return "GammaTwoSig";
+  if(!strcmp(parname, "n3")) return "GammaThreeSig";
+  if(!strcmp(parname, "n5")) return "GammaFourSig"; // sic
+
+  if(!strcmp(parname, "b12n_n1")) return "nGammaOneSig";
+  if(!strcmp(parname, "b12n_n2")) return "nGammaTwoSig";
+  if(!strcmp(parname, "b12n_n3")) return "nGammaThreeSig";
+  if(!strcmp(parname, "b12n_n5")) return "nGammaFourSig"; // sic
+
+  return "???";
+}
+
 void findsigforarate(const int fnum)
 {
-  return; // sometimes disable because it is slow
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double with = mn->fAmin;
@@ -741,11 +755,13 @@ void findsigforarate(const int fnum)
   mn->Command("MINIMIZE");
   mn->Command("show par");
   const double without = mn->fAmin;
-  printtwice("%s significance = %f\n", 2, mn->fCpnam[fnum-1].Data(),
-             lratsig(without, with));
   mn->Command(Form("REL %d", fnum));
   mn->Command(Form("SET LIM %d 0. 100.", fnum));
   mn->Command("MINIMIZE");
+
+  printf("TECHNOTE \\newcommand{\\%s}{$%.1f\\sigma$}\n",
+         parname2resultstexname(mn->fCpnam[fnum-1].Data()),
+         lratsig(without, with));
 }
 
 void setlinemarkercolor(TH1 * h, int c)
