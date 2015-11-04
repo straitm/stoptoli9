@@ -13,6 +13,7 @@
 #include "TGaxis.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
@@ -53,28 +54,28 @@ static const double n16eff = 1
   * mich_eff
   * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.8 // delta r for 200mm near acrlyic, fudged down for 6.1MeV gammas
-  * (livetime_s - num_runs*100.)/livetime_s
+  * (livetime_s - num_runs*hightime)/livetime_s
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.906 // b12
+  * b12like002_dist200_ttlv01_ttlm1_eff
 ;
 
 static const double be11eff = 1
   * sub_muon_eff10 // subsequent muons, 1ms
   * wholedet_dist200eff // delta r for 200mm
-  * (livetime_s - num_runs*100.)/livetime_s
+  * (livetime_s - num_runs*hightime)/livetime_s
   * 0.705 // energy, estimated from scaled b12 mc
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.906 // b12
+  * b12like_eff_dist200_ttlv01_ttlm1_002
 ;
 
 static const double c15eff = 1
   * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.82 // delta r for 200mm near acrlyic, fudged down for 5.X MeV gammas
-  * (livetime_s - num_runs*100.)/livetime_s
+  * (livetime_s - num_runs*hightime)/livetime_s
   * 0.789 // energy, estimated from scaled n16 MC
   * 0.986 // from ttlastvalid cut, very naive
-  * 0.906 // b12
+  * b12like_eff_dist200_ttlv01_ttlm1_002
 ;
 
 static int dopull;

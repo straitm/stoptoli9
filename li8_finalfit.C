@@ -2,6 +2,7 @@
 #include <math.h>
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
@@ -122,7 +123,7 @@ const double li9eff_energy_e = 0.05;
 // time until end of run
 const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
 
-const double b12likelihood_eff = 0.906; // For 0.02
+const double b12likelihood_eff = b12like002_dist400_eff;
 
 const double b12eff = b12likelihood_eff * light_noise_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff_5MeV;

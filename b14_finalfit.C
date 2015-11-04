@@ -6,6 +6,7 @@
 #include "TMinuit.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
@@ -24,7 +25,7 @@ void b14_finalfit()
     * (livetime_s - num_runs*10)/livetime_s
     * 0.387 // energy from my toy MC, probably a bit conservative
             // since when I try to evaluate B-12 it is low
-    * 0.96 // b12like
+    * b12like006_dist400_eff
   ;
 
   printf("%sEfficiency: %.2f%%%s\n", RED, eff*100, CLR);

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_he6_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
@@ -178,7 +179,10 @@ void he6_finalfit(const int nreq_ = 0,
     * sub_muon_eff10 // subsequent muons with 1ms veto
     * (livetime_s - num_runs*100.)/livetime_s
     * 0.986 // ttlastvalid
-    * 0.994 // b12like
+    * b12like040_dist200_ttlv01_ttlm1_eff // no doubt a function
+                                          // of region, but it is
+                                          // very close to 1, so I'm
+                                          // going to ignore that.
     * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
   ;
     
@@ -208,17 +212,6 @@ void he6_finalfit(const int nreq_ = 0,
   for(int i = 0; i < nrbins; i++)
     printf("%sEfficiency in region %d: %.1f%s\n",
            RED, i, 100*teff[i], CLR);
-
-/*
-  const double li8eff = 1
-    * light_noise_eff
-    * mich_eff
-    * sub_muon_eff10 // subsequent muons with 1ms veto
-    * 0.9709 // 100s from end of run
-    * 0.986 // ttlastvalid
-    * 0.9994 // b12like
-    * (exp(-siglow*log(2)/0.8399) - exp(-sighigh*log(2)/0.8399))
-  ; */
 
 //#include "ehistbg.C"
 //#include "ehistsig.C"

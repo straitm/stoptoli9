@@ -16,6 +16,13 @@
 #include <algorithm>
 using std::vector;
 
+// If running to extract efficiency, fit only for B-12 and background,
+// ignoring Li-8 and N-16. This prevents low statistics from putting all
+// the events on Li-8 (and/or N-16), and giving us the wrong answer when
+// we take the ratio of the number of B-12s found with and without a
+// cut.
+bool runningforefficiency = false;
+
 // Average isotopic fraction of C-13 in the whole sample and the
 // high-purity sample, where these two values are already so close
 // together that it doesn't matter which is used, so this is really
@@ -250,6 +257,13 @@ const double mylivetime = -1.0)
   mn->mnparm(2, "n_n16", 1e1,  1e1, 0, 1e3, err);
   mn->mnparm(3, "acc",   10 ,    1, 0, 1e3, err);
 
+  if(runningforefficiency){
+    mn->Command("SET PAR 2 0");
+    mn->Command("SET PAR 3 0");
+    mn->Command("FIX 2");
+    mn->Command("FIX 3");
+  }
+
   printf("Opening temp file...\n"); fflush(stdout);
   char filename[100];
   strcpy(filename, "/tmp/b12like.XXXXXX");
@@ -262,14 +276,18 @@ const double mylivetime = -1.0)
 
   for(int i = 0; i < t->GetListOfBranches()->GetEntries(); i++){
     const char * name = t->GetListOfBranches()->At(i)->GetName();
+    static bool saidoff = false, saidon = false;
     if(strstr(cut, name) == NULL){
-      printf("Cut does not use %s, turning off\n", name);
+      printf("%s %s", saidoff?"":"\nTurning off branch(es): ", name);
+      saidoff = true; saidon = false;
       t->SetBranchStatus(name, 0);
     }
     else{
-      printf("Leaving %s on\n", name);
+      printf("%s %s", saidon?"":"\nLeaving on branch(es): ", name);
+      saidon = true; saidoff = false;
     }
   }
+  puts("");
 
   printf("Making cuts...\n"); fflush(stdout);
   selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
@@ -297,18 +315,18 @@ const double mylivetime = -1.0)
   if(4 == mn->Command("MIGRAD")){
     do{
       puts(""); mn->Command("show par");
-      printf("MIGRAD failed, doing SIMPLEX with N-16 constant\n");
+      static int tries = 0;
+      printf("MIGRAD failed, doing SIMPLEX%s\n",
+             runningforefficiency?"":" with N-16 constant");
 
-      // Holding N-16 constant while doing SIMPLEX allows convergence
-      // in some cases, such as doing the anti-cut for dist < 200, which
-      // obviously has a lot of background.
-      mn->Command("FIX 3");
+      if(!runningforefficiency) mn->Command("FIX 3");
       mn->Command("SIMPLEX");
       puts(""); mn->Command("show par");
 
-      static int tries = 0;
-      if(tries < 3) mn->Command("REL 3");
-      else printf("Keeping N-16 fixed as a last ditch effort\n");
+      if(!runningforefficiency){
+        if(tries < 3) mn->Command("REL 3");
+        else printf("Keeping N-16 fixed as a last ditch effort\n");
+      }
 
       if(tries++ >= 3){
         fprintf(stderr, "\nCouldn't manage to minimize\n");
