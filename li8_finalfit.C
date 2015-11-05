@@ -670,7 +670,7 @@ void li8_finalfit(const char * const cut =
     events.push_back(ev(
       dt-offset,
       nn,
-      neff_dt(fq, mx, my, mz)*neff_dr(mx, my, mz),
+      neff_dt(fq, mx, my, mz)*neff_dr_800(mx, my, mz),
       isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }

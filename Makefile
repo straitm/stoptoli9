@@ -24,6 +24,7 @@ analysis: \
 
 li9_finalfit_C.so: \
   consts.h \
+  neff_dt_finalfit.out.h \
   distcuteff_targetgc_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -51,6 +52,7 @@ li9_finalfit_1.out: \
 n16_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
+  neff_dt_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   distcuteff_b12like_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -98,6 +100,7 @@ he6_finalfit_C.so: \
   he6_finalfit.C \
   sub_muon_eff.out.h \
   consts.h \
+  neff_dt_finalfit.out.h \
   distcuteff_b12like_finalfit.out.h \
   distcuteff_he6_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -150,6 +153,7 @@ be12_finalfit.out: \
 li8_finalfit.out.h: \
   consts.h \
   sub_muon_eff.out.h \
+  neff_dt_finalfit.out.h \
   distcuteff_b12like_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   carbondenominators_finalfit.out.h \
