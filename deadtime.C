@@ -40,18 +40,19 @@ double eff(const float fidoqid, const double x, const double y,
   const double r2 = x*x + y*y;
   const double r = sqrt(r2);
 
-  return
-    // In the target
-    fabs(z) < 1229 + 0.03*(1150-r) && r < 1150? 
-    efffitg->Eval(fidoqid/8300) + early*0.0726:
+  static double earlyprob = 1-exp(-5.5/179);
 
-    // In the target acrylic -- 0.5449 chance of capturing in the target
-    fabs(z) < 1237 + 0.03*(1158-r) && r < 1158? 
-    (efffith->Eval(fidoqid/8300) + reallyearlyh*early*(1-exp(-5.5/179)))*
+  // In the target
+  if(fabs(z) < 1229 + 0.03*(1150-r) && r < 1150) 
+    return efffitg->Eval(fidoqid/8300) + early*0.0726;
+
+  // In the target acrylic -- 0.5449 chance of capturing in the target
+  if(fabs(z) < 1237 + 0.03*(1158-r) && r < 1158) 
+    return (efffith->Eval(fidoqid/8300) + reallyearlyh*early*earlyprob)*
       (1-0.5449)+
     (efffitg->Eval(fidoqid/8300) + early*0.0726*(0.84+reallyearlyh*0.16))*
-      (0.5449):
+      (0.5449);
 
-    // In the GC
-    efffith->Eval(fidoqid/8300) + reallyearlyh*early*(1-exp(-5.5/179));
+  // In the GC
+  return efffith->Eval(fidoqid/8300) + reallyearlyh*early*earlyprob;
 }
