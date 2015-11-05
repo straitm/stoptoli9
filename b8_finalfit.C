@@ -10,6 +10,7 @@ using std::string;
 #include "TMinuit.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "b8cutefficiency_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
@@ -34,7 +35,7 @@ void b8_finalfit(const int nn = 4)
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
     * (livetime_s - num_runs*100.)/livetime_s
-    * 0.9403// energy
+    * b8energyeff4MeV
     * neff
   ;
 
