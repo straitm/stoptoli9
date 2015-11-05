@@ -199,7 +199,11 @@ fullb12_finalfit.out.h: \
   fullb12_finalfit.C
 	./run_analysis_fullb12.sh
 
-b12cutefficiency_finalfit.out.h: \
+li8cutefficiency_finalfit.out.h: \
+  li8cutefficiency_finalfit.C \
+	./run_analysis_li8cutefficiency.sh
+
+2cutefficiency_finalfit.out.h: \
   consts.h \
   b12cutefficiency_finalfit.C \
   b12spectrum.C
