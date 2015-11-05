@@ -4,6 +4,7 @@
 #include "TH1.h"
 #include "TFile.h"
 #include "TTree.h"
+#include <math.h>
 
 // PRD 76, 052003 eq (18).  Returns mu+/mu- ratio.
 // This uses plain old costheta, no star.
@@ -37,7 +38,7 @@ void minos5013(double & fpi, double & fk)
   const double k = 0.7021, sk = 0.0105, pi = 0.5488, spi = 0.00165;
 
   // Read off plot
-  const double phi = TMath::Pi() - atan(0.075/0.011);
+  const double phi = M_PI - atan(0.075/0.011);
 
   const double rho = tan(2*phi)*(spi*spi - sk*sk)/(2*spi*sk);
  

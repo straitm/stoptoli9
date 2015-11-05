@@ -125,7 +125,7 @@ he6_finalfit_3.out: \
 b8_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  b8cutefficiency.out.h \
+  b8cutefficiency_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   carbondenominators_finalfit.out.h \

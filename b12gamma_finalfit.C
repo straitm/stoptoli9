@@ -74,7 +74,7 @@ const double Nc13cap = n_c13cap*livetime;
 
 
 // Possible background from li-8 gammas, particularly at 980.8keV
-const double li8lowt = 300, li8hight = 5*log(2)*li8life;
+const double li8lowt = 300, li8hight = 5*log(2.)*li8life;
 
 const double b12lowt = 2, b12hight = 60;
 const double acclowt = 10e3, acchight = 100e3;
@@ -1011,8 +1011,8 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   // And scale the accidental-substracted version to the
   // expected amount in the signal window
   const double corrbgscale =
-    (exp(-b12lowt/(li8life*log(2))) - exp(-b12hight/(li8life*log(2))))/
-    (exp(-li8lowt/(li8life*log(2))) - exp(-li8hight/(li8life*log(2))))/
+    (exp(-b12lowt/(li8life*log(2.))) - exp(-b12hight/(li8life*log(2.))))/
+    (exp(-li8lowt/(li8life*log(2.))) - exp(-li8hight/(li8life*log(2.))))/
     eff_eor_li8;
 
   TF1 * corrbgfit = new TF1("corrbgfit",
