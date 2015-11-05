@@ -41,12 +41,13 @@ const double neff_dt_h =
   )/
   (n_c12cap - gd_fraction*n_c12captarget);
 
-static const double li9t = 0.257233,
-                    he8t = 0.171825,
-                    n17t = 6.020366,
-                    c16t = 1.077693,
-                    b13t = 0.025002,
-                    li11t= 0.012624;
+// In this fit we use seconds instead of milliseconds
+static const double li9t = li9life/1000.,
+                    he8t = he8life/1000.,
+                    n17t = n17life/1000.,
+                    c16t = c16life/1000.,
+                    b13t = b13life/1000.,
+                    li11t= li11life/1000.;
 
 static TRandom3 superrand;
 

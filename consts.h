@@ -139,6 +139,17 @@ const double li8life_err = 0.9/log(2.); // 0.1%
 const double li9life = 178.3/log(2.);
 const double li9life_err = 0.4/log(2.);
 
+const double he8life =   119.1/log(2.);
+const double he8life_err = 1.2/log(2.);
+
+const double n17life =  4173./log(2.);
+const double n17life_err = 4./log(2.);
+
+const double c16life =   747./log(2.);
+const double c16life_err = 8./log(2.);
+
+const double li11life =     8.75/log(2.);
+const double li11life_err = 0.14/log(2.);
 
 // In milliseconds
 const double mulife = 2196.9811e-6;
