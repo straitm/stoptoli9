@@ -17,10 +17,6 @@
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 
-// Turn on to use the high-purity muon sample.  I found that this 
-// gave similar, but slightly worse, results
-//#define HP
-
 double bamacorrz(const double z, const double e)
 {
   // Romain's thesis's correction (eq. 7.24):
@@ -52,29 +48,11 @@ TH1D * li8spec[5] = {NULL}, * he6spec[5] = {NULL}, * n16spec[5] = {NULL};
 TH2D * mdispbg = NULL;
 
 const double disteff[nrbins] = {
-t0_dist200eff, //0.7444, // +-0.86e-2
-t1_dist200eff, //0.6645, // +-0.96e-2
-t2_dist200eff, //0.6280, // +-1.02e-2
-t3_dist200eff, //0.5932, // +-1.11e-2
-gc_dist200eff, //0.4606  // +-0.40e-2
-};
-
-// The number of stopping muons in each region, from the inside out,
-// with an arbitrary overall normalization
-const double mus[nrbins] = {
-#ifdef HP
-2.201618962,
-1.960695653,
-1.882183636,
-2.580928391,
-1.139839258
-#else
-0.36808601,
-0.34753130,
-0.31973898,
-0.27913184,
-2.25442232
-#endif
+t0_dist200eff,
+t1_dist200eff,
+t2_dist200eff,
+t3_dist200eff,
+gc_dist200eff,
 };
 
 
@@ -98,7 +76,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
       double model = mnbgnorm[j]*abg[j][i]
                    + mnn16norm[j]*an16[j][i]
                    + mnli8norm[j]*ali8[j][i]
-                   + mnhe6norm*mus[j]*ahe6[j][i]*teff[j];
+                   + mnhe6norm*he6mus[j]*ahe6[j][i]*teff[j];
       if(model < 0) model = 0;
       double data = asig[j][i];
       if(datahasstarted || data > 0) datahasstarted = true;
@@ -158,10 +136,6 @@ void he6_finalfit(const int nreq_ = 0,
 
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
-#ifdef HP
-  "mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-#endif
     BASICMUONCUT
     "dist < %f && b12like < 0.4 && ttlastvalid > 0.1 && ttlastmuon>1"
     , distcut);
@@ -213,9 +187,6 @@ void he6_finalfit(const int nreq_ = 0,
     printf("%sEfficiency in region %d: %.1f%s\n",
            RED, i, 100*teff[i], CLR);
 
-//#include "ehistbg.C"
-//#include "ehistsig.C"
-
   double nfrac[nrbins];
   double nfracerr[nrbins];
 
@@ -223,10 +194,6 @@ void he6_finalfit(const int nreq_ = 0,
   t->Draw(Form("classi(dx, dy, dz):latennear==%d >> tmp", nreq),
         // This has to be the same cuts as used for the decay, 
         // except that it can't make any mention of decays
-        #ifdef HP
-          "mx**2+my**2 < 1050**2 && mz > -1175 && "
-          "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-        #endif
         BASICMUONCUT
         "ndecay == 0");
   for(int i = 0; i < nrbins; i++){
@@ -268,11 +235,7 @@ void he6_finalfit(const int nreq_ = 0,
       Form("%s && dt > %f && dt < %f", cut, siglow*1e3, sighigh*1e3));
   }
 
-#ifdef HP
-  const double captures = livetime * n_c12cap_hp;
-#else
   const double captures = livetime * n_c12cap;
-#endif
 
   if(ehistsig->Integral(4, 32) == 0){
     printf("NO signal events.  Assuming zero background, \n"
@@ -410,13 +373,13 @@ void he6_finalfit(const int nreq_ = 0,
   double raw_nhe6 = 0, raw_signhe6up = 0, raw_signhe6lo = 0;
   double cooked_nhe6 = 0, cooked_signhe6up = 0, cooked_signhe6lo = 0;
   for(int i = 0; i < nrbins; i++){
-    raw_nhe6 += he6spec[i]->Integral() * he6norm * mus[i] * teff[i];
-    raw_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i]* teff[i];
-    raw_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i]* teff[i];
+    raw_nhe6 += he6spec[i]->Integral() * he6norm * he6mus[i] * teff[i];
+    raw_signhe6up+=he6spec[i]->Integral()*he6normerrup*he6mus[i]* teff[i];
+    raw_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*he6mus[i]* teff[i];
 
-    cooked_nhe6    += he6spec[i]->Integral() * he6norm  * mus[i];
-    cooked_signhe6up+=he6spec[i]->Integral()*he6normerrup*mus[i];
-    cooked_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*mus[i];
+    cooked_nhe6    += he6spec[i]->Integral() * he6norm  * he6mus[i];
+    cooked_signhe6up+=he6spec[i]->Integral()*he6normerrup*he6mus[i];
+    cooked_signhe6lo+=he6spec[i]->Integral()*he6normerrlo*he6mus[i];
   }
 
   printf("%sraw    He-6: %f %f +%f%s\n", RED, raw_nhe6, raw_signhe6lo, raw_signhe6up, CLR);
@@ -454,8 +417,8 @@ void he6_finalfit(const int nreq_ = 0,
     ehistbg_p->Scale(bgnorm[j-1]);
     n16spec_p->Scale(n16norm[j-1]);
     li8spec_p->Scale(li8norm[j-1]);
-    he6spec_p->Scale(he6norm*mus[j-1]*thiseff);
-    he6demo->Scale(he6norm90*mus[j-1]*thiseff);
+    he6spec_p->Scale(he6norm*he6mus[j-1]*thiseff);
+    he6demo->Scale(he6norm90*he6mus[j-1]*thiseff);
 
     ehistsig_p->SetLineColor(kRed);
     ehistsig_p->SetMarkerColor(kRed);
