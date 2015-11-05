@@ -1,3 +1,5 @@
+#include "musicchargeratio_finalfit.out.h"
+
 /* Meant to be run #included in other files */
 
 ve mucountfinalfit_cut(const char * const cut)

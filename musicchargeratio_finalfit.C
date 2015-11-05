@@ -37,7 +37,7 @@ void minos5013(double & fpi, double & fk)
   const double k = 0.7021, sk = 0.0105, pi = 0.5488, spi = 0.00165;
 
   // Read off plot
-  const double phi = 3.1415926 - atan(0.075/0.011);
+  const double phi = TMath::Pi() - atan(0.075/0.011);
 
   const double rho = tan(2*phi)*(spi*spi - sk*sk)/(2*spi*sk);
  
@@ -98,9 +98,9 @@ void musicchargeratio_finalfit()
       results.Fill(frac);
     }
 
-    if     (exper == 0) printf("L3+C+MINOS ND+FD: ");
-    else if(exper == 1) printf("Combined: ");
-    else                printf("L3+C+MINOS FD:    ");
+    if     (exper == 0) printf("TECHNOTE: L3+C+MINOS ND+FD: ");
+    else if(exper == 1) printf("TECHNOTE: Combined: ");
+    else                printf("TECHNOTE: L3+C+MINOS FD:    ");
     printf("%.4f +- %.4f (%s) or +- %.4f (their systematic (shadier))\n",
            results.GetMean(),
            results.GetRMS(),
@@ -108,5 +108,10 @@ void musicchargeratio_finalfit()
            results.GetMean() * (exper == 0? minossyst:
                                  exper == 2? l3csyst:
                      1/sqrt(1/pow(l3csyst,2) + 1/pow(minossyst,2)))    );
+
+    if(exper == 2){
+      printf("const double mum_frac = %f;\n", results.GetMean());
+      printf("const double mum_frac_err = %f;\n",results.GetMean()*l3csyst);
+    }
   }
 }

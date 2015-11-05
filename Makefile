@@ -268,6 +268,10 @@ totallivetime_finalfit.out.h: \
   runlist
 	./run_analysis_totallivetime.sh
 
+musicchargeratio_finalfit.out.h: \
+  musicchargeratio_finalfit.C
+	./run_analysis_musicchargeratio.sh
+
 carbondenominators_finalfit.out.h: \
   consts.h \
   sub_muon_eff.out.h \
@@ -275,6 +279,7 @@ carbondenominators_finalfit.out.h: \
   li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \
+  musicchargeratio_finalfit.out.h \
   mucount_finalfit.C \
   carbondenominators_finalfit.C
 	./run_analysis_carbondenominators.sh
