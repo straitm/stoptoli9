@@ -2,6 +2,7 @@
 #include <math.h>
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "neff_dt_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "li8cutefficiency_finalfit.out.h"
@@ -46,8 +47,9 @@ TF1 *gg = NULL, *ggn = NULL;
 
 double n_to_0_bg_rat = 0; // set later
 
-const double neff = 0.858;
-const double neff_e = 0.01;
+const double neff = (neff_dr_800_gd*   b12gamma215targfraction
+                   + neff_dr_800_h *(1-b12gamma215targfraction))
+                   * neff_dt_215MeV;
 
 // Gamma energies, plus 6keV for the B-12 recoil
 const double G1E = 0.95314 + 0.006;
@@ -676,7 +678,7 @@ void fcn(int & npar, double * gin, double & chi2, double *par, int flag)
   chi2 *= 2;
 
   // pull term for neutron efficiency
-  chi2 += pow((par[2] - neff)/neff_e, 2);
+  chi2 += pow((par[2] - neff)/f_neff_dt_error, 2);
 
   // pull term for "correlated background" (a.k.a. Li-8) component
   chi2 += pow((par[26] - corrbgnorm_nom)/corrbgnorm_err, 2);

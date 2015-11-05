@@ -41,13 +41,6 @@ const double light_noise_eff = 0.999938;
 // I made this up, with some studies to back it.
 const double f_neff_dt_error = 0.01;
 
-const double neff_dt_targ = 0.5724; // same as Gd eff
-const double neff_dt_gc   = 0.8968;
-
-// Might be useful to break this into Target and GC, but it is mostly
-// Target, so maybe not.
-const double neff_dt_highpurity = 0.6193; // only late neutrons
-
 // Efficiency for four neutrons (not the same as the efficiency for one
 // neutron**4)
 const double n4eff_dt_targ        = 0.1697;

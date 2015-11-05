@@ -1,10 +1,21 @@
 #include "TF1.h"
+#include <math.h>
 
 TF1 *efffitg = new TF1("efffitg","min(1-0.0726, [0]*exp(-x/[1])+gaus(2))", 0, 800);
 TF1 *efffith = new TF1("efffith","min(exp(-5.5/179) - exp(-800/179.), [0]*exp(-x/[1])+gaus(2))",0, 800);
 
-double eff(const float fidoqid, const double x, const double y,
-           const double z, const bool early = false, const bool reallyearlyh = true)
+double neff_dr_800(const double x, const double y, const double z)
+{
+  if(x*x+y*y < 1154*1154 &&
+     fabs(z) < 1229 + 0.03*(1154 - sqrt(x*x+y*y)))
+    return neff_dr_800_targ;
+  else
+    return neff_dr_800_h;
+}
+
+double neff_dt(const float fidoqid, const double x, const double y,
+               const double z, const bool early = false,
+               const bool reallyearlyh = true)
 {
 // With the logisitic function as deadtime cutoff
    static bool firsttime = true;

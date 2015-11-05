@@ -170,10 +170,10 @@ void he6_finalfit(const int nreq_ = 0,
   // e.g., 2 neutrons is not the efficiency of 1 neutron squared, but
   // rather somewhat better than that.
   const double neffdtby_pos_n[5][4] = {
-  {1.0, 0.5160,     0.2784, 0.1567},
-  {1.0, 0.5655,     0.3468, 0.2273},
-  {1.0, 0.6005,     0.3953, 0.2779},
-  {1.0, 0.6063,     0.4079, 0.2948},
+  {1.0, neff_dt_t0, 0.2784, 0.1567},
+  {1.0, neff_dt_t1, 0.3468, 0.2273},
+  {1.0, neff_dt_t2, 0.3953, 0.2779},
+  {1.0, neff_dt_t3, 0.4079, 0.2948},
   {1.0, neff_dt_gc, 0.8075, 0.7297},
   };
 

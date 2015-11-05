@@ -18,7 +18,7 @@ using std::pair;
 using std::string;
 using std::cin;
 #include <algorithm>
-#include "deadtime.C" // <-- note inclusion of source
+#include "neff.C" // <-- note inclusion of source
 
 //#define DISABLEN16
 //#define DISABLELI
@@ -197,10 +197,6 @@ const double b13ferr_energy = b13energyeff_e/b13energyeff;
 const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8energyeff4MeV;
 
 const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
-
-// Constant 1% absolute error assumed on neutron efficiency.
-// Not a very rigourous model, but it's something.
-const double neff_err = 0.01;
 
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* neutrons, so don't apply efficiency to them.
@@ -428,7 +424,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((n16t - n16life)/n16life_err, 2)
 #endif
           // and the neutron efficiency
-        + pow(neffdelta/neff_err, 2);
+        + pow(neffdelta/f_neff_dt_err, 2);
 
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
@@ -777,7 +773,7 @@ void fullb12_finalfit(const char * const cut =
   mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
   mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
   mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
-  mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
+  mn->mnparm(16, "neffdelta", 0,  f_neff_dt_err, 0, 0, err);
 
 #ifdef DISABLEN16
   mn->Command("SET PAR 8 0");
@@ -822,7 +818,11 @@ void fullb12_finalfit(const char * const cut =
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     if(isibd(run, trig)) continue;
-    events.push_back(ev(dt-offset, nn, eff(fq, mx, my, mz), isibd(run, trig)));
+    events.push_back(ev(
+      dt-offset,
+      nn,
+      neff_dt(fq, mx, my, mz)*neff_dr(mx, my, mz),
+      isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }

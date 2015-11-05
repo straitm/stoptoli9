@@ -21,15 +21,9 @@
 using std::pair;
 using std::string;
 using std::cin;
-#include "deadtime.C" // <-- note inclusion of source
+#include "neff.C" // <-- note inclusion of source
 
 //#define HP
-
-const double neff_dr_800_avg =
-  (
-  (n_c12cap - n_c12captarget*gd_fraction) * neff_dr_800_h
-  +           n_c12captarget*gd_fraction  * neff_dr_800_gd
-  )/n_c12cap;
 
 using std::vector;
 
@@ -135,10 +129,6 @@ const double li8eff = b12likelihood_eff * light_noise_eff *
 
 const double li9eff = b12likelihood_eff * light_noise_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
-
-// Constant 1% absolute error assumed on neutron efficiency.
-// Not a very rigourous model, but it's something.
-const double neff_err = 0.01;
 
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* muons, so don't apply efficiency to them.
@@ -399,7 +389,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((li9t - li9life)/li9life_err, 2)
         + pow((n16t - n16life)/n16life_err, 2)
           // and the neutron efficiency
-        + pow(neffdelta/neff_err, 2);
+        + pow(neffdelta/f_neff_dt_error, 2);
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
   // with a neutron so as not to double count. Since IBD candidates are
@@ -653,7 +643,7 @@ void li8_finalfit(const char * const cut =
   mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
   mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
   mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
-  mn->mnparm(16, "neffdelta", 0,  neff_err, 0, 0, err);
+  mn->mnparm(16, "neffdelta", 0,  f_neff_dt_error, 0, 0, err);
 
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
@@ -677,8 +667,11 @@ void li8_finalfit(const char * const cut =
   for(int i = 0; i < selt->GetEntries(); i++){
     selt->GetEntry(i);
     if(isibd(run, trig)) continue;
-    events.push_back(ev(dt-offset, nn,
-      neff_dr_800_avg*eff(fq, mx, my, mz), isibd(run, trig)));
+    events.push_back(ev(
+      dt-offset,
+      nn,
+      neff_dt(fq, mx, my, mz)*neff_dr(mx, my, mz),
+      isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }

@@ -10,6 +10,7 @@ using std::string;
 #include "TH1.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "neff_dt_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"

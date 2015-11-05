@@ -1,12 +1,16 @@
+#include <math.h>
 #include <fstream>
+#include <stdlib.h>
 #include <stdio.h>
 #include "consts.h"
 #include "TTree.h"
 #include "TError.h"
 #include "TFile.h"
 #include "TH1.h"
+#include <string>
+using std::string;
 
-#include "deadtime.C"
+#include "neff.C"
 
 unsigned int factorial(const unsigned int n)
 {
@@ -16,40 +20,72 @@ unsigned int factorial(const unsigned int n)
   return a;
 }
 
-void doit(TTree * t, const int ntrue, const int nseen, const int early)
+void reallydoit(TTree * t, const char * const cut,
+                const char * const varname, const char * const desc,
+                const int ntrue)
 {
+  // Only count each muon once, and verify that it is a stopping muon by
+  // selecting michel decays
+  TTree * selt = t->CopyTree(Form("%s && ndecay == 0 && miche > 12", cut));
+
+  float fq, mx, my, mz;
+  selt->SetBranchStatus("*", 0);
+  selt->SetBranchStatus("fq", 1);
+  selt->SetBranchStatus("mx", 1);
+  selt->SetBranchStatus("my", 1);
+  selt->SetBranchStatus("mz", 1);
+  selt->SetBranchAddress("fq", &fq);
+  selt->SetBranchAddress("mx", &mx);
+  selt->SetBranchAddress("my", &my);
+  selt->SetBranchAddress("mz", &mz);
+
+  for(int nseen = 1; nseen <= ntrue; nseen++){
+    const unsigned int comb = factorial(ntrue)/factorial(nseen)/factorial(ntrue-nseen);
+
+    for(int early = 0; early < 2; early++){
+      double effsum = 0;
+      for(int i = 0; i < selt->GetEntries(); i++){
+        selt->GetEntry(i);
+        const double ieff = neff_dt(fq, mx, my, mz, early);
+        effsum += comb * pow(1 - ieff, ntrue - nseen) * pow(ieff, nseen);
+      }
+      printf("%s efficiency for seeing %d neutrons of %d, %s: %.2f%s\n",
+             desc, nseen, ntrue, effsum/selt->GetEntries()*100,
+             early?"INCLUDING early ones":"excluding early ones");
+      if(!early)
+        printf("const double neff_dt%s = %f;\n", varname, effsum/selt->GetEntries());
+    }
+  }
+  delete selt;
+}
+
+void doit(TTree * t, const int ntrue)
+{
+  printf("Opening temp file...\n"); fflush(stdout);
+  char filename[100];
+  strcpy(filename, "/tmp/b12like.XXXXXX");
+  close(mkstemp(filename));
+  TFile * tmpfile = new TFile(filename, "recreate", "", 0);
+  if(!tmpfile || tmpfile->IsZombie()){
+    fprintf(stderr, "Could not open temp file %s\n", filename);
+    exit(1);
+  }
+
   const string t0_cut = "(mx**2+my**2 < 740**2 && abs(mz) < 740)";
   const string t1_cut = "(mx**2+my**2 < 933**2 && abs(mz) < 933)";
   const string t2_cut = "(mx**2+my**2 < 1068**2 && abs(mz) < 1068)";
-  const char * const target_cut =
+  const string target_cut =
     "(mx**2+my**2 < 1154**2 && "
     "abs(mz) < 1229 + 0.03*(1154 - sqrt(mx**2+my**2)))";
 
-  printf("\nEfficiencies for seeing %d neutron%s out of %d, %s early ones:\n", nseen,
-          nseen == 1?"":"s", ntrue, early?"INCLUDING":"excluding");
+  reallydoit(t, "1", "", "Overall", ntrue); 
 
-  const unsigned int comb = factorial(ntrue)/factorial(nseen)/factorial(ntrue-nseen);
-  const char * eff = early?"eff(fq,mx,my,mz,1)":
-                           "eff(fq,mx,my,mz,0)";
-
-  TH1D * h = new TH1D("h", "", 1000,0,1);
-
-  fprintf(stderr,"drawing %lld entries...\n", t->GetEntries());
-  
-  t->Draw(Form("%d * (1-%s)**%d * %s**%d >> h",
-    comb, eff, ntrue-nseen, eff, nseen), "");
-  fprintf(stderr, "%sOverall efficiency: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  const char * drawstring = "%d * (1-%s)**%d * %s**%d >> h";
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen), target_cut);
-  printf("%sTarget/GC efficiency: %.2f, ", RED, h->GetMean()*100);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-               ("!" + string(target_cut)).c_str());
-  printf("%.2f%s\n", h->GetMean()*100, CLR);
+  reallydoit(t, target_cut.c_str(), "_targ", "Target", ntrue); 
+  reallydoit(t, ("!"+target_cut).c_str(), "_gc", "Gamma Catcher", ntrue); 
+    
 
   const double spillout = 0.41;
+/*
   
   t->Draw(Form("%d * (1-%s*%f)**%d * (%s*%f)**%d >> h",
                comb, eff, spillout, ntrue-nseen, eff, spillout, nseen),
@@ -63,11 +99,24 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
     "(abs(mz) < 1429 + 0.03*(1350 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1350**2) && "
     "!(abs(mz) < 1068 && mx**2+my**2 < 1068**2) && (abs(mz) < 1233 + 0.03*(1154 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1154**2)");
   printf("%sTarget vessel efficiency (no early H-n): %.2f%s\n", RED, h->GetMean()*100, CLR);
+*/
 
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "!(abs(mz) < 1068 && mx**2+my**2 < 1068**2) && (abs(mz) < 1229 + 0.03*(1150 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1150**2)");
-  printf("%sHe-6 T4 (outermost)/T3/T2/T1 efficiencies: %.2f, ", RED, h->GetMean()*100);
+  const double b12gammatargfrac = 
+    double(t->GetEntries(("fq/8300 < 215 && " + target_cut).c_str()))/
+           t->GetEntries( "fq/8300 < 215");
 
+  printf("B-12gamma selected muons (i.e. under 215) that stop in the target: %.1f\n",
+         b12gammatargfrac*100);
+  printf("const double b12gamma215targfraction = %f;\n", b12gammatargfrac);
+
+  reallydoit(t, "fq/8300 < 215", "_215MeV", "E_mu < 215 MeV (B-12 gamma search)", ntrue);
+
+  reallydoit(t, t0_cut.c_str(),                        "_t0", "He-6 T0 region", ntrue);
+  reallydoit(t, (t1_cut     + "&&!" + t0_cut).c_str(), "_t1", "He-6 T1 region", ntrue);
+  reallydoit(t, (t2_cut     + "&&!" + t1_cut).c_str(), "_t2", "He-6 T2 region", ntrue);
+  reallydoit(t, (target_cut + "&&!" + t2_cut).c_str(), "_t3", "He-6 T3 region", ntrue);
+
+/*
   t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
     "!(abs(mz) < 933 && mx**2+my**2 < 933**2) && (abs(mz) < 1068 && mx**2+my**2 < 1068**2)");
   printf("%.2f, ", h->GetMean()*100);
@@ -97,46 +146,31 @@ void doit(TTree * t, const int ntrue, const int nseen, const int early)
   printf("%sHigh-purity lessslant cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
 
   puts("");
+*/
 }
 
-void deadtime_finalfit(const int ntrue)
+void neff_dt_finalfit(const int ntrue)
 {
   TFile * f = new TFile(rootfile3up, "read");
   TTree * t = (TTree *)f->Get("t");
 
   string myownsource;
   string tmp;
-  ifstream infile("deadtime_finalfit.C");
+  ifstream infile("neff_dt_finalfit.C");
   if(!infile.is_open()){
     fprintf(stderr, "Could not open deadtime_finalfit.C\n");
     exit(1);
   }
   while(infile >> tmp) myownsource += tmp;
-
-  printf("HERE COMES THE SOURCE\n\n\n");
-  fputs(myownsource.c_str(), stdout);
-  printf("THERE WENT THE SOURCE\n\n\n");
-
-
-  {
-    bool saidoff = false, saidon = false;
-    for(int i = 0; i < t->GetListOfBranches()->GetEntries(); i++){
-      const char * name = t->GetListOfBranches()->At(i)->GetName();
-      if(strstr(myownsource.c_str(), name) == NULL){
-        printf("%s %s", saidoff?"":"\nTurning off branch(es): ", name);
-        saidoff = true; saidon = false;
-        t->SetBranchStatus(name, 0);
-      }
-      else{
-        printf("%s %s", saidon?"":"\nLeaving on branch(es): ", name);
-        saidon = true; saidoff = false;
-      }
-    }
-  }
-  puts("");
   infile.close();
 
-  for(int e = 0; e < 2; e++) for(int i = 1; i <= ntrue; i++) doit(t, ntrue, i, e);
+  for(int i = 0; i < t->GetListOfBranches()->GetEntries(); i++){
+    const char * name = t->GetListOfBranches()->At(i)->GetName();
+    if(strstr(myownsource.c_str(), name) == NULL)
+      t->SetBranchStatus(name, 0);
+  }
+
+  doit(t, ntrue);
 
   printf("These are ONLY the dt efficiencies.  Don't forget the dr efficiencies!\n");
 }

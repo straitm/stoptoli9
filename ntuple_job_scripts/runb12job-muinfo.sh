@@ -2,11 +2,10 @@
 
 n=$1
 
-out=/cp/s4/strait/fullfido-511keV-20150911.d/$n
+out=/cp/s4/strait/fullfido-muinfo-20151105.d/$n
 
 mkdir -p $(dirname $out)
 
-while ! [ -e $out ] || file $out | grep -q empty; do
-  ../buffersearch far 0 0 3 25 $(cat shortb12args$n) > $out
-done
-
+if ! [ -e $out ] || file $out | grep -q empty; then
+  ../b12search far 0 0 0 0 $(cat b12args$n) > $out && root -b -q ../b12ntuple2root.C+'("'$out'", true)' && xz $out
+fi

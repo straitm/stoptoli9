@@ -7,6 +7,7 @@
 #include "TCanvas.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "neff_dt_finalfit.out.h"
 #include "n12cutefficiency_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"

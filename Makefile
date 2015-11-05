@@ -75,6 +75,7 @@ n12_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
   n12cutefficiency_finalfit.out.h \
+  neff_dt_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -86,6 +87,7 @@ c9_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
   distcuteff_wholeloose_finalfit.out.h \
+  neff_dt_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_c9.sh \
@@ -125,6 +127,7 @@ he6_finalfit_3.out: \
 b8_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
+  neff_dt_finalfit.out.h \
   b8cutefficiency_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
@@ -173,6 +176,7 @@ b12gamma_finalfit_C.so: \
   b12gamma_finalfit.C \
   consts.h \
   sub_muon_eff.out.h \
+  neff_dt_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
@@ -267,6 +271,10 @@ totallivetime_finalfit.out.h: \
   run_analysis_totallivetime.sh \
   runlist
 	./run_analysis_totallivetime.sh
+
+neff_dt_finalfit.out.h: \
+  neff_dt_finalfit.C
+	./run_analysis_neff_dt.sh
 
 musicchargeratio_finalfit.out.h: \
   musicchargeratio_finalfit.C
