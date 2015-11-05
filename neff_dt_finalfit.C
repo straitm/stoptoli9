@@ -52,8 +52,12 @@ void reallydoit(TTree * t, const char * const cut,
       printf("%s efficiency for seeing %d neutrons of %d, %s: %.2f%s\n",
              desc, nseen, ntrue, effsum/selt->GetEntries()*100,
              early?"INCLUDING early ones":"excluding early ones");
+
+      char xofx[7];
+      sprintf(xofx, "%dof%d", nseen, ntrue);
+
       if(!early)
-        printf("const double neff_dt%s = %f;\n", varname, effsum/selt->GetEntries());
+        printf("const double n%seff_dt%s = %f;\n", ntrue>1?xofx:"", varname, effsum/selt->GetEntries());
     }
   }
   delete selt;
