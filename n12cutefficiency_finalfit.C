@@ -213,4 +213,6 @@ void n12cutefficiency_finalfit(const double cutlow = 4)
    printf("If your cut is not a multiple of %.2f, results are wrong\n",
           h->GetBinWidth(1));
    printf("N-12 MC efficiency for %fMeV is %.2f%%\n", cutlow, eff*100);
+   printf("TECHNOTE: N-12 MC efficiency for %fMeV is %.2f%%\n", cutlow, eff*100);
+  printf("const double n12energyeff%.0fMeV = %f;\n", cutlow, eff);
 }

@@ -74,6 +74,7 @@ b14_finalfit.out: \
 n12_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
+  n12cutefficiency_finalfit.out.h \
   distcuteff_wholeloose_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
@@ -199,6 +200,10 @@ fullb12_finalfit.out.h: \
   run_analysis_fullb12.sh \
   fullb12_finalfit.C
 	./run_analysis_fullb12.sh
+
+n12cutefficiency_finalfit.out.h: \
+  n12cutefficiency_finalfit.C \
+	./run_analysis_n12cutefficiency.sh
 
 b8cutefficiency_finalfit.out.h: \
   b8cutefficiency_finalfit.C \
