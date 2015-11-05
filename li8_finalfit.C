@@ -5,6 +5,7 @@
 #include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
+#include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "TFile.h"
@@ -104,14 +105,10 @@ const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
 
-const double li8eff_energy = 0.7165; // estimate from DOGS MC -- good 
 const double li8eff_energy_e = 0.02; // made up!
-const double li8ferr_energy = li8eff_energy_e/li8eff_energy; // made up!
+const double li8ferr_energy = li8eff_energy_e/li8energyeff5MeV;
 
-const double b12energyeff_5MeV = 0.7484;  // B-12 energy cut for 5MeV
-const double b12energyeff_5MeV_e = 0.0056;
-
-const double b13energyeff = b12energyeff_5MeV * 1.014; // estimate from my MC
+const double b13energyeff = b12energyeff5MeV * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
 const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
@@ -126,15 +123,15 @@ const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
 const double b12likelihood_eff = b12like002_dist400_eff;
 
 const double b12eff = b12likelihood_eff * light_noise_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff_5MeV;
-const double b12ferr_energy = b12energyeff_5MeV_e/b12energyeff_5MeV;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b12energyeff5MeV;
+const double b12ferr_energy = b12energyeff5MeV_e/b12energyeff5MeV;
 
 const double b13eff = b12likelihood_eff * light_noise_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
 const double li8eff = b12likelihood_eff * light_noise_eff *
-  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
+  wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li8energyeff5MeV;
 
 const double li9eff = b12likelihood_eff * light_noise_eff *
   wholedet_dist400eff * mich_eff * eor_eff * sub_muon_eff05 * li9eff_energy;

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-name=b12cutefficiency
+name=li8cutefficiency
 . analysis_function.sh
 
 if ! root -l -n -b -q ${macro}+O'(5)' &>  $tmp ||

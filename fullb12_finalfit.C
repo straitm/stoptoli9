@@ -3,6 +3,7 @@
 #include "consts.h"
 #include "sub_muon_eff.out.h"
 #include "totallivetime_finalfit.out.h"
+#include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
@@ -177,9 +178,6 @@ const double totaltime = hightime - lowtime;
 const double b13energyeff = b12energyeff * 1.014; // estimate from my MC
 const double b13energyeff_e = 0.02; // BS
 
-const double li8eff_energy = 0.6927; // estimate from DOGS MC
-const double li8eff_energy_e = 0.02; // made up! (and not used)
-
 const double li9eff_energy = 0.8069+0.05; // DOGS, with ad hoc
                                           // correction for the beta
                                           // branches being the
@@ -196,7 +194,7 @@ const double b12ferr_energy = b12energyeff_e/b12energyeff;
 const double b13eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8eff_energy;
+const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8energyeff4MeV;
 
 const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 

@@ -149,6 +149,7 @@ li8_finalfit.out.h: \
   distcuteff_wholeloose_finalfit.out.h \
   carbondenominators_finalfit.out.h \
   totallivetime_finalfit.out.h \
+  li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_li8.sh \
   li8_finalfit.C
@@ -171,6 +172,7 @@ b12gamma_finalfit_C.so: \
   consts.h \
   sub_muon_eff.out.h \
   distcuteff_wholeloose_finalfit.out.h \
+  li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   totallivetime_finalfit.out.h \
   li8_finalfit.out.h \
@@ -256,6 +258,7 @@ carbondenominators_finalfit.out.h: \
   consts.h \
   sub_muon_eff.out.h \
   totallivetime_finalfit.out.h \
+  li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \
   mucount_finalfit.C \

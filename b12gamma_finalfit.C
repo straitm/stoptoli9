@@ -4,6 +4,7 @@
 #include "sub_muon_eff.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
+#include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
 #include "li8_finalfit.out.h"
@@ -71,12 +72,9 @@ const double errcapprob13 = (1-(lifetime_c12+lifetime_c13_err)/mulife)/2
 const double Nc12cap = n_c12cap*livetime;
 const double Nc13cap = n_c13cap*livetime;
 
-const double li8hl = 839.9;
 
 // Possible background from li-8 gammas, particularly at 980.8keV
-const double li8lowt = 300, li8hight = 5*li8hl;
-
-const double b12hl = 20.20; // b12 half life, ms
+const double li8lowt = 300, li8hight = 5*log(2)*li8life;
 
 const double b12lowt = 2, b12hight = 60;
 const double acclowt = 10e3, acchight = 100e3;
@@ -794,24 +792,24 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
                // accidental muon or a radiative capture.
     * sub_muon_eff05  // Subsequent muon veto efficiency 
     * eff_eor_b12 // timeleft cut
-    * (b12ecutlow == 3?0.9251:
-       b12ecutlow == 4?b12energyeff:
+    * (b12ecutlow == 3?b12energyeff3MeV:
+       b12ecutlow == 4?b12energyeff4MeV:
        (exit(1),1)) // B-12 energy cut
     * (distcut == 400?wholedet_dist400eff:(exit(1),1))
-    * (exp(-b12lowt *log(2)/b12hl)
-      -exp(-b12hight*log(2)/b12hl)) // B-12 beta decay time
+    * (exp(-b12lowt /b12life)
+      -exp(-b12hight/b12life)) // B-12 beta decay time
     * fq_eff
   ;
 
   const double li8eff = 1
     * sub_muon_eff05  // Subsequent muon veto efficiency 
     * eff_eor_li8 // timeleft cut
-    * (b12ecutlow == 3?0.9057:
-       b12ecutlow == 4?0.8227:
+    * (b12ecutlow == 3?li8energyeff3MeV:
+       b12ecutlow == 4?li8energyeff4MeV:
        (exit(1),1)) // energy cut
     * (distcut == 400?wholedet_dist400eff:(exit(1),1))
-    * (exp(-li8lowt *log(2)/li8hl)
-      -exp(-li8hight*log(2)/li8hl)) // Li-8 beta decay time
+    * (exp(-li8lowt /li8life)
+      -exp(-li8hight/li8life)) // Li-8 beta decay time
     * fq_eff
   ;
   const double gammatimecut_eff = 
@@ -1013,8 +1011,9 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   // And scale the accidental-substracted version to the
   // expected amount in the signal window
   const double corrbgscale =
-    (exp(-b12lowt/li8hl) - exp(-b12hight/li8hl))/
-    (exp(-li8lowt/li8hl) - exp(-li8hight/li8hl))/eff_eor_li8;
+    (exp(-b12lowt/(li8life*log(2))) - exp(-b12hight/(li8life*log(2))))/
+    (exp(-li8lowt/(li8life*log(2))) - exp(-li8hight/(li8life*log(2))))/
+    eff_eor_li8;
 
   TF1 * corrbgfit = new TF1("corrbgfit",
     plaingaus("[0]", "[1]", "[2]").c_str(),
@@ -1120,7 +1119,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
     const double hn_t = 179.;
 
     // from my own measurements of B-12n and Li-8n from C-13
-    const double Pn = 0.516 + 0.049 * b12hl/li8hl;
+    const double Pn = 0.516 + 0.049 * b12life/li8life;
     const double ntrueb12n = Nc13cap*Pn;
     const double nobsb12n = ntrueb12n*b12eff;
 
