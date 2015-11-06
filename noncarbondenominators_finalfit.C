@@ -19,12 +19,10 @@ const double gdmass = 157.25;
 const double lifetime_c = lifetime_c12*(1-f13)+lifetime_c13*f13;
 const double capprob_c = 1-lifetime_c/mulife;
 
-const double lifetime_o16 = 1796.e-6;
 const double capprob_o16 = 1-lifetime_o16/mulife;
 
 const double probrat = capprob_o16/capprob_c;
 
-const double lifetime_n14 = 1919.e-6;
 const double capprob_n14 = 1-lifetime_n14/mulife;
 
 const double probrat_nc = capprob_n14/capprob_c;

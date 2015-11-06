@@ -1,8 +1,11 @@
 #include <iostream>
 #include <vector>
+using std::vector;
 #include <fstream>
 #include <algorithm>
+#include <math.h>
 #include "consts.h"
+#include "neff_dt_finalfit.out.h"
 #include "distcuteff_targetgc_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"

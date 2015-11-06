@@ -66,9 +66,8 @@ TTree * selt = NULL;
 vector<ev> events;
 
 /*
- * Prints the message once with the requested precision and in RED, then
- * again with all digits in the default color, starting with the first
- * number.
+ * Prints the message once with the requested precision, then again with
+ * all digits, starting with the first number.
  *
  * The message must only have floating point substitutions.
  */
@@ -103,9 +102,7 @@ static void printtwice(const char * const msg, const int digits, ...)
   
   va_list ap;
   va_start(ap, digits);
-  printf(RED);
   vprintf(pmsg, ap);
-  printf(CLR);
 
   va_start(ap, digits);
   vprintf(bmsg, ap);

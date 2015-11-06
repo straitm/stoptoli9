@@ -49,15 +49,16 @@ void reallydoit(TTree * t, const char * const cut,
         const double ieff = neff_dt(fq, mx, my, mz, early);
         effsum += comb * pow(1 - ieff, ntrue - nseen) * pow(ieff, nseen);
       }
-      printf("%s efficiency for seeing %d neutrons of %d, %s: %.2f%s\n",
-             desc, nseen, ntrue, effsum/selt->GetEntries()*100,
-             early?"INCLUDING early ones":"excluding early ones");
+      printf("%s efficiency for seeing %d neutrons of %d, %s: %.2f%%\n",
+             desc, nseen, ntrue,
+             early?"INCLUDING early ones":"excluding early ones",
+             effsum/selt->GetEntries()*100);
 
       char xofx[7];
       sprintf(xofx, "%dof%d", nseen, ntrue);
 
-      if(!early)
-        printf("const double n%seff_dt%s = %f;\n", ntrue>1?xofx:"", varname, effsum/selt->GetEntries());
+      printf("const double n%seff_dt%s%s = %f;\n", ntrue>1?xofx:"",
+             varname, early?"_wearly":"", effsum/selt->GetEntries());
     }
   }
   delete selt;
@@ -111,7 +112,8 @@ void doit(TTree * t, const int ntrue)
 
   printf("B-12gamma selected muons (i.e. under 215) that stop in the target: %.1f\n",
          b12gammatargfrac*100);
-  printf("const double b12gamma215targfraction = %f;\n", b12gammatargfrac);
+  if(ntrue == 1) // Need this to only go in to the .out.h file once
+    printf("const double b12gamma215targfraction = %f;\n", b12gammatargfrac);
 
   reallydoit(t, "fq/8300 < 215", "_215MeV", "E_mu < 215 MeV (B-12 gamma search)", ntrue);
 

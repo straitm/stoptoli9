@@ -103,7 +103,7 @@ void b12cutefficiency_finalfit(const double cutlow = 4)
   printf("const double b12energyeff%.0fMeV_e = %f;\n", cutlow, error);
 
   if(cutlow == 4){ // backwards compatibility
-    printf("const double b12energyeff = b12energyeff4MeV;\n", eff);
-    printf("const double b12energyeff_e = b12energyeff4MeV_e;\n", error);
+    printf("const double b12energyeff = b12energyeff4MeV;\n");
+    printf("const double b12energyeff_e = b12energyeff4MeV_e;\n");
   }
 }

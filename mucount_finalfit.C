@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "musicchargeratio_finalfit.out.h"
 
 /* Meant to be run #included in other files */

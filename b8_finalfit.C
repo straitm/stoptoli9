@@ -23,10 +23,10 @@ void b8_finalfit(const int nn = 4)
 
 
   double neff =
-    (nn==4?n4eff_dt_gc: nn==3?n3of4eff_dt_gc: nn==2?n2of4eff_dt_gc: 1e10)
+    (nn==4?n4of4eff_dt_gc: nn==3?n3of4eff_dt_gc: nn==2?n2of4eff_dt_gc: 1e10)
     *gf*neff_dr_800_h
     +
-    (nn==4?n4eff_dt_targ_wearly: nn==3?n3of4eff_dt_targ_wearly:
+    (nn==4?n4of4eff_dt_targ_wearly: nn==3?n3of4eff_dt_targ_wearly:
      nn==2?n2of4eff_dt_targ_wearly: 1e10)
     *tf*neff_dr_800_targ;
 

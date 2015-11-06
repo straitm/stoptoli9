@@ -149,9 +149,7 @@ void printtwice(const char * const msg, const int digits, ...)
 #ifndef __CINT__
   va_list ap;
   va_start(ap, digits);
-  printf(RED);
   vprintf(pmsg, ap);
-  printf(CLR);
 
   va_start(ap, digits);
   vprintf(bmsg, ap);

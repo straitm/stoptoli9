@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "consts.h"
 #include "sub_muon_eff.out.h"
+#include "neff_dt_finalfit.out.h"
 #include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_he6_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"

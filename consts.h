@@ -1,3 +1,5 @@
+#include <math.h>
+
 struct ve{
   double val, err;
 };
@@ -40,22 +42,6 @@ const double light_noise_eff = 0.999938;
 
 // I made this up, with some studies to back it.
 const double f_neff_dt_error = 0.01;
-
-// Efficiency for four neutrons (not the same as the efficiency for one
-// neutron**4)
-const double n4eff_dt_targ        = 0.1697;
-const double n4eff_dt_targ_wearly = 0.2514;
-const double n4eff_dt_gc          = 0.6616;
-
-// Efficiency for three out of four neutrons
-const double n3of4eff_dt_targ        = 0.2801;
-const double n3of4eff_dt_targ_wearly = 0.3021;
-const double n3of4eff_dt_gc          = 0.2719;
-
-// Efficiency for two out of four neutrons
-const double n2of4eff_dt_targ        = 0.2870;
-const double n2of4eff_dt_targ_wearly = 0.2606;
-const double n2of4eff_dt_gc          = 0.0590;
 
 // Taking the plot from doc-4807, slide 3, corrected by MC correction
 // factor from doc-4450, slide 8.

@@ -1,3 +1,6 @@
+#include <string>
+using std::string;
+
 const char * const target_cut =
   "dx**2+dy**2 < 1154**2 && "
   "abs(dz) < 1229 + 0.03*(1154 - sqrt(dx**2+dy**2))";

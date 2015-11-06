@@ -79,8 +79,7 @@ void c9_finalfit(const char elem = 'o')
   TTree * t = (TTree *) fiel->Get("t");
 
   TCanvas * c = new TCanvas(Form("c%d", nncut), Form("c%d", nncut));
-//  c->Divide(2, 1);
-//  c->cd(1);
+  c->cd();
 
   const char * const ndef = "(latennear+ngdnear-latengdnear)";
 
@@ -96,7 +95,7 @@ void c9_finalfit(const char elem = 'o')
   if(nsel > 0){
 
     t->Draw(Form("dt/1000 >> hfit%d(1000, 0.001, 10)", nncut), cut);
-    TH1 * hfit = gROOT->FindObject(Form("hfit%d", nncut));
+    TH1 * hfit = dynamic_cast<TH1*>(gROOT->FindObject(Form("hfit%d", nncut)));
 
     TF1 * ee = new TF1(Form("ee%d", nncut), "[0]*exp(-x*log(2)/0.0202) + "
                  "[1]*exp(-x*log(2)/[2]) + "
@@ -128,10 +127,10 @@ void c9_finalfit(const char elem = 'o')
     }
 
     t->Draw(Form("dt/1000 >> hdisp%d(20, 0.001, 10.01)", nncut), cut, "hist");
-    TH1 * hdisp = gROOT->FindObject(Form("hdisp%d", nncut));
+    TH1 * hdisp = dynamic_cast<TH1*>(gROOT->FindObject(Form("hdisp%d", nncut)));
     if(hdisp->GetBinContent(2) > 5) hdisp->Draw("e");
 
-    TF1 * eedisp = ee->Clone(Form("eedisp%d", nncut));
+    TF1 * eedisp = dynamic_cast<TF1*>(ee->Clone(Form("eedisp%d", nncut)));
     eedisp->SetNpx(400);
     eedisp->SetLineColor(kRed);
 
@@ -141,9 +140,9 @@ void c9_finalfit(const char elem = 'o')
       eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
     eedisp->Draw("same");
 
-    TF1 * b12 = new TF1(Form("b12", nncut), "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-    TF1 * b8 = new TF1(Form("b8", nncut), "[0]*exp(-x*log(2)/[1])", 0, 100);
-    TF1 * acc = new TF1(Form("acc", nncut), "[0]", 0, 100);
+    TF1 * b12 = new TF1("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
+    TF1 * b8  = new TF1("b8",  "[0]*exp(-x*log(2)/[1])", 0, 100);
+    TF1 * acc = new TF1("acc", "[0]", 0, 100);
 
     b12->SetNpx(400);
     b8->SetNpx(400);
@@ -163,7 +162,7 @@ void c9_finalfit(const char elem = 'o')
 
     const double Nfound = b8->Integral(0, 20)/hdisp->GetBinWidth(1);
     double Nerrup, Nerrlo;
-    char * errtype = NULL;
+    string errtype;
     if(hfit->GetEntries() < 3){
       errtype = "HESSE";
       Nerrup = Nfound * ee->GetParError(1)/ee->GetParameter(1);
@@ -176,7 +175,7 @@ void c9_finalfit(const char elem = 'o')
     }
 
     printf("%sN found: %f +%f %f %s%s\n",
-           RED, Nfound, Nerrup, Nerrlo, errtype, CLR);
+           RED, Nfound, Nerrup, Nerrlo, errtype.c_str(), CLR);
 
     printf("%sProb: %g +%g %g%s\n", 
         RED, toprob*Nfound, toprob*Nerrup, toprob*Nerrlo, CLR);

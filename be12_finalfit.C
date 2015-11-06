@@ -3,6 +3,7 @@
 #include "TTree.h"
 #include "TF1.h"
 #include "TH1.h"
+#include "TFile.h"
 #include "TMinuit.h"
 #include "consts.h"
 #include "sub_muon_eff.out.h"
@@ -83,5 +84,5 @@ void be12_finalfit()
 
   printf("TECHNOTE 9: Be-12 count = %d\n", n);
   printf("TECHNOTE \\newcommand{probTwelveBeFromThirteenC}"
-         "{$<%.2f\\%$}\n", upperlimprob*100);
+         "{$<%.2f\\%%$}\n", upperlimprob*100);
 }
