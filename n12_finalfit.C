@@ -8,8 +8,8 @@
 #include "consts.h"
 #include "sub_muon_eff.out.h"
 #include "neff_dt_finalfit.out.h"
-#include "n12cutefficiency_finalfit.out.h" // XXX not used.  Although the systematics here are so large it hardly matters
-#include "distcuteff_wholeloose_finalfit.out.h"
+#include "n12cutefficiency_finalfit.out.h"
+#include "distcuteff_targetgc_finalfit.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "noncarbondenominators_finalfit.out.h"
 #include <string>
@@ -36,15 +36,29 @@ void n12_finalfit()
     gcf      = (o_targacrlyic*58./(85.+58.)+o_gc)/o_sum,
     gcedgef  =                        o_gcacrlyic/o_sum;
 
+  const double spillin = 0.45; // could be 0.41 -- 0.49
 
-  const double tpneff = 0.55, tpedgeneff = 0.748,
-               gpneff = 0.9323, gpedgeneff = 0.1843 /* vary this */;
+  const double tpneff = n4of4eff_dt_dr_800_targ + n3of4eff_dt_dr_800_targ,
+               gpneff = n4of4eff_dt_dr_800_gc + n3of4eff_dt_dr_800_gc,
+               tpedgeneff = (tpneff+gpneff)/2, // not really right, but certainly it is between the above two
+               gpedgeneff =  n4of4eff_dt_dr_800_gc*pow(spillin, 4)
+                           + n3of4eff_dt_dr_800_gc*pow(spillin, 3)*4;
 
   const double neff = tpneff*targf
                     + tpedgeneff*targedgef
                     + gpneff*gcf
                     + gpedgeneff*gcedgef;
 
+  const double deltar_eff =
+  (mass_o16targ * targ_dist400eff +
+   mass_o16targves * targves_dist400eff +
+   (mass_o16targbits + mass_o16gc) * gc_dist400eff +
+   mass_o16gcves_effective * gcves_dist400eff)/
+  (mass_o16targ + mass_o16targves + mass_o16targbits +
+   mass_o16gc + mass_o16gcves_effective);
+
+  printf("TECHNOTE 10.2.3: Delta r efficiency for N-12 is %.2f%%\n",
+         deltar_eff*100);
 
   const double eff = 1
     * exp(-1/n12life) // n12 half-life and 1ms veto
@@ -52,7 +66,7 @@ void n12_finalfit()
     * light_noise_eff
     * mich_eff
     * sub_muon_eff05 // subsequent muons
-    * 0.897 // delta r
+    * deltar_eff
     * (livetime_s - num_runs*10.)/livetime_s
     * n12energyeff4MeV
     * neff

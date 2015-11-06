@@ -78,7 +78,7 @@ n12_finalfit.out: \
   sub_muon_eff.out.h \
   n12cutefficiency_finalfit.out.h \
   neff_dt_finalfit.out.h \
-  distcuteff_wholeloose_finalfit.out.h \
+  distcuteff_targetgc_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
   run_analysis_n12.sh \
@@ -88,7 +88,7 @@ n12_finalfit.out: \
 c9_finalfit.out: \
   consts.h \
   sub_muon_eff.out.h \
-  distcuteff_wholeloose_finalfit.out.h \
+  distcuteff_targetgc_finalfit.out.h \
   neff_dt_finalfit.out.h \
   totallivetime_finalfit.out.h \
   noncarbondenominators_finalfit.out.h \
