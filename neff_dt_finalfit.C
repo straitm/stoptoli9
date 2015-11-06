@@ -130,8 +130,8 @@ void doit(TTree * t, const int ntrue)
 */
 
   const double b12gammatargfrac = 
-    double(t->GetEntries(("ndecay == 0 && fq/8300 < 215 && " + target_cut).c_str()))/
-           t->GetEntries( "ndecay == 0 && fq/8300 < 215");
+    double(t->GetEntries(("ndecay == 0 && miche > 12 && fq/8300 < 215 && " + target_cut).c_str()))/
+           t->GetEntries( "ndecay == 0 && miche > 12 && fq/8300 < 215");
 
   printf("B-12gamma selected muons (i.e. under 215) that stop in the target: %.1f\n",
          b12gammatargfrac*100);
