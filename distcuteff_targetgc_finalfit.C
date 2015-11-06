@@ -8,6 +8,16 @@ const string gcves_cut = "(dx**2+dy**2 > 1508**2 || abs(dz) > 1586)";
 
 void distcuteff_targetgc_finalfit()
 {
+  do_distcuteff((string(othercuts) + "&&" + targvesout_cut +
+                 "&& !("+targvesin_cut+")").c_str(),
+         "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, near the target vessel",
+         "targves_dist400eff");
+  do_distcuteff((string(othercuts) + "&&" + gcves_cut).c_str(),
+         "dist < 400",
+         "TECHNOTE 7: Efficiency for 400mm, loose sample, near the GC vessel",
+         "gcves_dist400eff");
+
   do_distcuteff((string(othercuts) + " && " + string(target_cut)).c_str(),
          "dist < 300",
          "TECHNOTE 8.1: Efficiency for 300mm, loose sample, target",
@@ -25,14 +35,4 @@ void distcuteff_targetgc_finalfit()
          "dist < 400",
          "TECHNOTE 7: Efficiency for 400mm, loose sample, GC",
          "gc_dist400eff");
-
-  do_distcuteff((targvesout_cut+"&& !("+targvesin_cut+")").c_str(),
-         "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, loose sample, near the target vessel",
-         "targves_dist400eff");
- 
-  do_distcuteff(gcves_cut.c_str(),
-         "dist < 400",
-         "TECHNOTE 7: Efficiency for 400mm, loose sample, near the GC vessel",
-         "gcves_dist400eff");
 }

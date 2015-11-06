@@ -187,7 +187,7 @@ void n12_finalfit()
     printf("TECHNOTE: Selected >0 events for N-12, look at the code\n");
   }
   else{
-    printf("%sTECHNOTE results.tex probTwelveNFromSixteenO: N-12 limit < %.0e\n%s",
+    printf("%sTECHNOTE results.tex probTwelveNFromSixteenO: N-12 limit < %.1e\n%s",
           RED, 2.30258509299404590/eff/captures/lim_inflation_for_obeta, CLR);
   }
 }
