@@ -73,13 +73,13 @@ void reallydoit(TTree * t, const char * const cut,
              early?"INCLUDING early ones":"excluding early ones",
              effsum/selt->GetEntries()*100);
 
-      char xofx[7];
+      char xofx[7]; // works up to 99
       sprintf(xofx, "%dof%d", nseen, ntrue);
 
       printf("const double n%seff_dt%s%s%s = %f;\n",
              ntrue>1?xofx:"",
-             varname,
              ntrue>1?"_dr_800":"",
+             varname,
              early?"_wearly":"",
              effsum/selt->GetEntries());
     }
