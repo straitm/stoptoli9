@@ -171,18 +171,18 @@ void he6_finalfit(const int nreq_ = 0,
   // e.g., 2 neutrons is not the efficiency of 1 neutron squared, but
   // rather somewhat better than that.
   const double neffdtby_pos_n[5][4] = {
-  {1.0, neff_dt_t0, n2of2eff_dt_t0, n3of3eff_dt_t0}, //0.2784, 0.1567},
-  {1.0, neff_dt_t1, n2of2eff_dt_t1, n3of3eff_dt_t1}, //0.3468, 0.2273},
-  {1.0, neff_dt_t2, n2of2eff_dt_t2, n3of3eff_dt_t2}, //0.3953, 0.2779},
-  {1.0, neff_dt_t3, n2of2eff_dt_t3, n3of3eff_dt_t3}, //0.4079, 0.2948},
-  {1.0, neff_dt_gc, n2of2eff_dt_gc, n3of3eff_dt_gc}, //0.8075, 0.7297},
+  {1.0, neff_dt_t0*neff_dr_800_targ, n2of2eff_dt_dr_800_t0, n3of3eff_dt_dr_800_t0}, //0.2784, 0.1567},
+  {1.0, neff_dt_t1*neff_dr_800_targ, n2of2eff_dt_dr_800_t1, n3of3eff_dt_dr_800_t1}, //0.3468, 0.2273},
+  {1.0, neff_dt_t2*neff_dr_800_targ, n2of2eff_dt_dr_800_t2, n3of3eff_dt_dr_800_t2}, //0.3953, 0.2779},
+  {1.0, neff_dt_t3*neff_dr_800_targ, n2of2eff_dt_dr_800_t3, n3of3eff_dt_dr_800_t3}, //0.4079, 0.2948},
+  {1.0, neff_dt_gc*neff_dr_800_targ, n2of2eff_dt_dr_800_gc, n3of3eff_dt_dr_800_gc}, //0.8075, 0.7297},
   };
 
-  teff[0]=eff*disteff[0]*neffdtby_pos_n[0][nreq]*pow(neff_dr_800_targ,nreq);
-  teff[1]=eff*disteff[1]*neffdtby_pos_n[1][nreq]*pow(neff_dr_800_targ,nreq);
-  teff[2]=eff*disteff[2]*neffdtby_pos_n[2][nreq]*pow(neff_dr_800_targ,nreq);
-  teff[3]=eff*disteff[3]*neffdtby_pos_n[3][nreq]*pow(neff_dr_800_targ,nreq);
-  teff[4]=eff*disteff[4]*neffdtby_pos_n[4][nreq]*pow(neff_dr_800_h,   nreq);
+  teff[0]=eff*disteff[0]*neffdtby_pos_n[0][nreq];
+  teff[1]=eff*disteff[1]*neffdtby_pos_n[1][nreq];
+  teff[2]=eff*disteff[2]*neffdtby_pos_n[2][nreq];
+  teff[3]=eff*disteff[3]*neffdtby_pos_n[3][nreq];
+  teff[4]=eff*disteff[4]*neffdtby_pos_n[4][nreq];
 
   for(int i = 0; i < nrbins; i++)
     printf("%sEfficiency in region %d: %.1f%s\n",

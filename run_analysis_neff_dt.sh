@@ -6,7 +6,8 @@ name=neff_dt
 if ! root -l -n -b -q ${macro}+O'(1)' &>  $tmp ||
    ! root -l -n -b -q ${macro}+O'(2)' &>> $tmp ||
    ! root -l -n -b -q ${macro}+O'(3)' &>> $tmp ||
-   ! root -l -n -b -q ${macro}+O'(4)' &>> $tmp; then
+   ! root -l -n -b -q ${macro}+O'(4)' &>> $tmp ||
+   ! root -l -n -b -q ${macro}+O'(5)' &>> $tmp; then
   fail $name
 else
   finish $name

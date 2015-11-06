@@ -46,19 +46,42 @@ void reallydoit(TTree * t, const char * const cut,
       double effsum = 0;
       for(int i = 0; i < selt->GetEntries(); i++){
         selt->GetEntry(i);
-        const double ieff = neff_dt(fq, mx, my, mz, early);
-        effsum += comb * pow(1 - ieff, ntrue - nseen) * pow(ieff, nseen);
+        const double dteff = neff_dt(fq, mx, my, mz, early);
+
+        // When there is only one neutron, we can separate out the dr
+        // efficiency and handle it elsewhere, which is probably a
+        // good thing. But when there is more than one, and you want
+        // an overall average, I think that it has to be done here,
+        // before the average is taken. I only need multiple neutron
+        // efficiencies for the dr800 definition, since I only use the
+        // dr1000 definition for betan, which (out of isotopes I look
+        // for) only ever has one neutron.
+        if(ntrue == 1){
+          effsum += comb * pow(1 - dteff, ntrue - nseen) * pow(dteff, nseen);
+        }
+        else{
+          const double dreff = neff_dr_800(mx, my, mz);
+          effsum += comb * pow(1 - dteff*dreff, ntrue - nseen)
+                         * pow(    dteff*dreff, nseen);
+        }
       }
-      printf("%s efficiency for seeing %d neutrons of %d, %s: %.2f%%\n",
-             desc, nseen, ntrue,
+      printf("%s dt %sefficiency for seeing %d neutrons of %d, %s: %.2f%%\n",
+             desc,
+             ntrue>1?"and dr800 ":"",
+             nseen,
+             ntrue,
              early?"INCLUDING early ones":"excluding early ones",
              effsum/selt->GetEntries()*100);
 
       char xofx[7];
       sprintf(xofx, "%dof%d", nseen, ntrue);
 
-      printf("const double n%seff_dt%s%s = %f;\n", ntrue>1?xofx:"",
-             varname, early?"_wearly":"", effsum/selt->GetEntries());
+      printf("const double n%seff_dt%s%s%s = %f;\n",
+             ntrue>1?xofx:"",
+             varname,
+             ntrue>1?"_dr_800":"",
+             early?"_wearly":"",
+             effsum/selt->GetEntries());
     }
   }
   delete selt;
