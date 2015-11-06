@@ -22,6 +22,8 @@ finish(){
     grep '^const ' $out >> $headerout
   fi
 
+  echo $name $macroparameter analysis finished sucessfully
+
   true # Always suceed
 }
 
@@ -29,5 +31,6 @@ fail(){
   name=$1
   out=${name}_finalfit.out 
   mv -f $tmp $out.fail
+  cat $out.fail
   exit 1
 }
