@@ -53,8 +53,8 @@ void c9_finalfit(const char elem = 'o')
                     + gpneff*gcf   + gpedgeneff*gcedgef;
 
   const double eff = 1
-    * exp(-1.*log(2)/127.00) // half-life and 1ms veto
-    * (1-exp(-1000.*log(2)/127.00)) // up to 1s
+    * exp(-1/c9life) // half-life and 1ms veto
+    * (1-exp(-1000./c9life)) // up to 1s
     * light_noise_eff
     * mich_eff
     * sub_muon_eff05 // subsequent muons
