@@ -70,10 +70,10 @@ int totallivetime_finalfit()
     if(thislivetime < shortesttime) shortesttime = thislivetime;
   }
   printf("const int num_runs = %d;\n", num_runs); 
-  printf("const double shortest_run_s = %.9f;\n", shortesttime); 
-  printf("const double livetime_s = %.9f;\n", livetime); 
-  printf("const double livetime = %.9f;\n", livetime/86400.); 
-  printf("const double rrmlivetimes[3] = { %.9f, %.9f, %.9f };\n",
+  printf("const double shortest_run_s = %.16f;\n", shortesttime); 
+  printf("const double livetime_s = %.16f;\n", livetime); 
+  printf("const double livetime = %.16f;\n", livetime/86400.); 
+  printf("const double rrmlivetimes[3] = { %.16f, %.16f, %.16f };\n",
     rrmlivetimes[0]/86400.,
     rrmlivetimes[1]/86400.,
     rrmlivetimes[2]/86400.); 

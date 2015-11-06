@@ -1182,7 +1182,7 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
       // NOTE-driftcheck: horrible and fragile passing of this result to
       // the 1-neutron code. Note the space after the number, which is
       // necessary!
-      printf("const double primaryresult = %f ;\n",
+      printf("const double primaryresult = %.16f ;\n",
              getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap));
   }
   //const double chi2_allbut_he8 = mn->fAmin;

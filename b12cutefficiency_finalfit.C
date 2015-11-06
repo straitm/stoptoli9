@@ -99,8 +99,8 @@ void b12cutefficiency_finalfit(const double cutlow = 4)
          cutlow, cuthigh, eff*100, error*100);
   printf("All the digits: %f +- %f %%\n", eff*100, error*100);
 
-  printf("const double b12energyeff%.0fMeV = %f;\n", cutlow, eff);
-  printf("const double b12energyeff%.0fMeV_e = %f;\n", cutlow, error);
+  printf("const double b12energyeff%.0fMeV = %.16f;\n", cutlow, eff);
+  printf("const double b12energyeff%.0fMeV_e = %.16f;\n", cutlow, error);
 
   if(cutlow == 4){ // backwards compatibility
     printf("const double b12energyeff = b12energyeff4MeV;\n");

@@ -194,5 +194,5 @@ void b8cutefficiency_finalfit(const double cutlow = 4)
    printf("If your cut is not a multiple of %.2f, results are wrong\n",
           h->GetBinWidth(1));
    printf("TECHNOTE: B-8 MC efficiency for %fMeV is %.2f%%\n", cutlow, eff*100);
-  printf("const double b8energyeff%.0fMeV = %f;\n", cutlow, eff);
+  printf("const double b8energyeff%.0fMeV = %.16f;\n", cutlow, eff);
 }

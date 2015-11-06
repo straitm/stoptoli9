@@ -24,7 +24,7 @@ void distcuteff_he6_finalfit()
     (string(othercuts)+"&&!("+t2_cut+")&&"+target_cut).c_str(),0,0).val;
   const double gc = allregions - t3 - t2 - t1 - t0;
 
-  printf("const double he6mus[5] = { %f, %f, %f, %f, %f }; "
+  printf("const double he6mus[5] = { %.16f, %.16f, %.16f, %.16f, %.16f }; "
     "// The number of stopping muons in each region, from the inside "
     "out, with an arbitrary overall normalization\n",
   t0/allregions,t1/allregions,t2/allregions,t3/allregions,gc/allregions);

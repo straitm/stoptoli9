@@ -496,9 +496,9 @@ void print_results(const double eff, const double energy,
              -sqrt(pow(ratestat_lo,2) + pow(ratesyst,2)),
              sqrt(pow(ratestat_up,2) + pow(ratesyst,2)));
 
-  printf("const double probGamma%sRate = %f;\n", linenumber, n_ec*ratemult);
-  printf("const double probGamma%sRate_statup = %f;\n", linenumber, ratestat_up);
-  printf("const double probGamma%sRate_statlo = %f;\n", linenumber, ratestat_lo);
+  printf("const double probGamma%sRate = %.16f;\n", linenumber, n_ec*ratemult);
+  printf("const double probGamma%sRate_statup = %.16f;\n", linenumber, ratestat_up);
+  printf("const double probGamma%sRate_statlo = %.16f;\n", linenumber, ratestat_lo);
 
   puts("");
 }
@@ -1221,7 +1221,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
         // under which we fit lines 3 and 4 to give us all the rest,
         // including those involving lines 1 and 2.
         if((region == 1) ^ (i == 1 && j == 2))
-          printf("const double b12cc_%d%d = %g;\n", i, j,
+          printf("const double b12cc_%d%d = %.16g;\n", i, j,
             errmat[l2fp[i]][l2fp[j]]/geterr(l2p[i])/geterr(l2p[j]));
       }
     }

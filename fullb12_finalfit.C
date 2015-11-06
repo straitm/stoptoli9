@@ -576,19 +576,19 @@ void results(const char * const iname, const int mni,
          );
 
   if(!strcmp(iname, "C-13 -> B-12+n")){
-    printf("const double probTwelveBFromThirteenC = %f;\n",
+    printf("const double probTwelveBFromThirteenC = %.16f;\n",
            like_central_percap/100.);
-    printf("const double probTwelveBFromThirteenC_statup = %f;\n",
+    printf("const double probTwelveBFromThirteenC_statup = %.16f;\n",
            staterr_percapup/100.);
-    printf("const double probTwelveBFromThirteenC_statlo = %f;\n",
+    printf("const double probTwelveBFromThirteenC_statlo = %.16f;\n",
            staterr_percaplo/100.);
   }
   else if(!strcmp(iname, "C-12 -> B-12")){
-    printf("const double probTwelveBFromTwelveC = %f;\n",
+    printf("const double probTwelveBFromTwelveC = %.16f;\n",
            like_central_percap/100.);
-    printf("const double probTwelveBFromTwelveC_statup = %f;\n",
+    printf("const double probTwelveBFromTwelveC_statup = %.16f;\n",
            staterr_percapup/100.);
-    printf("const double probTwelveBFromTwelveC_statlo = %f;\n",
+    printf("const double probTwelveBFromTwelveC_statlo = %.16f;\n",
            staterr_percaplo/100.);
   }
 
@@ -620,10 +620,10 @@ void results(const char * const iname, const int mni,
          sqrt(pow(toterr_ratelo, 2) - pow(staterr_ratelo,2))
          );
   if(!strcmp("C-12 -> B-12", iname)){
-    printf("const double b12totalrate = %f;\n", like_central_rate);
-    printf("const double b12totalrate_statup = %f;\n", staterr_rateup);
-    printf("const double b12totalrate_statlo = %f;\n", staterr_ratelo);
-    printf("const double b12totalrate_syst = %f;\n",
+    printf("const double b12totalrate = %.16f;\n", like_central_rate);
+    printf("const double b12totalrate_statup = %.16f;\n", staterr_rateup);
+    printf("const double b12totalrate_statlo = %.16f;\n", staterr_ratelo);
+    printf("const double b12totalrate_syst = %.16f;\n",
       sqrt(pow(muerr_rate,2)+pow(err_rate,2)+pow(lifetimeerr_rate,2)));
   }
 

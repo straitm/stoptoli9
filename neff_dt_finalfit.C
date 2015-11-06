@@ -76,7 +76,7 @@ void reallydoit(TTree * t, const char * const cut,
       char xofx[7]; // works up to 99
       sprintf(xofx, "%dof%d", nseen, ntrue);
 
-      printf("const double n%seff_dt%s%s%s = %f;\n",
+      printf("const double n%seff_dt%s%s%s = %.16f;\n",
              ntrue>1?xofx:"",
              ntrue>1?"_dr_800":"",
              varname,

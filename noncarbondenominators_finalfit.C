@@ -496,24 +496,24 @@ void noncarbondenominators_finalfit()
   const double n_o16cap_beta = (beta_total_low()+beta_total_high())/2;
   const double n_o16cap_betan = (betan_total_low()+betan_total_high())/2;
 
-  printf("const double n_o16cap_beta  = %f;\n", n_o16cap_beta);
-  printf("const double n_o16cap_betan = %f;\n", n_o16cap_betan);
+  printf("const double n_o16cap_beta  = %.16f;\n", n_o16cap_beta);
+  printf("const double n_o16cap_betan = %.16f;\n", n_o16cap_betan);
 
   const double n_o16cap_beta_hp = (beta_total_low_hp()+beta_total_high_hp())/2;
   const double n_o16cap_betan_hp = (betan_total_low_hp()+betan_total_high_hp())/2;
 
-  printf("const double n_o16cap_beta_hp  = %f;\n", n_o16cap_beta_hp);
-  printf("const double n_o16cap_betan_hp = %f;\n", n_o16cap_betan_hp);
+  printf("const double n_o16cap_beta_hp  = %.16f;\n", n_o16cap_beta_hp);
+  printf("const double n_o16cap_betan_hp = %.16f;\n", n_o16cap_betan_hp);
 
   printlowhighgaus("TECHNOTE 5.3: number of "
     "beta N-14 captures/day", n14_low(), n14_high());
 
   const double n_n14cap = (n14_low() + n14_high())/2;
-  printf("const double n_n14cap = %f;\n", n_n14cap);
+  printf("const double n_n14cap = %.16f;\n", n_n14cap);
 
   printlowhighgaus("TECHNOTE 5.3: number of "
     "beta N-14 captures/day, high-purity", n14_low_hp(), n14_high_hp());
 
   const double n_n14cap_hp = (n14_low_hp() + n14_high_hp())/2;
-  printf("const double n_n14cap_hp = %f;\n", n_n14cap_hp);
+  printf("const double n_n14cap_hp = %.16f;\n", n_n14cap_hp);
 }

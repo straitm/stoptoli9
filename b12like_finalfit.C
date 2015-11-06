@@ -213,8 +213,8 @@ const double mylivetime = -1.0)
   if(verbose){
     printtwice("TECHNOTE 3.5: Number %s of mu- stops is %f +- %f\n",
       0, iname, mum_count, mum_count_e);
-    printf("const double mum_count   = %f;\n", mum_count);
-    printf("const double mum_count_e = %f;\n", mum_count_e);
+    printf("const double mum_count   = %.16f;\n", mum_count);
+    printf("const double mum_count_e = %.16f;\n", mum_count_e);
     printtwice("TECHNOTE 3.5: Number %s of mu- atomic captures, any C "
       "isotope is %f +- %f\n",
       0, iname, mumc_count, mumc_count_e);
@@ -492,8 +492,8 @@ void carbondenominators_finalfit()
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap, n_c12cap_err);
 
-  printf("const double n_c12cap     = %f;\n", n_c12cap);
-  printf("const double n_c12cap_err = %f;\n", n_c12cap_err);
+  printf("const double n_c12cap     = %.16f;\n", n_c12cap);
+  printf("const double n_c12cap_err = %.16f;\n", n_c12cap_err);
 
   puts("");
 
@@ -510,8 +510,8 @@ void carbondenominators_finalfit()
   printtwice("TECHNOTE 5.2: *Nuclear* captures/day on C-13: %f +- %f\n",
     2, n_c13cap, n_c13cap_err);
 
-  printf("const double n_c13cap     = %f;\n", n_c13cap);
-  printf("const double n_c13cap_err = %f;\n", n_c13cap_err);
+  printf("const double n_c13cap     = %.16f;\n", n_c13cap);
+  printf("const double n_c13cap_err = %.16f;\n", n_c13cap_err);
 
   puts("");
   puts("");
@@ -531,8 +531,8 @@ void carbondenominators_finalfit()
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-12: %f +- %f\n",
     1, n_c12cap_hp, n_c12cap_hp_err);
 
-  printf("const double n_c12cap_hp     = %f;\n", n_c12cap_hp);
-  printf("const double n_c12cap_hp_err = %f;\n", n_c12cap_hp_err);
+  printf("const double n_c12cap_hp     = %.16f;\n", n_c12cap_hp);
+  printf("const double n_c12cap_hp_err = %.16f;\n", n_c12cap_hp_err);
 
   puts("");
 
@@ -548,8 +548,8 @@ void carbondenominators_finalfit()
   printtwice("TECHNOTE 6.1: *Nuclear* captures/day on C-13: %f +- %f\n",
     3, n_c13cap_hp, n_c13cap_hp_err);
 
-  printf("const double n_c13cap_hp     = %f;\n", n_c13cap_hp);
-  printf("const double n_c13cap_hp_err = %f;\n", n_c13cap_hp_err);
+  printf("const double n_c13cap_hp     = %.16f;\n", n_c13cap_hp);
+  printf("const double n_c13cap_hp_err = %.16f;\n", n_c13cap_hp_err);
 
   /*****************************************************************/
   // Now some specialty work for different regions
@@ -563,7 +563,7 @@ void carbondenominators_finalfit()
   const double n_c12captarget =
     loosetargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
 
-  printf("const double n_c12captarget = %f;\n", n_c12captarget);
+  printf("const double n_c12captarget = %.16f;\n", n_c12captarget);
 
   /*****************************************************************/
   const ve result_forb12gamma =
@@ -572,8 +572,8 @@ void carbondenominators_finalfit()
   const double n_c12cap_forb12gamma =
     result_forb12gamma.val/(hpresult.val+antihpresult.val) * n_c12cap;
 
-  printf("const double n_c12cap_forb12gamma = %f;\n", n_c12cap_forb12gamma);
-  printf("const double n_c12cap_forb12gamma_additional_ferr = %f;\n",
+  printf("const double n_c12cap_forb12gamma = %.16f;\n", n_c12cap_forb12gamma);
+  printf("const double n_c12cap_forb12gamma_additional_ferr = %.16f;\n",
          sqrt(
            (hpresult.val+antihpresult.val - result_forb12gamma.val)/
            (result_forb12gamma.val*(hpresult.val+antihpresult.val))
@@ -586,5 +586,5 @@ void carbondenominators_finalfit()
   const double n_c12captarget_hp =
     HPtargetresult.val/(hpresult.val+antihpresult.val) * n_c12cap;
 
-  printf("const double n_c12captarget_hp = %f;\n", n_c12captarget_hp);
+  printf("const double n_c12captarget_hp = %.16f;\n", n_c12captarget_hp);
 }

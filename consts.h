@@ -17,6 +17,8 @@ const char * const rootfile0up =
   "/cp/s4/strait/fullfido-100s-0-25MeV-20151023.root";
 const char * const rootfile_be12 =
   "/cp/s4/strait/be12-20151102.root";
+const char * const rootfilemuinfo =
+  "/cp/s4/strait/fullfido-muinfo-20151105.root";
 const char * const rootfilethru = // XXX now out of date -- but doesn't matter, since it is only for energy calibration
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 const char * const rootfilemusic =

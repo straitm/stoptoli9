@@ -167,5 +167,5 @@ void li8cutefficiency_finalfit(const double cutlow = 5)
    printf("If your cut is not a multiple of %.2f, results are wrong\n",
           h->GetBinWidth(1));
    printf("TECHNOTE: Li-8 MC efficiency for %fMeV is %.2f%%\n", cutlow, eff*100);
-   printf("const double li8energyeff%.0fMeV = %f;\n", cutlow, eff);
+   printf("const double li8energyeff%.0fMeV = %.16f;\n", cutlow, eff);
 }

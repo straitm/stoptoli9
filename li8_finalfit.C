@@ -529,19 +529,19 @@ void results(const char * const iname, const int mni,
          );
 
   if(!strcmp(iname, "C-13 -> Li-8+n")){
-    printf("const double probEightLiFromThirteenC = %f;\n",
+    printf("const double probEightLiFromThirteenC = %.16f;\n",
            like_central_percap/100.);
-    printf("const double probEightLiFromThirteenC_statup = %f;\n",
+    printf("const double probEightLiFromThirteenC_statup = %.16f;\n",
            staterr_percapup/100.);
-    printf("const double probEightLiFromThirteenC_statlo = %f;\n",
+    printf("const double probEightLiFromThirteenC_statlo = %.16f;\n",
            staterr_percaplo/100.);
   }
   else if(!strcmp(iname, "C-12 -> Li-8")){
-    printf("const double probEightLiFromTwelveC = %f;\n",
+    printf("const double probEightLiFromTwelveC = %.16f;\n",
            like_central_percap/100.);
-    printf("const double probEightLiFromTwelveC_statup = %f;\n",
+    printf("const double probEightLiFromTwelveC_statup = %.16f;\n",
            staterr_percapup/100.);
-    printf("const double probEightLiFromTwelveC_statlo = %f;\n",
+    printf("const double probEightLiFromTwelveC_statlo = %.16f;\n",
            staterr_percaplo/100.);
   }
 

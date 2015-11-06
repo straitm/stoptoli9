@@ -111,8 +111,8 @@ void musicchargeratio_finalfit()
                      1/sqrt(1/pow(l3csyst,2) + 1/pow(minossyst,2)))    );
 
     if(exper == 2){
-      printf("const double mum_frac = %f;\n", results.GetMean());
-      printf("const double mum_frac_err = %f;\n",results.GetMean()*l3csyst);
+      printf("const double mum_frac = %.16f;\n", results.GetMean());
+      printf("const double mum_frac_err = %.16f;\n",results.GetMean()*l3csyst);
     }
   }
 }
