@@ -956,9 +956,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = near?bits.ids_end_x:fidocorrx(bits.ids_end_x),
-               muy = near?bits.ids_end_y:fidocorry(bits.ids_end_y),
-               muz = near?bits.ids_end_z:fidocorrz(bits.ids_end_z);
+  const double mux = near?bits.ids_end_x+55.8231:fidocorrx(bits.ids_end_x),
+               muy = near?bits.ids_end_y-59.6986:fidocorry(bits.ids_end_y),
+               muz = near?bits.ids_end_z-109.504:fidocorrz(bits.ids_end_z);
   const float gclen = bits.ids_gclen;
   const float idexitqf = bits.id_idexitqf;
   const float ivqbal = bits.id_ivqbal;
