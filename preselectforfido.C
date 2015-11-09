@@ -23,15 +23,15 @@ void preselectforfido(const char * const jpfilename)
   for(int i = 0; i < GI->GetEntries(); i++){
     GI->GetEntry(i);
     
-    if(EvisID > 50){
+    if(EvisID > 70){
       const unsigned int muontrigid = TriggerID;
       const double muontrigtime = TrigTime;
       bool ok = true;
       for(int j = i+1; j < GI->GetEntries(); j++){
         GI->GetEntry(j);
         if(TrigTime - muontrigtime <= 512) continue;
-        if(TrigTime - muontrigtime > 5500) break;
-        if(EvisID > 12){
+        if(TrigTime - muontrigtime > 10e3) break;
+        if(EvisID > 10){
           ok = false;
           break;
         }
