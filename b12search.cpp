@@ -100,7 +100,7 @@ static float ptol(const track & t, const float x, const float y,
   const double detca = fabs(eten.x*etp.x + eten.y*etp.y + eten.z*etp.z);
 
   cart closest_app;
-  
+
   closest_app.x = entr.x - eten.x*detca;
   closest_app.y = entr.y - eten.y*detca;
   closest_app.z = entr.z - eten.z*detca;
@@ -758,7 +758,7 @@ static float pdf(float x, TH1D * const hist, const bool interpolate)
 
   if(x < histmin) x=histmin;
   if(x > histmax) x=histmax;
-  
+
   if(interpolate){
     return hist->Interpolate(x);
   }
@@ -791,7 +791,7 @@ static float getlike(const float dist, const int nneut)
   // I think this number is pretty meaningless, since it is tuned for
   // the amount of li-9 and IBD, but maybe as long as the results are
   // reasonable spread between 0 and 1, it is ok.
-  const float prior_ratio  = 1/(17.7 * 10.5 * maxdtmu * 1e-9); 
+  const float prior_ratio  = 1/(17.7 * 10.5 * maxdtmu * 1e-9);
 
   //multiply by prior probabilities
   sigtot *= prior_ratio;
@@ -903,7 +903,7 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
                       TTree * const chtree)
 {
   const int whichname = !strcmp(chtree->GetName(), "GI");
-  TBranch 
+  TBranch
     * const qrmsbr     = chtree->GetBranch(qrms_name[whichname]),
     * const ctmqtqallbr= chtree->GetBranch(ctmqtqall_name[whichname]),
     * const ctrmstsbr  = chtree->GetBranch(ctrmsts_name[whichname]),
@@ -941,9 +941,9 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
     // right energy for a neutron capture
     if(!isnenergy(bits.ctEvisID, 1e4, 0 /* no correction */)) continue;
 
-    found++; 
+    found++;
   }
-  return found; 
+  return found;
 }
 
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
@@ -956,9 +956,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const double entr_mux = bits.ids_entr_x,
                entr_muy = bits.ids_entr_y,
                entr_muz = bits.ids_entr_z;
-  const double mux = near?bits.ids_end_x+55.8231:fidocorrx(bits.ids_end_x),
-               muy = near?bits.ids_end_y-59.6986:fidocorry(bits.ids_end_y),
-               muz = near?bits.ids_end_z-109.504:fidocorrz(bits.ids_end_z);
+  const double mux = near?bits.ids_end_x:fidocorrx(bits.ids_end_x),
+               muy = near?bits.ids_end_y:fidocorry(bits.ids_end_y),
+               muz = near?bits.ids_end_z:fidocorrz(bits.ids_end_z);
   const float gclen = bits.ids_gclen;
   const float idexitqf = bits.id_idexitqf;
   const float ivqbal = bits.id_ivqbal;
@@ -989,7 +989,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
 
-  double michelt = 0, michelx = 0, michely = 0, michelz = 0, 
+  double michelt = 0, michelx = 0, michely = 0, michelz = 0,
          michele = 0, michdist = 0;
   bool followingov = false;
   double followingovtime = 0, followingqivtime = 0;
@@ -998,7 +998,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   float followingqiv = 0;
 
   const int whichname = !strcmp(chtree->GetName(), "GI");
-  TBranch 
+  TBranch
     * const nidtubesbr      = fitree->GetBranch("nidtubes"),
     * const fido_qivbr      = fitree->GetBranch("fido_qiv"),
     * const fido_didfitbr   = fitree->GetBranch("id_didfit"),
@@ -1008,7 +1008,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endxbr     = fitree->GetBranch("id_end_x"),
     * const fido_endybr     = fitree->GetBranch("id_end_y"),
     * const fido_endzbr     = fitree->GetBranch("id_end_z"),
-    
+
     * const runbr           = chtree->GetBranch(run_name[whichname]),
     * const coinovbr        = chtree->GetBranch(coinov_name[whichname]),
     * const trgIdbr         = chtree->GetBranch(trgId_name[whichname]),
@@ -1020,11 +1020,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctEvisIDbr      = chtree->GetBranch(ctEvisID_name[whichname]),
     * const ctqbr           = chtree->GetBranch(ctq_name[whichname]),
     * const trgtimebr       = chtree->GetBranch(trgtime_name[whichname]);
-  
+
   const double max_micht = near?30000:5500;
   const double max_time_probably_a_mich = 5500;
 
-   
+
   vector<double> ntoprint_e, ntoprint_t;
   vector<cart> ntoprint_x;
   vector<int> ntoprint_ov;
@@ -1042,7 +1042,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // since these may be very close to the muon event. Note that we
     // will often count this Michel as a neutron also for the zeroth
     // element of the count arrays (but not the first), so don't double
-    // count by accident.  
+    // count by accident.
     if(dt < max_micht && !bits.coinov){
       get_ctEvisID(ctEvisIDbr, i, whichname, bits);
       if(bits.ctEvisID == 0){
@@ -1222,7 +1222,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     // Ignore events above the end point + res
     if(bits.ctEvisID > maxenergy) goto end;
-    
+
     fido_qivbr->GetEntry(bits.trgId);
     // No IV, OV energy
     if(bits.fido_qiv > fido_qiv_muon_def) goto end;
@@ -1271,7 +1271,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                LATEVARS,
                search == be12?' ':'\n');
       printed++;
-      
+
       // If searching for be12, use the ix/iy/iz arrays and stop when we
       // get 2 decays; these are printed on the same line. Otherwise,
       // keep going up to the time limit and put each on its own line.
@@ -1282,10 +1282,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     end:
 
-    // Note the time of this event if it is a muon. Note that if using
-    // my microdsts, only events with ID energy are in the input files,
-    // so this only selects muons that cross the ID, which I think is
-    // fine.
+    // Note the time of this event if it is a muon.
     if(coinovbr) coinovbr->GetEntry(i);
     fido_qivbr->GetEntry(bits.trgId);
     fido_didfitbr->GetEntry(bits.trgId);
@@ -1430,12 +1427,12 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     fido_qidbr->GetEntry(parts.trgId);
     if(parts.fido_qid/(near?13500:8300) > 700) goto end;
     if(parts.fido_qid/(near?13500:8300) < (search == neutron?1:60)) goto end;
-  
+
     nivtubesbr->GetEntry(parts.trgId);
     nidtubesbr->GetEntry(parts.trgId);
 
     if(parts.nidtubes+parts.nivtubes <= 6) goto end;
- 
+
     if(search != neutron){
       ids_chi2br->GetEntry(parts.trgId);
       if(!near){
@@ -1502,12 +1499,12 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     if(coinovbr) coinovbr->GetEntry(mi);
     fido_qivbr->GetEntry(parts.trgId);
 
-    // Note-lungbloke: Notice how this cut (which vetos muons) is 
-    // slightly different from the other one at lungbloke (which vetos 
-    // beta decays). In the tech note, the additional cut for > 60 MeV 
-    // in the ID isn't mentioned. Fortunately, it makes very close to 
-    // no difference (3e-8 -- 0.04%, depending on run) since almost all 
-    // events with > 60 MeV in the ID either have an OV coincidenece or 
+    // Note-lungbloke: Notice how this cut (which vetos muons) is
+    // slightly different from the other one at lungbloke (which vetos
+    // beta decays). In the tech note, the additional cut for > 60 MeV
+    // in the ID isn't mentioned. Fortunately, it makes very close to
+    // no difference (3e-8 -- 0.04%, depending on run) since almost all
+    // events with > 60 MeV in the ID either have an OV coincidenece or
     // some IV energy.
     if(parts.coinov || parts.fido_qiv > fido_qiv_muon_def){
       trgtimebr->GetEntry(mi);
@@ -1560,7 +1557,7 @@ int main(int argc, char ** argv)
   minenergy = atof(argv[4]);
   maxenergy = atof(argv[5]);
 
-  const searchtype search = 
+  const searchtype search =
     !strcmp(basename(argv[0]),    "be12search")? be12:
     !strcmp(basename(argv[0]), "neutronsearch")? neutron:
     !strcmp(basename(argv[0]),  "buffersearch")? buffer:
@@ -1767,7 +1764,7 @@ int main(int argc, char ** argv)
     #define fSBA(x) fitree->SetBranchStatus(#x, 1); \
                     fitree->SetBranchAddress(#x, &parts.x); \
                     fitree->AddBranchToCache(#x);
- 
+
     fSBA(ids_didfit);
 
     fSBA(ids_end_x);
