@@ -1036,11 +1036,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     // For any uncut Michels or (hopefully) prompt gammas from muon
     // capture, record the time and energy. The *highest* energy
-    // event in the time window is accepted.  Note that if we are
-    // operating on my microdsts, this will not pick up triggers with E
-    // < 0.4MeV in the ID or light noise. I'm going to allow IV energy
-    // since these may be very close to the muon event. Note that we
-    // will often count this Michel as a neutron also for the zeroth
+    // event in the time window is accepted. I'm going to allow IV
+    // energy since these may be very close to the muon event. Note that
+    // we will often count this Michel as a neutron also for the zeroth
     // element of the count arrays (but not the first), so don't double
     // count by accident.
     if(dt < max_micht && !bits.coinov){
