@@ -36,7 +36,7 @@ void preselectforfido(const char * const jpfilename)
           break;
         }
       }
-      if(ok) printf("%d\n", TriggerID);
+      if(ok) printf("%d\n", muontrigid);
     }
   }
 }
