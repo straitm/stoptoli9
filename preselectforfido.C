@@ -27,10 +27,12 @@ void preselectforfido(const char * const jpfilename)
       const unsigned int muontrigid = TriggerID;
       const double muontrigtime = TrigTime;
       bool ok = true;
+
+      // Require no Michel
       for(int j = i+1; j < GI->GetEntries(); j++){
         GI->GetEntry(j);
         if(TrigTime - muontrigtime <= 512) continue;
-        if(TrigTime - muontrigtime > 10e3) break;
+        if(TrigTime - muontrigtime > 10*2197.) break;
         if(EvisID > 10){
           ok = false;
           break;
