@@ -1836,7 +1836,8 @@ int main(int argc, char ** argv)
 
     cSBA2(ctrmsts, RMSTstart);
 
-    // apparently just not in JP ntuples, but might be later
+    // Just not in JP ntuples, but later will be, and will be an
+    // unsigned short called OVTrigCoin, as compared to coinov, a bool.
     if(!strcmp(chtree->GetName(), "data"))
       chtree->SetBranchAddress("coinov", &parts.coinov);
 
