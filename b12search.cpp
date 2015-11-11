@@ -1009,6 +1009,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endybr     = fitree->GetBranch("id_end_y"),
     * const fido_endzbr     = fitree->GetBranch("id_end_z"),
 
+    * const hambr           = chtree->GetBranch("Trk_MuHamID"),
     * const runbr           = chtree->GetBranch(run_name[whichname]),
     * const coinovbr        = chtree->GetBranch(coinov_name[whichname]),
     * const trgIdbr         = chtree->GetBranch(trgId_name[whichname]),
@@ -1326,6 +1327,25 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
         bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
         mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
+    }
+    else if(hambr){
+      // If FIDO through-going tracks are not available, but Ham is,
+      // use it to get the B-12 likelihood.
+      hambr->GetEntry(bits.trgId);
+      get_ctEvisID(ctEvisIDbr, i, whichname, bits);
+
+      if(bits.Trk_MuHamID[0][0] != 0 && bits.ctEvisID > 60 &&
+         bits.Trk_MuHamID[0][2] > bits.Trk_MuHamID[1][2]){
+        lastgcmuontime = bits.trgtime;
+        const double mutime = bits.trgtime;
+
+        tmuons.push_back(maketrack(
+          bits.Trk_MuHamID[0][0], bits.Trk_MuHamID[0][1],
+                                  bits.Trk_MuHamID[0][2],
+          bits.Trk_MuHamID[1][0], bits.Trk_MuHamID[1][1],
+                                  bits.Trk_MuHamID[1][2],
+          mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
+      }
     }
 
     // NOTE-luckplan
@@ -1822,6 +1842,12 @@ int main(int argc, char ** argv)
     chtree->SetBranchAddress(
       !strcmp(chtree->GetName(), "data")?"ctq":"ChargeIV",
       !strcmp(chtree->GetName(), "data")?&parts.ctqIV:&parts.ctqIV0);
+
+    // We might have both this and the FIDO tracking available, but most
+    // likely I will not have run FIDO on through-going muons, so Ham is
+    // the only through-going information.
+    if(strcmp(chtree->GetName(), "data"))
+      chtree->SetBranchAddress("Trk_MuHamID", &parts.Trk_MuHamID);
 
     cSBA(trgtime, TrigTime);
 

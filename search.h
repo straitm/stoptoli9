@@ -31,8 +31,11 @@ struct dataparts{
   float ids_chi2, id_chi2;
   float ids_entr_x, ids_entr_y, ids_entr_z;
   float ids_end_x,  ids_end_y,  ids_end_z;
+
   float id_entr_x,  id_entr_y,  id_entr_z;
   float id_end_x,   id_end_y,   id_end_z;
+  double Trk_MuHamID[2][3]; //incompatible semi-equivalent JP
+
   float ids_gclen, id_idexitqf, id_ivqbal;
   float ids_ivlen, ids_buflen;
   float ids_theta, ids_phi;
