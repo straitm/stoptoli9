@@ -51,6 +51,8 @@ struct dataparts{
   double EvisID; // incompatible type in JP tree
   float qrms, qdiff;
   double QRMS, Qdiff; // incompatible type in JP tree
+
+  float pscs, psco; // only in JP
 };
 
 static const unsigned int noff = 92;

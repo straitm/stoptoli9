@@ -1010,6 +1010,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endzbr     = fitree->GetBranch("id_end_z"),
 
     * const hambr           = chtree->GetBranch("Trk_MuHamID"),
+    * const pscsbr          = chtree->GetBranch("oPsdtCs"),
+    * const pscobr          = chtree->GetBranch("oPsdtCo"),
     * const runbr           = chtree->GetBranch(run_name[whichname]),
     * const coinovbr        = chtree->GetBranch(coinov_name[whichname]),
     * const trgIdbr         = chtree->GetBranch(trgId_name[whichname]),
@@ -1095,7 +1097,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       bits.ctEvisID = bits.ctq/34e3;
     }
     // right energy for a neutron capture
-    if(!isnenergy(bits.ctEvisID, dt, mufqid/8300)) continue;
+    if(!isnenergy(bits.ctEvisID, dt, near?mufqid*9.25e-5:mufqid/8300))
+      continue;
 
     get_ctX(ctXbr, i, whichname, bits);
 
@@ -1200,7 +1203,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       // This is just overhead for the neutron and be12 searches,
       // so don't do it.
       if(search != neutron && search != be12 && printed == 0)
-        printf("0 0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
+        printf("0 0 0 0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
       break;
     }
 
@@ -1234,11 +1237,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     get_qdiff    (qdiffbr,     i, whichname, bits);
     get_qrms     (qrmsbr,      i, whichname, bits);
 
-    // XXX disable for now for ND, but probably want to put back later
-    if(!near){
-      if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
-        goto end;
-    }
+    // XXX ok for near detector?
+    if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
+      goto end;
 
     get_ctX(ctXbr, i, whichname, bits);
 
@@ -1261,14 +1262,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
       const twolike b12like =
         lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
-      if(search != neutron)
+      if(search != neutron){
+        if(pscobr) pscobr->GetEntry(i);
+        if(pscsbr) pscsbr->GetEntry(i);
         // NOTE-luckplan
-        printf("%d %lf %f %f %f %f %f %f %f %f " LATEFORM "%c",
+        printf("%d %lf %f %f %f %f %f %f %f %f %f %f " LATEFORM "%c",
                bits.trgId, dt_ms, dist,
                bits.ctEvisID, bits.fido_qiv, ix[got], iy[got], iz[got],
-               b12like.like, b12like.altlike,
+               b12like.like, b12like.altlike, bits.pscs, bits.psco,
                LATEVARS,
                search == be12?' ':'\n');
+      }
       printed++;
 
       // If searching for be12, use the ix/iy/iz arrays and stop when we
@@ -1351,7 +1355,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     // NOTE-luckplan
     // at EOR, be sure to print muon info
     if(search != neutron && i == chtree->GetEntries()-1 && printed == 0)
-      printf("0 0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
+      printf("0 0 0 0 0 0 0 0 0 0 0 0 " LATEFORM "\n", LATEVARS);
   }
   if(got){
     if(search != neutron) printf("\n");
@@ -1443,8 +1447,8 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     if(parts.fido_qiv < fido_qiv_muon_def) goto end;
 
     fido_qidbr->GetEntry(parts.trgId);
-    if(parts.fido_qid/(near?13500:8300) > 700) goto end;
-    if(parts.fido_qid/(near?13500:8300) < (search == neutron?1:60)) goto end;
+    if(parts.fido_qid/(near?(1/9.25e-5):8300) > 700) goto end;
+    if(parts.fido_qid/(near?(1/9.25e-5):8300) < (search == neutron?1:60)) goto end;
 
     nivtubesbr->GetEntry(parts.trgId);
     nidtubesbr->GetEntry(parts.trgId);
@@ -1598,6 +1602,8 @@ int main(int argc, char ** argv)
     "dz/F:"
     "b12like/F:"
     "b12altlike/F:"
+    "pscs/F:"
+    "psco/F:"
     "run/I:"
     "mutrig/I:"
     "ovcoin/I:"
@@ -1656,6 +1662,8 @@ int main(int argc, char ** argv)
     "dz2/F:"
     "b12like2/F:"
     "b12altlike2/F:"
+    "pscs2/F:"
+    "psco2/F:"
     "run2/I:"
     "mutrig2/I:"
     "ovcoin2/I:"
@@ -1843,11 +1851,14 @@ int main(int argc, char ** argv)
       !strcmp(chtree->GetName(), "data")?"ctq":"ChargeIV",
       !strcmp(chtree->GetName(), "data")?&parts.ctqIV:&parts.ctqIV0);
 
-    // We might have both this and the FIDO tracking available, but most
-    // likely I will not have run FIDO on through-going muons, so Ham is
-    // the only through-going information.
-    if(strcmp(chtree->GetName(), "data"))
+    if(strcmp(chtree->GetName(), "data")){
+      // We might have both this and the FIDO tracking available, but
+      // most likely I will not have run FIDO on through-going muons, so
+      // Ham is the only through-going information.
       chtree->SetBranchAddress("Trk_MuHamID", &parts.Trk_MuHamID);
+      chtree->SetBranchAddress("oPsdtCs", &parts.pscs);
+      chtree->SetBranchAddress("oPsdtCo", &parts.psco);
+    }
 
     cSBA(trgtime, TrigTime);
 
