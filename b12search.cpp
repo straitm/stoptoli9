@@ -1178,9 +1178,22 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      #define LATEFORM \
      "%d %d %d " \
      "%f %f %f %f %f %f " \
-     "%d %d %d %d %d %d %d %d " \
-     "%lf %.1f %.1f %.1f %.0lf %f %f %f %f %.0f " \
-     "%f %f %f %f %f %f %f %f %f %d %f %f %f %d %f %f %f %f %f %f"
+     "%d %d " \
+     "%d %d " \
+     "%d %d " \
+     "%d %d " \
+     "%lf %.1f %.1f %.1f " \
+     "%.0lf %f %f %f %f " \
+     "%.0f " \
+     "%f %f %f %f " \
+     "%f %f %f " \
+     "%f %f %d %f " \
+     "%f %f %d " \
+     "%f %f " \
+     "%f %f " \
+     "%f %f"
+
+
 
      #define LATEVARS \
      murun, mutrgid, mucoinov, \
