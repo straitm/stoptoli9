@@ -2,6 +2,12 @@
 
 run=$1
 listout=$2
+
+if [ -e $listout ]; then
+  echo Not clobbering existing $listout
+  exit 1
+fi
+
 sli9dir=/home/cp/strait/stoptoli9/
 datadir=/cp/s4/strait/
 
