@@ -1157,8 +1157,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   // positions of putative isotope decays
   double ix[2], iy[2], iz[2];
 
-  double lastmuontime = mutime, lastgcmuontime = mutime,
-         lastvalidtime = mutime;
+  double lastmuontime = mutime, lastbufmuontime = mutime,
+         lastgcmuontime = mutime, lastvalidtime = mutime;
 
   vector<track> tmuons;
 
@@ -1171,6 +1171,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     const double dt_ms = (itime - mutime)/1e6;
     const double ttlastvalid =(itime-lastvalidtime  )/1e6;
     const double ttlastmuon  =(itime-lastmuontime   )/1e6;
+    const double ttlastbufmuon=(itime-lastbufmuontime )/1e6;
     const double ttlastgcmuon=(itime-lastgcmuontime )/1e6;
 
      // NOTE-luckplan
@@ -1179,7 +1180,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%f %f %f %f %f %f " \
      "%d %d %d %d %d %d %d %d " \
      "%lf %.1f %.1f %.1f %.0lf %f %f %f %f %.0f " \
-     "%f %f %f %f %f %f %f %f %d %f %f %f %d %f %f %f %f %f %f"
+     "%f %f %f %f %f %f %f %f %f %d %f %f %f %d %f %f %f %f %f %f"
 
      #define LATEVARS \
      murun, mutrgid, mucoinov, \
@@ -1193,7 +1194,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      michdist, \
      mufqid, mufqiv, muctqid, muctqiv, \
      timeleft, ttlastvalid, ttlastmuon, \
-     ttlastgcmuon, followingov, followingovtime, \
+     ttlastbufmuon, ttlastgcmuon, followingov, followingovtime, \
      followingqiv, followingqivtime, printed, \
      firstlatenearneutrontime, firstlatenearneutronenergy, \
      firstneutrontime, firstneutronenergy, \
@@ -1296,9 +1297,16 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     }
 
     // NOTE-lungbloke: See comment at other.
+    // This is the weakest definition of a muon, which turns out to 
+    // count a very large fraction of "valid" triggers as muons
     if(bits.coinov || bits.fido_qiv > fido_qiv_muon_def
       || bits.ctEvisID > 60)
       lastmuontime = bits.trgtime;
+
+    // This is the next stronger definition of a muon, which requires
+    // plenty of energy in the ID.
+    if(bits.ctEvisID > 30)
+      lastbufmuontime = bits.trgtime;
 
     // Note the time of this even if it is valid, which for me means
     // not light noise and at least 0.4 MeV
@@ -1316,6 +1324,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     fido_entrzbr->GetEntry(bits.trgId);
     fido_endzbr ->GetEntry(bits.trgId);
     nidtubesbr->GetEntry(bits.trgId);
+
+    // This is the strongest definition of a muon, which requires more
+    // energy in the ID, plus a sensible reconstruction.
     if(bits.id_didfit && bits.nidtubes > 30 &&
        bits.id_entr_z > bits.id_end_z){
       lastgcmuontime = bits.trgtime;
@@ -1638,6 +1649,7 @@ int main(int argc, char ** argv)
     "timeleft/F:"
     "ttlastvalid/F:"
     "ttlastmuon/F:"
+    "ttlastbufmuon/F:"
     "ttlastgcmuon/F:"
     "followingov/O:"
     "followingovtime/F:"
@@ -1698,6 +1710,7 @@ int main(int argc, char ** argv)
     "timeleft2/F:"
     "ttlastvalid2/F:"
     "ttlastmuon2/F:"
+    "ttlastbufmuon2/F:"
     "ttlastgcmuon2/F:"
     "followingov2/O:"
     "followingovtime2/F:"
