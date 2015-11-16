@@ -304,7 +304,7 @@ noncarbondenominators_finalfit.out.h: \
 	./run_analysis_noncarbondenominators.sh
 
 search.o: search.cpp
-	g++ -O2 -c search.cpp -Wall -Wextra -lm
+	g++ -O2 -c search.cpp -Wall -Wextra
 
 b12search.o: b12search.cpp search.h
 	g++ -ffast-math -O3 -c b12search.cpp `root-config --cflags` -Wall -Wextra
@@ -314,6 +314,9 @@ stoptoli9.o: stoptoli9.cpp search.h
 
 b12search: b12search.o search.o
 	g++ -o b12search b12search.o search.o `root-config --libs`
+
+b12search-SL5: b12search.o search.o
+	g++ -o b12search-SL5 b12search.o search.o `root-config --libs`
 
 stoptoli9: stoptoli9.o search.o
 	g++ -o stoptoli9 stoptoli9.o search.o `root-config --libs`
