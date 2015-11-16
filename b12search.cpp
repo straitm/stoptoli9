@@ -984,7 +984,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   const float mufqid = bits.fido_qid,
               mufqiv = bits.fido_qiv,
               muctqid = bits.ctq,
-              muctqiv = bits.ctqIV;
+              muctqiv = bits.ctqIV,
+              id_entr_x = bits.id_entr_x,
+              id_entr_y = bits.id_entr_y,
+              id_entr_z = bits.id_entr_z,
+              id_end_x = bits.id_end_x,
+              id_end_y = bits.id_end_y,
+              id_end_z = bits.id_end_z;
 
   unsigned int nneutronanydist[2] = {0,0}, ngdneutronanydist[2] = {0,0};
   unsigned int nneutronnear[2] = {0,0}, ngdneutronnear[2] = {0,0};
@@ -1191,10 +1197,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%f %f %d " \
      "%f %f " \
      "%f %f " \
-     "%f %f"
-
-
-
+     "%f %f " \
+     "%f %f %f " \
+     "%f %f %f "
      #define MUONVARS \
      murun, mutrgid, mucoinov, \
      mux, muy, muz, mudchi2, murchi2, muivdedx, \
@@ -1211,7 +1216,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      followingqiv, followingqivtime, printed, \
      firstlatenearneutrontime, firstlatenearneutronenergy, \
      firstneutrontime, firstneutronenergy, \
-     idexitqf, ivqbal
+     idexitqf, ivqbal, \
+     id_entr_x, id_entr_y, id_entr_z, \
+     id_end_x,  id_end_y,  id_end_z
 
      #define DECAYFORM "%d %lf %f %f %f %f %f %f %f %f %f %f "
      #define DECAYBLANK "0  0  0  0  0  0  0  0  0  0  0  0 "
@@ -1676,7 +1683,14 @@ int main(int argc, char ** argv)
     "firstnt/F:"
     "firstne/F:"
     "idexitqf/F:"
-    "ivqbal/F");
+    "ivqbal/F:"
+    "through_entrx/F:"
+    "through_entry/F:"
+    "through_entrz/F:"
+    "through_endx/F:"
+    "through_endy/F:"
+    "through_endz/F"
+    );
   if(search == be12) // same as above with 2s appended to each name
     printf(          // some are dumb, since, i.e., mutrig === mutrig2
     ":trig2/I:"
@@ -1737,7 +1751,14 @@ int main(int argc, char ** argv)
     "firstnt2/F:"
     "firstne2/F:"
     "idexitqf2/F:"
-    "ivqbal2/F");
+    "ivqbal2/F:"
+    "through_entrx2/F:"
+    "through_entry2/F:"
+    "through_entrz2/F:"
+    "through_endx2/F:"
+    "through_endy2/F:"
+    "through_endz2/F"
+    );
   printf("\n");
 
   for(int i = 6; i < argc; i+=2){
