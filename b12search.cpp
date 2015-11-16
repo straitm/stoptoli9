@@ -1213,8 +1213,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      firstneutrontime, firstneutronenergy, \
      idexitqf, ivqbal
 
-     #define DECAYFORM "%d %lf %f %f %f %f %f %f %f %f %f %f %f %f %f %f "
-     #define DECAYBLANK "0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 "
+     #define DECAYFORM "%d %lf %f %f %f %f %f %f %f %f %f %f "
+     #define DECAYBLANK "0  0  0  0  0  0  0  0  0  0  0  0 "
     if(dt_ms > maxtime){ // stop looking and print muon info
       // This is just overhead for the neutron and be12 searches,
       // so don't do it.
@@ -1253,7 +1253,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     get_qdiff    (qdiffbr,     i, whichname, bits);
     get_qrms     (qrmsbr,      i, whichname, bits);
 
-    // XXX ok for near detector?
+    // Looks good for both detectors
     if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
       goto end;
 
@@ -1286,7 +1286,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                bits.trgId, dt_ms, dist,
                bits.ctEvisID, bits.fido_qiv, ix[got], iy[got], iz[got],
                b12like.like, b12like.altlike, bits.pscs, bits.psco,
-               bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff,
                MUONVARS,
                search == be12?' ':'\n');
       }
@@ -1631,10 +1630,6 @@ int main(int argc, char ** argv)
     "b12altlike/F:"
     "pscs/F:"
     "psco/F:"
-    "qrms/F:"
-    "ctmqtqall/F:"
-    "ctrmsts/F:"
-    "qdiff/F:"
     "run/I:"
     "mutrig/I:"
     "ovcoin/I:"
@@ -1696,10 +1691,6 @@ int main(int argc, char ** argv)
     "b12altlike2/F:"
     "pscs2/F:"
     "psco2/F:"
-    "qrms2/F:"
-    "ctmqtqall2/F:"
-    "ctrmsts2/F:"
-    "qdiff2/F:"
     "run2/I:"
     "mutrig2/I:"
     "ovcoin2/I:"
