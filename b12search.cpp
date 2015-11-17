@@ -770,7 +770,14 @@ static float pdf(float x, TH1D * const hist, const bool interpolate)
 
 // max dt to look for previous mus
 // Emily's official Li-9 likelihood time, scaled down to B-12
+// This is roughly four halflives, which maybe wasy Emily's motivation.
 static const double maxdtmu = 0.7e9 * 20.20 / 178.3;
+
+// For my alternative likelihood that uses time information directly,
+// go out to 1 second. Since very old muons get exponentially supressed
+// in the likelihood, this cutoff is necessary only for efficiency,
+// allowing me to drop muons from the list as they get really old.
+static const double maxdtmu_alt = 1e9;
 
 static float getlike(const float dist, const int nneut)
 {
@@ -803,15 +810,29 @@ struct twolike{
   float like, altlike;
 };
 
+// Remove any throughgoing muons more than maxdtmu_alt nanoseconds
+// before the time of the current stopping muon. They can never be
+// of interest again since we step through stopping muons in order.
+// Note that it is not valid to consider the time of the current decay
+// candidate because we do *not* look at these in order -- the same one
+// can be considered for several stopping muons.
+static void expire_tmuons(vector<track> & ts, const double smutime)
+{
+  for(int i = ts.size()-1; i >= 0; i++){
+    if(ts[i].tim < smutime - maxdtmu_alt){
+      ts.erase(ts.begin(), ts.begin()+i+1);
+      return;
+    }
+  }
+}
+
 static twolike lb12like(const vector<track> & ts, const float x,
                         const float y, const float z, const float dtim)
 {
   twolike max;
   max.like = max.altlike = 0;
   for(unsigned int i = 0; i < ts.size(); i++){
-    const double dt = dtim - ts[i].tim;
-
-    if(dt < 0) fprintf(stderr, "dt = %f\n", dt);
+    const double dt = dtim - ts[i].tim;  // always positive
 
     const float dist = ptol(ts[i], x, y, z);
     const float like = getlike(dist, ts[i].nn);
@@ -823,7 +844,7 @@ static twolike lb12like(const vector<track> & ts, const float x,
     // But what if instead we use the time in the likelihood?
     // There's no log here, right?
     const float altlike = like * exp(-dt/20.20e6);
-    if(altlike > max.altlike) max.altlike = altlike;
+    if(dt < maxdtmu_alt && altlike > max.altlike) max.altlike = altlike;
   }
   return max;
 }
@@ -895,8 +916,8 @@ static inline void get_ctX(TBranch * const br, const int i,
 {
   br->GetEntry(i);
   if(whichname)
-    for(int i = 0; i < 3; i++)
-      bits.ctX[i] = bits.Vtx_BAMA[i];
+    for(int j = 0; j < 3; j++)
+      bits.ctX[j] = bits.Vtx_BAMA[j];
 }
 
 static int nnaftermu(const unsigned int muoni, dataparts & bits,
@@ -1166,7 +1187,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double lastmuontime = mutime, lastbufmuontime = mutime,
          lastgcmuontime = mutime, lastvalidtime = mutime;
 
-  vector<track> tmuons;
+  // Keep a per-run list of muons that we are going to use for the B-12
+  // likelihood.
+  static vector<track> tmuons;
+  {
+    static int oldrun = 0;
+    if(oldrun != murun) tmuons.clear();
+    oldrun = murun;
+  }
+  expire_tmuons(tmuons, mutime);
 
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
@@ -1182,7 +1211,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
      // NOTE-luckplan
      #define MUONFORM \
-     "%d %d %d " \
+     "%d %d %f %d " \
      "%f %f %f %f %f %f " \
      "%d %d " \
      "%d %d " \
@@ -1201,7 +1230,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%f %f %f " \
      "%f %f %f "
      #define MUONVARS \
-     murun, mutrgid, mucoinov, \
+     murun, mutrgid, mutime/1e6, mucoinov, \
      mux, muy, muz, mudchi2, murchi2, muivdedx, \
      ngdneutronnear[0], ngdneutronanydist[0], \
      nneutronnear[0],  nneutronanydist[0], \
@@ -1358,12 +1387,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       fido_endxbr ->GetEntry(bits.trgId);
       fido_endybr ->GetEntry(bits.trgId);
 
-      const double mutime = bits.trgtime;
+      const double followingmutime = bits.trgtime;
 
-      tmuons.push_back(maketrack(
-        bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
-        bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
-        mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
+      if(tmuons.empty() || tmuons[tmuons.size()-1].tim<followingmutime){
+        // warning: changes bits
+        tmuons.push_back(maketrack(
+          bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
+          bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
+          followingmutime, nnaftermu(i, bits, chtree)));
+      }
     }
     else if(hambr){
       // If FIDO through-going tracks are not available, but Ham is,
@@ -1374,14 +1406,19 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       if(bits.Trk_MuHamID[0][0] != 0 && bits.ctEvisID > 60 &&
          bits.Trk_MuHamID[0][2] > bits.Trk_MuHamID[1][2]){
         lastgcmuontime = bits.trgtime;
-        const double mutime = bits.trgtime;
+        const double followingmutime = bits.trgtime;
 
-        tmuons.push_back(maketrack(
-          bits.Trk_MuHamID[0][0], bits.Trk_MuHamID[0][1],
-                                  bits.Trk_MuHamID[0][2],
-          bits.Trk_MuHamID[1][0], bits.Trk_MuHamID[1][1],
-                                  bits.Trk_MuHamID[1][2],
-          mutime, nnaftermu(i, bits, chtree))); // warning: changes bits
+        // Add this new through-going muon if it follows those already
+        // in the list
+        if(tmuons.empty()||tmuons[tmuons.size()-1].tim<followingmutime){
+          // warning: changes bits
+          tmuons.push_back(maketrack(
+            bits.Trk_MuHamID[0][0], bits.Trk_MuHamID[0][1],
+                                    bits.Trk_MuHamID[0][2],
+            bits.Trk_MuHamID[1][0], bits.Trk_MuHamID[1][1],
+                                    bits.Trk_MuHamID[1][2],
+            followingmutime, nnaftermu(i, bits, chtree)));
+        }
       }
     }
 
@@ -1639,6 +1676,7 @@ int main(int argc, char ** argv)
     "psco/F:"
     "run/I:"
     "mutrig/I:"
+    "mutime/F:"
     "ovcoin/I:"
     "mx/F:"
     "my/F:"
@@ -1707,6 +1745,7 @@ int main(int argc, char ** argv)
     "psco2/F:"
     "run2/I:"
     "mutrig2/I:"
+    "mutime2/F:"
     "ovcoin2/I:"
     "mx2/F:"
     "my2/F:"
@@ -1820,8 +1859,8 @@ int main(int argc, char ** argv)
 
     fitree->SetMakeClass(1);
 
-    for(unsigned int i = 0; i < noff; i++)
-      chtree->SetBranchStatus(turnoff[i], 0);
+    for(unsigned int j = 0; j < noff; j++)
+      chtree->SetBranchStatus(turnoff[j], 0);
 
     fitree->SetBranchStatus("*", 0);
 

@@ -304,13 +304,13 @@ noncarbondenominators_finalfit.out.h: \
 	./run_analysis_noncarbondenominators.sh
 
 search.o: search.cpp
-	g++ -O2 -c search.cpp -Wall -Wextra
+	g++ -O2 -c search.cpp -Wall -Wextra -Wshadow
 
 b12search.o: b12search.cpp search.h
-	g++ -ffast-math -O3 -c b12search.cpp `root-config --cflags` -Wall -Wextra
+	g++ -ffast-math -O3 -c b12search.cpp `root-config --cflags` -Wall -Wextra -Wshadow
 
 stoptoli9.o: stoptoli9.cpp search.h
-	g++ -O2 -c stoptoli9.cpp `root-config --cflags` -Wall -Wextra
+	g++ -O2 -c stoptoli9.cpp `root-config --cflags` -Wall -Wextra -Wshadow
 
 b12search: b12search.o search.o
 	g++ -o b12search b12search.o search.o `root-config --libs`
