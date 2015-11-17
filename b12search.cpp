@@ -770,7 +770,7 @@ static float pdf(float x, TH1D * const hist, const bool interpolate)
 
 // max dt to look for previous mus
 // Emily's official Li-9 likelihood time, scaled down to B-12
-// This is roughly four halflives, which maybe wasy Emily's motivation.
+// This is roughly four halflives, which maybe was Emily's motivation.
 static const double maxdtmu = 0.7e9 * 20.20 / 178.3;
 
 // For my alternative likelihood that uses time information directly,
@@ -797,7 +797,7 @@ static float getlike(const float dist, const int nneut)
 
   // I think this number is pretty meaningless, since it is tuned for
   // the amount of li-9 and IBD, but maybe as long as the results are
-  // reasonable spread between 0 and 1, it is ok.
+  // reasonably spread between 0 and 1, it is ok.
   const float prior_ratio  = 1/(17.7 * 10.5 * maxdtmu * 1e-9);
 
   //multiply by prior probabilities
@@ -818,7 +818,7 @@ struct twolike{
 // can be considered for several stopping muons.
 static void expire_tmuons(vector<track> & ts, const double smutime)
 {
-  for(int i = ts.size()-1; i >= 0; i++){
+  for(int i = ts.size()-1; i >= 0; i--){
     if(ts[i].tim < smutime - maxdtmu_alt){
       ts.erase(ts.begin(), ts.begin()+i+1);
       return;
@@ -827,12 +827,19 @@ static void expire_tmuons(vector<track> & ts, const double smutime)
 }
 
 static twolike lb12like(const vector<track> & ts, const float x,
-                        const float y, const float z, const float dtim)
+                        const float y, const float z, const float dtim,
+                        const float smutime)
 {
   twolike max;
   max.like = max.altlike = 0;
   for(unsigned int i = 0; i < ts.size(); i++){
-    const double dt = dtim - ts[i].tim;  // always positive
+    const double dt = dtim - ts[i].tim;
+
+    // Ignore through-going muons in the future of this decay candidate
+    if(dt <= 0) continue;
+
+    // Don't count the stopping muon candidate as background for itself!
+    if(ts[i].tim == smutime) continue;
 
     const float dist = ptol(ts[i], x, y, z);
     const float like = getlike(dist, ts[i].nn);
@@ -966,6 +973,10 @@ static int nnaftermu(const unsigned int muoni, dataparts & bits,
   }
   return found;
 }
+
+// Keep a per-run list of muons that we are going to use for the B-12
+// likelihood.
+static vector<track> tmuons;
 
 static void searchfrommuon(dataparts & bits, TTree * const chtree,
                            TTree * const fitree,
@@ -1187,14 +1198,9 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   double lastmuontime = mutime, lastbufmuontime = mutime,
          lastgcmuontime = mutime, lastvalidtime = mutime;
 
-  // Keep a per-run list of muons that we are going to use for the B-12
-  // likelihood.
-  static vector<track> tmuons;
-  {
-    static int oldrun = 0;
-    if(oldrun != murun) tmuons.clear();
-    oldrun = murun;
-  }
+  // Remove through-going muons that are too old. Since we look at
+  // stopping muons sequentially in time, they will never be interesting
+  // again.
   expire_tmuons(tmuons, mutime);
 
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
@@ -1313,7 +1319,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       get_trgId(trgIdbr, i, whichname, bits, fitree);
 
       const twolike b12like =
-        lb12like(tmuons, ix[got], iy[got], iz[got], bits.trgtime);
+        lb12like(tmuons, ix[got],iy[got],iz[got], bits.trgtime, mutime);
       if(search != neutron){
         if(pscobr) pscobr->GetEntry(i);
         if(pscsbr) pscsbr->GetEntry(i);
@@ -1472,24 +1478,33 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
   TBranch * const trgIdbr   = chtree->GetBranch(trgId_name[whichname]);
   TBranch * const trgtimebr = chtree->GetBranch(trgtime_name[whichname]);
   TBranch * const coinovbr  = chtree->GetBranch(coinov_name[whichname]);
+  TBranch * const hambr     = chtree->GetBranch("Trk_MuHamID");
+  TBranch * const ctEvisIDbr= chtree->GetBranch(ctEvisID_name[whichname]);
 
   TBranch * const nidtubesbr   = fitree->GetBranch("nidtubes");
   TBranch * const nivtubesbr   = fitree->GetBranch("nivtubes");
   TBranch * const fido_qivbr   = fitree->GetBranch("fido_qiv");
   TBranch * const fido_qidbr   = fitree->GetBranch("fido_qid");
   TBranch * const ids_didfitbr = fitree->GetBranch("ids_didfit");
+  TBranch * const  id_didfitbr = fitree->GetBranch( "id_didfit");
   TBranch * const id_buflenbr  = fitree->GetBranch("id_buflen");
   TBranch * const id_chi2br    = fitree->GetBranch("id_chi2");
   TBranch * const id_entr_xbr  = fitree->GetBranch("id_entr_x");
   TBranch * const id_entr_ybr  = fitree->GetBranch("id_entr_y");
+  TBranch * const id_entr_zbr  = fitree->GetBranch("id_entr_z");
   TBranch * const id_ivlenbr   = fitree->GetBranch("id_ivlen");
   TBranch * const ids_chi2br   = fitree->GetBranch("ids_chi2");
   TBranch * const ids_end_xbr  = fitree->GetBranch("ids_end_x");
   TBranch * const ids_end_ybr  = fitree->GetBranch("ids_end_y");
   TBranch * const ids_end_zbr  = fitree->GetBranch("ids_end_z");
+  TBranch * const  id_end_xbr  = fitree->GetBranch( "id_end_x");
+  TBranch * const  id_end_ybr  = fitree->GetBranch( "id_end_y");
+  TBranch * const  id_end_zbr  = fitree->GetBranch( "id_end_z");
   TBranch * const ids_entr_xbr = fitree->GetBranch("ids_entr_x");
   TBranch * const ids_entr_ybr = fitree->GetBranch("ids_entr_y");
   TBranch * const ids_entr_zbr = fitree->GetBranch("ids_entr_z");
+
+  tmuons.clear(); // muons from previous runs must be thrown away
 
   for(unsigned int mi = 0; mi < chtree->GetEntries()-1 &&
                            mi < fitree->GetEntries()-1; mi++){
@@ -1501,6 +1516,60 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       lastmuontime = 0; // Assume a muon right before the run started.
       eortime = geteortime(parts, chtree, mi);
     }
+
+    /******************************************************************/
+    /*                Handle the throughgoing muon list               */
+    /******************************************************************/
+    id_didfitbr->GetEntry(parts.trgId);
+    id_entr_zbr->GetEntry(parts.trgId);
+    id_end_zbr ->GetEntry(parts.trgId);
+    nidtubesbr ->GetEntry(parts.trgId);
+    if(parts.id_didfit && parts.nidtubes > 30 &&
+       parts.id_entr_z > parts.id_end_z){
+
+      id_entr_xbr->GetEntry(parts.trgId);
+      id_entr_ybr->GetEntry(parts.trgId);
+      id_end_xbr ->GetEntry(parts.trgId);
+      id_end_ybr ->GetEntry(parts.trgId);
+
+      const double followingmutime = parts.trgtime;
+
+      // Add this new through-going muon if it follows those already
+      // in the list.
+      if(tmuons.empty() || tmuons[tmuons.size()-1].tim<followingmutime){
+        // Because nnaftermu() seeks forwards, it stomps on 'parts', so
+        // stash the current copy and restore afterwards
+        const dataparts save = parts;
+        tmuons.push_back(maketrack(
+          parts.id_entr_x, parts.id_entr_y, parts.id_entr_z,
+          parts.id_end_x,  parts.id_end_y,  parts.id_end_z,
+          followingmutime, nnaftermu(parts.trgId, parts, chtree)));
+        parts = save;
+      }
+    }
+    else if(hambr){
+      // If FIDO through-going tracks are not available, but Ham is,
+      // use it to get the B-12 likelihood.
+      hambr->GetEntry(parts.trgId);
+      get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts);
+
+      if(parts.Trk_MuHamID[0][0] != 0 && parts.ctEvisID > 60 &&
+         parts.Trk_MuHamID[0][2] > parts.Trk_MuHamID[1][2]){
+        const double followingmutime = parts.trgtime;
+
+        if(tmuons.empty()||tmuons[tmuons.size()-1].tim<followingmutime){
+          const dataparts save = parts;
+          tmuons.push_back(maketrack(
+            parts.Trk_MuHamID[0][0], parts.Trk_MuHamID[0][1],
+                                    parts.Trk_MuHamID[0][2],
+            parts.Trk_MuHamID[1][0], parts.Trk_MuHamID[1][1],
+                                    parts.Trk_MuHamID[1][2],
+            followingmutime, nnaftermu(parts.trgId, parts, chtree)));
+          parts = save;
+        }
+      }
+    }
+    /******************************************************************/
 
     ids_didfitbr->GetEntry(parts.trgId);
 
