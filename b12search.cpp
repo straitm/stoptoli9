@@ -1378,53 +1378,51 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
        && bits.ctEvisID > 0.4)
       lastvalidtime = bits.trgtime;
 
-    fido_entrzbr->GetEntry(bits.trgId);
-    fido_endzbr ->GetEntry(bits.trgId);
-    nidtubesbr->GetEntry(bits.trgId);
-
     // This is the strongest definition of a muon, which requires more
-    // energy in the ID, plus a sensible reconstruction.
-    if(bits.id_didfit && bits.nidtubes > 30 &&
-       bits.id_entr_z > bits.id_end_z){
-      lastgcmuontime = bits.trgtime;
+    // energy in the ID, plus a sensible reconstruction.  We also use this
+    // selection to add muons to the through-going muon list for the B-12
+    // likelihood.
+    if(
+     (nidtubesbr ->GetEntry(bits.trgId), bits.nidtubes > 30) &&
+     (fido_didfitbr->GetEntry(bits.trgId), bits.id_didfit) &&
+     (fido_entrzbr->GetEntry(bits.trgId),
+      fido_endzbr ->GetEntry(bits.trgId), bits.id_entr_z>bits.id_end_z)
+    ){
 
-      fido_entrxbr->GetEntry(bits.trgId);
-      fido_entrybr->GetEntry(bits.trgId);
-      fido_endxbr ->GetEntry(bits.trgId);
-      fido_endybr ->GetEntry(bits.trgId);
+      const double followingmutime = lastgcmuontime = bits.trgtime;
 
-      const double followingmutime = bits.trgtime;
-
+      // Add this new through-going muon if it follows those already in
+      // the list
       if(tmuons.empty() || tmuons[tmuons.size()-1].tim<followingmutime){
-        // warning: changes bits
+        fido_entrxbr->GetEntry(bits.trgId);
+        fido_entrybr->GetEntry(bits.trgId);
+        fido_endxbr ->GetEntry(bits.trgId);
+        fido_endybr ->GetEntry(bits.trgId);
+        // warning: nnaftermu changes bits, but we aren't going to use it afterwards
         tmuons.push_back(maketrack(
           bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
           bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
           followingmutime, nnaftermu(i, bits, chtree)));
       }
     }
-    else if(hambr){
-      // If FIDO through-going tracks are not available, but Ham is,
-      // use it to get the B-12 likelihood.
-      hambr->GetEntry(bits.trgId);
-      get_ctEvisID(ctEvisIDbr, i, whichname, bits);
+    // If FIDO through-going tracks are not available, but Ham is, use
+    // it to get the B-12 likelihood.
+    else if(
+      hambr &&
+      (get_ctEvisID(ctEvisIDbr, i, whichname, bits),
+       bits.ctEvisID > 60) &&
+      (hambr->GetEntry(i), bits.Trk_MuHamID[0][0] != 0) &&
+      bits.Trk_MuHamID[0][2] > bits.Trk_MuHamID[1][2]
+    ){
+      const double followingmutime = lastgcmuontime = bits.trgtime;
 
-      if(bits.Trk_MuHamID[0][0] != 0 && bits.ctEvisID > 60 &&
-         bits.Trk_MuHamID[0][2] > bits.Trk_MuHamID[1][2]){
-        lastgcmuontime = bits.trgtime;
-        const double followingmutime = bits.trgtime;
-
-        // Add this new through-going muon if it follows those already
-        // in the list
-        if(tmuons.empty()||tmuons[tmuons.size()-1].tim<followingmutime){
-          // warning: changes bits
-          tmuons.push_back(maketrack(
-            bits.Trk_MuHamID[0][0], bits.Trk_MuHamID[0][1],
-                                    bits.Trk_MuHamID[0][2],
-            bits.Trk_MuHamID[1][0], bits.Trk_MuHamID[1][1],
-                                    bits.Trk_MuHamID[1][2],
-            followingmutime, nnaftermu(i, bits, chtree)));
-        }
+      if(tmuons.empty()||tmuons[tmuons.size()-1].tim<followingmutime){
+        tmuons.push_back(maketrack(
+          bits.Trk_MuHamID[0][0], bits.Trk_MuHamID[0][1],
+                                  bits.Trk_MuHamID[0][2],
+          bits.Trk_MuHamID[1][0], bits.Trk_MuHamID[1][1],
+                                  bits.Trk_MuHamID[1][2],
+          followingmutime, nnaftermu(i, bits, chtree)));
       }
     }
 
@@ -1520,23 +1518,23 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     /******************************************************************/
     /*                Handle the throughgoing muon list               */
     /******************************************************************/
-    id_didfitbr->GetEntry(parts.trgId);
-    id_entr_zbr->GetEntry(parts.trgId);
-    id_end_zbr ->GetEntry(parts.trgId);
-    nidtubesbr ->GetEntry(parts.trgId);
-    if(parts.id_didfit && parts.nidtubes > 30 &&
-       parts.id_entr_z > parts.id_end_z){
+    // only eligible if it is after the most recent throughgoing muon.
+    // This is a cheap check to do, since we already have the time
+    if(tmuons.empty() || parts.trgtime > tmuons[tmuons.size()-1].tim){
+      if(
+       (nidtubesbr ->GetEntry(parts.trgId), parts.nidtubes > 30) &&
+       (id_didfitbr->GetEntry(parts.trgId), parts.id_didfit) &&
+       (id_entr_zbr->GetEntry(parts.trgId),
+        id_end_zbr ->GetEntry(parts.trgId), parts.id_entr_z>parts.id_end_z)
+      ){
+        const double followingmutime = parts.trgtime;
 
-      id_entr_xbr->GetEntry(parts.trgId);
-      id_entr_ybr->GetEntry(parts.trgId);
-      id_end_xbr ->GetEntry(parts.trgId);
-      id_end_ybr ->GetEntry(parts.trgId);
-
-      const double followingmutime = parts.trgtime;
-
-      // Add this new through-going muon if it follows those already
-      // in the list.
-      if(tmuons.empty() || tmuons[tmuons.size()-1].tim<followingmutime){
+        // Add this new through-going muon if it follows those already
+        // in the list.
+        id_entr_xbr->GetEntry(parts.trgId);
+        id_entr_ybr->GetEntry(parts.trgId);
+        id_end_xbr ->GetEntry(parts.trgId);
+        id_end_ybr ->GetEntry(parts.trgId);
         // Because nnaftermu() seeks forwards, it stomps on 'parts', so
         // stash the current copy and restore afterwards
         const dataparts save = parts;
@@ -1546,27 +1544,25 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
           followingmutime, nnaftermu(parts.trgId, parts, chtree)));
         parts = save;
       }
-    }
-    else if(hambr){
       // If FIDO through-going tracks are not available, but Ham is,
       // use it to get the B-12 likelihood.
-      hambr->GetEntry(parts.trgId);
-      get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts);
-
-      if(parts.Trk_MuHamID[0][0] != 0 && parts.ctEvisID > 60 &&
-         parts.Trk_MuHamID[0][2] > parts.Trk_MuHamID[1][2]){
+      else if(
+       hambr &&
+       (get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts),
+        parts.ctEvisID > 60) &&
+       (hambr->GetEntry(mi), parts.Trk_MuHamID[0][0] != 0) &&
+       parts.Trk_MuHamID[0][2] > parts.Trk_MuHamID[1][2]
+      ){
         const double followingmutime = parts.trgtime;
 
-        if(tmuons.empty()||tmuons[tmuons.size()-1].tim<followingmutime){
-          const dataparts save = parts;
-          tmuons.push_back(maketrack(
-            parts.Trk_MuHamID[0][0], parts.Trk_MuHamID[0][1],
-                                    parts.Trk_MuHamID[0][2],
-            parts.Trk_MuHamID[1][0], parts.Trk_MuHamID[1][1],
-                                    parts.Trk_MuHamID[1][2],
-            followingmutime, nnaftermu(parts.trgId, parts, chtree)));
-          parts = save;
-        }
+        const dataparts save = parts;
+        tmuons.push_back(maketrack(
+          parts.Trk_MuHamID[0][0], parts.Trk_MuHamID[0][1],
+                                  parts.Trk_MuHamID[0][2],
+          parts.Trk_MuHamID[1][0], parts.Trk_MuHamID[1][1],
+                                  parts.Trk_MuHamID[1][2],
+          followingmutime, nnaftermu(parts.trgId, parts, chtree)));
+        parts = save;
       }
     }
     /******************************************************************/
