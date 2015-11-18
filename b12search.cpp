@@ -50,7 +50,7 @@ struct track{
 
 static track maketrack(const float x0, const float y0, const float z0,
                        const float x1, const float y1, const float z1,
-                       const float tim, const int nn)
+                       const double tim, const int nn)
 {
   track t;
   t.x0 = x0;
@@ -827,31 +827,31 @@ static void expire_tmuons(vector<track> & ts, const double smutime)
 }
 
 static twolike lb12like(const vector<track> & ts, const float x,
-                        const float y, const float z, const float dtim,
-                        const float smutime)
+                        const float y, const float z, const double betadecaytime,
+                        const double stoppingmuontime)
 {
   twolike max;
   max.like = max.altlike = 0;
   for(unsigned int i = 0; i < ts.size(); i++){
-    const double dt = dtim - ts[i].tim;
+    const double thrugoingtime = ts[i].tim;
+    const double beta2thrugoingtime = betadecaytime - thrugoingtime;
 
     // Ignore through-going muons in the future of this decay candidate
-    if(dt <= 0) continue;
+    if(beta2thrugoingtime <= 0) continue;
 
     // Don't count the stopping muon candidate as background for itself!
-    if(ts[i].tim == smutime) continue;
+    if(thrugoingtime == stoppingmuontime) continue;
 
-    const float dist = ptol(ts[i], x, y, z);
-    const float like = getlike(dist, ts[i].nn);
+    const float like = getlike(ptol(ts[i], x, y, z), ts[i].nn);
 
-    // Emily's likelihood ignores time except to exclude
-    // muons that are too old
-    if(dt < maxdtmu && like > max.like) max.like = like;
+    // Emily's likelihood ignores time except to exclude old muons
+    if(beta2thrugoingtime < maxdtmu && like > max.like) max.like = like;
 
     // But what if instead we use the time in the likelihood?
     // There's no log here, right?
-    const float altlike = like * exp(-dt/20.20e6);
-    if(dt < maxdtmu_alt && altlike > max.altlike) max.altlike = altlike;
+    const float altlike = like * exp(-beta2thrugoingtime/20.20e6);
+    if(beta2thrugoingtime < maxdtmu_alt && altlike > max.altlike)
+      max.altlike = altlike;
   }
   return max;
 }
@@ -1047,9 +1047,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const fido_endybr     = fitree->GetBranch("id_end_y"),
     * const fido_endzbr     = fitree->GetBranch("id_end_z"),
 
+
+    // Note: only available in JP files, not cheetah. This is good,
+    // because it means that, as it turns out, having hambr has a one to
+    // one correspondence with needing to use it because we have only
+    // reconstructed a preselected set of muons with FIDO.
     * const hambr           = chtree->GetBranch("Trk_MuHamID"),
     * const pscsbr          = chtree->GetBranch("oPsdtCs"),
     * const pscobr          = chtree->GetBranch("oPsdtCo"),
+
     * const runbr           = chtree->GetBranch(run_name[whichname]),
     * const coinovbr        = chtree->GetBranch(coinov_name[whichname]),
     * const trgIdbr         = chtree->GetBranch(trgId_name[whichname]),
@@ -1372,17 +1378,15 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     get_qdiff    (qdiffbr,     i, whichname, bits);
     get_qrms     (qrmsbr,      i, whichname, bits);
 
-    trgtimebr->GetEntry(i);
-
     if(!lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff)
        && bits.ctEvisID > 0.4)
       lastvalidtime = bits.trgtime;
 
     // This is the strongest definition of a muon, which requires more
-    // energy in the ID, plus a sensible reconstruction.  We also use this
-    // selection to add muons to the through-going muon list for the B-12
-    // likelihood.
-    if(
+    // energy in the ID, plus a sensible reconstruction. We also use
+    // this selection to add muons to the through-going muon list for
+    // the B-12 likelihood.
+    if(!hambr &&
      (nidtubesbr ->GetEntry(bits.trgId), bits.nidtubes > 30) &&
      (fido_didfitbr->GetEntry(bits.trgId), bits.id_didfit) &&
      (fido_entrzbr->GetEntry(bits.trgId),
@@ -1398,7 +1402,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         fido_entrybr->GetEntry(bits.trgId);
         fido_endxbr ->GetEntry(bits.trgId);
         fido_endybr ->GetEntry(bits.trgId);
-        // warning: nnaftermu changes bits, but we aren't going to use it afterwards
+        // warning: nnaftermu changes bits, but we aren't going to use
+        // it afterwards
         tmuons.push_back(maketrack(
           bits.id_entr_x, bits.id_entr_y, bits.id_entr_z,
           bits.id_end_x,  bits.id_end_y,  bits.id_end_z,
@@ -1410,7 +1415,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     else if(
       hambr &&
       (get_ctEvisID(ctEvisIDbr, i, whichname, bits),
-       bits.ctEvisID > 60) &&
+       bits.ctEvisID > 80) &&
       (hambr->GetEntry(i), bits.Trk_MuHamID[0][0] != 0) &&
       bits.Trk_MuHamID[0][2] > bits.Trk_MuHamID[1][2]
     ){
@@ -1521,7 +1526,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     // only eligible if it is after the most recent throughgoing muon.
     // This is a cheap check to do, since we already have the time
     if(tmuons.empty() || parts.trgtime > tmuons[tmuons.size()-1].tim){
-      if(
+      if(!hambr &&
        (nidtubesbr ->GetEntry(parts.trgId), parts.nidtubes > 30) &&
        (id_didfitbr->GetEntry(parts.trgId), parts.id_didfit) &&
        (id_entr_zbr->GetEntry(parts.trgId),
@@ -1549,7 +1554,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       else if(
        hambr &&
        (get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts),
-        parts.ctEvisID > 60) &&
+        parts.ctEvisID > 80) &&
        (hambr->GetEntry(mi), parts.Trk_MuHamID[0][0] != 0) &&
        parts.Trk_MuHamID[0][2] > parts.Trk_MuHamID[1][2]
       ){
@@ -1558,9 +1563,9 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
         const dataparts save = parts;
         tmuons.push_back(maketrack(
           parts.Trk_MuHamID[0][0], parts.Trk_MuHamID[0][1],
-                                  parts.Trk_MuHamID[0][2],
+                                   parts.Trk_MuHamID[0][2],
           parts.Trk_MuHamID[1][0], parts.Trk_MuHamID[1][1],
-                                  parts.Trk_MuHamID[1][2],
+                                   parts.Trk_MuHamID[1][2],
           followingmutime, nnaftermu(parts.trgId, parts, chtree)));
         parts = save;
       }
