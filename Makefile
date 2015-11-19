@@ -214,11 +214,11 @@ n12cutefficiency_finalfit.out.h: \
 	./run_analysis_n12cutefficiency.sh
 
 b8cutefficiency_finalfit.out.h: \
-  b8cutefficiency_finalfit.C \
+  b8cutefficiency_finalfit.C
 	./run_analysis_b8cutefficiency.sh
 
 li8cutefficiency_finalfit.out.h: \
-  li8cutefficiency_finalfit.C \
+  li8cutefficiency_finalfit.C
 	./run_analysis_li8cutefficiency.sh
 
 b12cutefficiency_finalfit.out.h: \
