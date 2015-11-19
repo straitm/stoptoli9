@@ -12,11 +12,11 @@ const char * const CLR     = ""; // clear
 const char * const rootfile3up_extended = // XXX now out of date
   "/cp/s4/strait/fullfido-300s-3-25MeV-20150924-3rdpub+post3rdpub.root";
 const char * const rootfile3up =
-  "/cp/s4/strait/fullfido-300s-3-25MeV-20151023.root";
+  "/cp/s4/strait/fullfido-300s-3-25MeV-20151117.root";
 const char * const rootfile0up =
-  "/cp/s4/strait/fullfido-100s-0-25MeV-20151023.root";
+  "/cp/s4/strait/fullfido-100s-0-25MeV-20151117.root";
 const char * const rootfile_be12 =
-  "/cp/s4/strait/be12-20151102.root";
+  "/cp/s4/strait/be12-20151117.root";
 const char * const rootfilemuinfo =
   "/cp/s4/strait/fullfido-muinfo-20151105.root";
 const char * const rootfilethru = // XXX now out of date -- but doesn't matter, since it is only for energy calibration
