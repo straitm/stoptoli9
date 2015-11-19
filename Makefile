@@ -210,7 +210,7 @@ fullb12_finalfit.out.h: \
 	./run_analysis_fullb12.sh
 
 n12cutefficiency_finalfit.out.h: \
-  n12cutefficiency_finalfit.C \
+  n12cutefficiency_finalfit.C
 	./run_analysis_n12cutefficiency.sh
 
 b8cutefficiency_finalfit.out.h: \
