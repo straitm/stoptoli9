@@ -230,37 +230,43 @@ b12cutefficiency_finalfit.out.h: \
 distcuteff_byenergy_finalfit.out.technote: \
   distcuteff_byenergy_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh byenergy
 
 distcuteff_b12like_finalfit.out.h: \
   distcuteff_b12like_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh b12like
 
 distcuteff_he6_finalfit.out.h: \
   distcuteff_he6_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh he6
 
 distcuteff_targetgc_finalfit.out.h: \
   distcuteff_targetgc_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh targetgc
 
 distcuteff_topbottom_finalfit.out.technote: \
   distcuteff_topbottom_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh topbottom
 
 distcuteff_wholeloose_finalfit.out.h: \
   distcuteff_wholeloose_finalfit.C run_analysis_distcuteff.sh \
   distcuteff_include.C b12like_finalfit.C reactorpowerbin.C \
-  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h
+  b12cutefficiency_finalfit.out.h totallivetime_finalfit.out.h \
+  sub_muon_eff.out.h
 	./run_analysis_distcuteff.sh wholeloose
 
 sub_muon_eff.out.h: \
