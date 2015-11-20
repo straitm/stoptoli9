@@ -11,6 +11,15 @@ fi
 sli9dir=/home/cp/strait/stoptoli9/
 datadir=/cp/s4/strait/
 
-root -l -b -n -q \
-$sli9dir/preselectforfido.C'("'$datadir'/jplighttree/SEQ13/data.'$run'.root")' \
+JP=$datadir/jplighttree/SEQ13/data.$run.root
+if ! [ -e $JP ]; then
+  JP=$datadir/jplighttree/SEQ12/data.$run.root
+fi
+if ! [ -e $JP ]; then
+  echo Cannot find a JP file for this run, exiting
+  exit 1
+fi
+
+
+root -l -b -n -q $sli9dir/preselectforfido.C'("'$JP'")' \
 | grep -vE '^$|Processing' > $listout
