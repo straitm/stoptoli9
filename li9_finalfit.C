@@ -149,12 +149,12 @@ const float dist = 300;
 
 // bn decay probability multiplied by the number of captures relative
 // to C-12
-const double li9ebn = 0.5080,
-             he8ebn = 0.1600,
-             c16ebn = 0.99  * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
-             n17ebn = 0.951 * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
-             b13ebn = 0.00286 * Nc13cap/Nc12cap,
-             li11ebn = 0.789 * Nc13cap/Nc12cap;
+const double li9ebn = li9bn,
+             he8ebn = he8bn,
+             c16ebn = c16bn  * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
+             n17ebn = n17bn * 88.0/102.5*0.00243*No16cap_betan/Nc12cap,
+             b13ebn = b13bn * Nc13cap/Nc12cap,
+             li11ebn = li11bn * Nc13cap/Nc12cap;
              
 const double distcuteffgc = targ_dist300eff,
              distcutefftarg = gc_dist300eff;
@@ -1178,12 +1178,24 @@ void li9_finalfit(int neutrons = -1, int contourmask = 0)
            mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
            mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap)*10000,
            CLR);
-    if(neutrons == -1)
-      // NOTE-driftcheck: horrible and fragile passing of this result to
-      // the 1-neutron code. Note the space after the number, which is
-      // necessary!
-      printf("const double primaryresult = %.16f ;\n",
+    if(neutrons == -1 || neutrons == 1){
+      const char * const varname = neutrons == -1?"primaryresult"
+        :"probNineLiFromTwelveC";
+
+      // NOTE-driftcheck: horrible and fragile passing of the
+      // any-neutron result to the 1-neutron code. Note the space after
+      // the number, which is necessary because (since we can't #include
+      // the output of this macro in this macro) we read this in
+      // manually with ifstream! It is also important that primaryresult
+      // is first, but the order of the others does not matter.
+      printf("const double %s = %.16f ;\n", varname,
              getpar(mn, 2)*Nc12cap/(Nc12cap+Nc13cap));
+
+      printf("const double %s_uperr = %.16f;\n", varname,
+             mn->fErp[2]*Nc12cap/(Nc12cap+Nc13cap));
+      printf("const double %s_loerr = %.16f;\n", varname,
+             mn->fErn[2]*Nc12cap/(Nc12cap+Nc13cap));
+    }
   }
   //const double chi2_allbut_he8 = mn->fAmin;
 

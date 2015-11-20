@@ -8,6 +8,7 @@
 #include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
+#include "li9_finalfit_-1.out.h"
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
@@ -392,12 +393,20 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow(neffdelta/f_neff_dt_error, 2);
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
-  // with a neutron so as not to double count. Since IBD candidates are
-  // cut, this is only the non-betan rate. The multiper is to account
-  // for the uncertainty in the Li-9 energy cut.
+  // with a neutron so as not to double count (use the central value
+  // plus up error as the error, which is conservative), since the
+  // any-neutron result is used for the no-neutron pull here. Since IBD
+  // candidates are cut, this is only the non-betan rate. The multiper
+  // is to account for the uncertainty in the Li-9 energy cut.
   static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
-  like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
-        + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
+  like += pow(p_li9n/(1-li9bn)/
+              (probNineLiFromTwelveC+probNineLiFromTwelveC_uperr)/
+              energymultiplier, 2)
+
+        + pow((p_li9 /(1-li9bn) - primaryresult)/
+              (p_li9 /(1-li9bn) > primaryresult?primaryresult_uperr
+                                               :primaryresult_loerr)/
+              energymultiplier, 2);
   
   // Pull term to impose unitarity bound on products of C-13. Width is
   // determined by the error on the number of captures The concept here

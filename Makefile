@@ -19,8 +19,7 @@ analysis: \
   he6_finalfit_1.out \
   he6_finalfit_2.out \
   he6_finalfit_3.out \
-  li9_finalfit_0.out \
-  li9_finalfit_1.out
+  li9_finalfit_0.out
 
 li9_finalfit_C.so: \
   consts.h \
@@ -43,7 +42,7 @@ li9_finalfit_0.out: \
   run_analysis_li9.sh
 	./run_analysis_li9.sh 0
 
-li9_finalfit_1.out: \
+li9_finalfit_1.out.h: \
   li9_finalfit_C.so \
   li9_finalfit_-1.out.h \
   run_analysis_li9.sh
@@ -160,6 +159,8 @@ li8_finalfit.out.h: \
   totallivetime_finalfit.out.h \
   li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
+  li9_finalfit_-1.out.h \
+  li9_finalfit_1.out.h \
   run_analysis_li8.sh \
   li8_finalfit.C
 	./run_analysis_li8.sh

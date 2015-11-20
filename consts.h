@@ -177,3 +177,12 @@ const double f15 = 0.00364; // N-15 NNDC value
 const double f17 = 0.00038; // O-17 NNDC value
 const double f18 = 0.00205; // O-18 NNDC value
 
+// beta-n probabilities as per NNDC
+const double li9bn = 0.5080,
+             he8bn = 0.1600,
+             c16bn = 0.99,
+             n17bn = 0.951,
+             b13bn = 0.00286,
+             li11bn = 0.789; // Li-11 does *not* include beta-2n
+                             // decays, (4.1%) because these
+                             // will fail the multiplicity cut.
