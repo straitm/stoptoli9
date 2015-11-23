@@ -99,6 +99,7 @@ TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 40, 100, 20101);
 
 const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
+const double mutimecut = 1000;//must be this many ms from begin of run
 const double totaltime = hightime - lowtime;
 
 const double li8eff_energy_e = 0.02; // made up!
@@ -113,8 +114,9 @@ const double li9eff_energy = 0.6794 + 0.05; // from blessed li-9
                                             // non-betan decays here.
 const double li9eff_energy_e = 0.05;
 
-// time until end of run
-const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
+// time until end of run and since beginning
+const double eor_eff =
+  (livetime_s - num_runs*(mutimecut+hightime+offset)/1e3)/livetime_s;
 
 const double b12likelihood_eff = b12like002_dist400_eff;
 
@@ -615,7 +617,9 @@ void li8_finalfit(const char * const cut =
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
 #endif
 "b12like < 0.02 && timeleft > %f && miche < 12 && !earlymich && "
-"e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2")
+"e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2 && "
+"mutime > %f" // to get a good b12like number
+)
 {
   printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
   printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
@@ -658,7 +662,8 @@ void li8_finalfit(const char * const cut =
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   tmpfile->cd();
-  selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  selt = t->CopyTree(
+    Form(cut, hightime+offset, hightime+offset, mutimecut));
   selt->Write();
   events.clear();
 

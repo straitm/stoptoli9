@@ -54,7 +54,7 @@ static const double n16eff = 1
   * mich_eff
   * sub_muon_eff10 // subsequent muons, 1ms
   * 0.4836 * 0.8 // delta r for 200mm near acrlyic, fudged down for 6.1MeV gammas
-  * (livetime_s - num_runs*hightime)/livetime_s
+  * (livetime_s - num_runs*(hightime+1 /* mutime */))/livetime_s
   * 0.798 // energy, from MC, a bit rough
   * 0.986 // from ttlastvalid cut, very naive
   * b12like002_dist200_ttlv01_ttlm1_eff
@@ -156,7 +156,7 @@ void n16_finalfit()
   TFile * fiel= new TFile(rootfile3up,"read");
   TTree * t = (TTree *) fiel->Get("t");
 
-  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 160, 160);
+  TCanvas * c1 = new TCanvas("c1", "c1", 0, 0, 360, 360);
 
   const char * const scutwoe =
 #ifdef LP
@@ -167,7 +167,8 @@ void n16_finalfit()
   "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2) && "
 #endif
     "!earlymich && latennear == 0 && miche < 12 && dist < 200 && "
-    "ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 ";
+    "ttlastvalid > 0.1 && ttlastmuon > 1 && timeleft > 300e3 && "
+    "mutime > 1000";
 
   const char * const cute = "e > 4 && e < 10";
 
@@ -193,8 +194,8 @@ void n16_finalfit()
   mn->SetFCN(fcn);
   int err;
   mn->mnparm(1 -1, "acc",  10, 0.01, 0, 100, err);
-  mn->mnparm(2 -1, "b12", 4e5,    1, 0, 1e6, err);
-  mn->mnparm(3 -1, "li8", 200,  0.1, 0, 1000, err);
+  mn->mnparm(2 -1, "b12", 4e5,    1, 1e4, 1e6, err);
+  mn->mnparm(3 -1, "li8", 200,  0.1, 100, 1000, err);
   mn->mnparm(4 -1, "c15",   1, 0.01, 0, 1000, err);
   mn->mnparm(5 -1, "n16",   5, 0.01, 0, 100, err);
   mn->mnparm(6 -1, "be11",  1, 0.01, 0, 1000, err);

@@ -17,12 +17,12 @@ void b14_finalfit()
   TTree * t = (TTree *) fiel.Get("t");
 
   const double eff = 1
-    * exp(-1.*log(2)/12.5) // 1ms veto and B-14 half-life
+    * exp(-1./b14life) // 1ms veto and B-14 half-life
     * light_noise_eff
     * mich_eff
     * sub_muon_eff05 // subsequent muons
     * wholedet_dist400eff // delta r
-    * (livetime_s - num_runs*10)/livetime_s
+    * (livetime_s - num_runs*(10+1))/livetime_s // timeleft + mutime cut
     * 0.387 // energy from my toy MC, probably a bit conservative
             // since when I try to evaluate B-12 it is low
     * b12like006_dist400_eff
@@ -32,14 +32,16 @@ void b14_finalfit()
 
   const char * const cut =
     "!earlymich && miche < 12 && b12like < 0.06 && dist < 400 && latennear == 0 && e > 15"
-    "&& e < 22 && timeleft > 10e3";
+    "&& e < 22 && timeleft > 10e3 && mutime > 1000";
 
   printf("%sN selected in 10s: %d%s\n", RED, (int)t->GetEntries(Form("%s && dt < 1e4", cut)), CLR);
 
-  const int nin5 = t->GetEntries(Form("%s && dt < 12.5*5", cut));
+  const int nin5 = t->GetEntries(Form("%s && dt < %f*5",
+                                      cut, b14life*log(2.)));
   printf("%sN selected in 5 half-lives: %d%s\n", RED, nin5, CLR);
 
-  const int nin10 = t->GetEntries(Form("%s && dt < 12.5*10", cut));
+  const int nin10 = t->GetEntries(Form("%s && dt < %f*10",
+                                       cut, b14life*log(2.)));
   printf("%sN selected in 10 half-lives: %d%s\n", RED, nin10, CLR);
 
   const double captures = n_o16cap_beta * livetime;
@@ -53,13 +55,13 @@ void b14_finalfit()
 
     t->Draw("dt/1000 >> hfit", cut);
 
-    TF1 ee("ee", "[0]*exp(-x*log(2)/0.0202) + " // b12
+    TF1 ee("ee", Form("[0]*exp(-x/%f) + " // b12
                  "[1]*exp(-x*log(2)/[2]) + " // b14
-                 "[3]*exp(-x*log(2)/0.8399) + " // li8
-                 "[4]", 0, 100); // acc
+                 "[3]*exp(-x/%f) + " // li8
+                 "[4]", b12life, li8life), 0, 100); // acc
 
-    ee.SetParameters(1, 1, 0.0125, 1, 1);
-    ee.FixParameter(2, 0.0125);
+    ee.SetParameters(1, 1, b14life/1000, 1, 1);
+    ee.FixParameter(2, b14life/1000);
     ee.SetParLimits(0, 0, 100);
     ee.SetParLimits(1, 0, 100);
     ee.SetParLimits(3, 0, 100);
@@ -81,9 +83,9 @@ void b14_finalfit()
       eedisp->SetParameter(tomult[i], eedisp->GetParameter(tomult[i])*mult);
     eedisp->Draw("same");
 
-    TF1 b12("b12", "[0]*exp(-x*log(2)/0.0202)" , 0, 100);
-    TF1 b14("b14", "[0]*exp(-x*log(2)/0.0125)", 0, 100);
-    TF1 li8("li8", "[0]*exp(-x*log(2)/0.8399)"  , 0, 100);
+    TF1 b12("b12", Form("[0]*exp(-x/%f)", b12life/1e3) , 0, 100);
+    TF1 b14("b14", Form("[0]*exp(-x/%f)", b14life/1e3), 0, 100);
+    TF1 li8("li8", Form("[0]*exp(-x/%f)", li8life/1e3)  , 0, 100);
     TF1 acc("acc", "[0]", 0, 100);
 
     b12.SetNpx(400);

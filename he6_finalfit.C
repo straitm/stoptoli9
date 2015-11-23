@@ -133,7 +133,8 @@ void he6_finalfit(const int nreq_ = 0,
 
   const double distcut = 200;
 
-#define BASICMUONCUT "miche < 12 && !earlymich && timeleft > 100e3 && "
+#define BASICMUONCUT \
+  "miche < 12 && !earlymich && timeleft > 100e3 && mutime > 1000 && "
 
   char cutnoncut[1000];
   snprintf(cutnoncut, 999, 
@@ -144,21 +145,22 @@ void he6_finalfit(const int nreq_ = 0,
   snprintf(cut, 999, "latennear == %d && %s", nreq, cutnoncut);
 
 
-  const double bglow = 7.13*3, bghigh = 100,
-              siglow = 0.3,   sighigh = 0.801*2;
+  const double bglow = n16life/1e3*log(2.)*3, bghigh = 100,
+              siglow = 0.3,   sighigh = he6life/1e3*log(2.)*2;
 
   // delta r cut is by region below
   const double eff = 1
     * light_noise_eff
     * mich_eff
     * sub_muon_eff10 // subsequent muons with 1ms veto
-    * (livetime_s - num_runs*100.)/livetime_s
+    * (livetime_s - num_runs*(100. /* timeleft */ + 1. /* mutime */))
+      /livetime_s
     * 0.986 // ttlastvalid
     * b12like040_dist200_ttlv01_ttlm1_eff // no doubt a function
                                           // of region, but it is
                                           // very close to 1, so I'm
                                           // going to ignore that.
-    * (exp(-siglow*log(2)/0.801) - exp(-sighigh*log(2)/0.801))
+    * (exp(-siglow/he6life*1e3) - exp(-sighigh/he6life*1e3))
   ;
     
   // Must cut on late neutrons for these to be valid. Neutron efficiency
@@ -171,11 +173,11 @@ void he6_finalfit(const int nreq_ = 0,
   // e.g., 2 neutrons is not the efficiency of 1 neutron squared, but
   // rather somewhat better than that.
   const double neffdtby_pos_n[5][4] = {
-  {1.0, neff_dt_t0*neff_dr_800_targ, n2of2eff_dt_dr_800_t0, n3of3eff_dt_dr_800_t0}, //0.2784, 0.1567},
-  {1.0, neff_dt_t1*neff_dr_800_targ, n2of2eff_dt_dr_800_t1, n3of3eff_dt_dr_800_t1}, //0.3468, 0.2273},
-  {1.0, neff_dt_t2*neff_dr_800_targ, n2of2eff_dt_dr_800_t2, n3of3eff_dt_dr_800_t2}, //0.3953, 0.2779},
-  {1.0, neff_dt_t3*neff_dr_800_targ, n2of2eff_dt_dr_800_t3, n3of3eff_dt_dr_800_t3}, //0.4079, 0.2948},
-  {1.0, neff_dt_gc*neff_dr_800_targ, n2of2eff_dt_dr_800_gc, n3of3eff_dt_dr_800_gc}, //0.8075, 0.7297},
+  {1.0, neff_dt_t0*neff_dr_800_targ, n2of2eff_dt_dr_800_t0, n3of3eff_dt_dr_800_t0},
+  {1.0, neff_dt_t1*neff_dr_800_targ, n2of2eff_dt_dr_800_t1, n3of3eff_dt_dr_800_t1},
+  {1.0, neff_dt_t2*neff_dr_800_targ, n2of2eff_dt_dr_800_t2, n3of3eff_dt_dr_800_t2},
+  {1.0, neff_dt_t3*neff_dr_800_targ, n2of2eff_dt_dr_800_t3, n3of3eff_dt_dr_800_t3},
+  {1.0, neff_dt_gc*neff_dr_800_targ, n2of2eff_dt_dr_800_gc, n3of3eff_dt_dr_800_gc},
   };
 
   teff[0]=eff*disteff[0]*neffdtby_pos_n[0][nreq];

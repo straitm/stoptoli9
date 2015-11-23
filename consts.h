@@ -138,6 +138,12 @@ const double c9life_err = 0.9/log(2.);
 const double n12life =    11.000/log(2.);
 const double n12life_err = 0.016/log(2.);
 
+const double b14life =     12.5/log(2.);
+const double b14life_err =  0.5/log(2.);
+
+const double he6life =    801./log(2.);
+const double he6life_err = 10./log(2.);
+
 // In milliseconds
 const double mulife = 2196.9811e-6;
 
