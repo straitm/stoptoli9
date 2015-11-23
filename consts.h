@@ -106,11 +106,11 @@ const double n16life_err = 20./log(2.); // 0.3%
 const double b13life = 17.33/log(2.);
 const double b13life_err = 0.17/log(2.);
 
-const double be11life=13.81  /log(2.);
-const double be11life_err= 0.08  /log(2.); // +- 0.08 (0.6%)
+const double be11life =    13.81e3/log(2.);
+const double be11life_err = 0.08e3/log(2.); // +- 0.08 (0.6%)
 
-const double c15life = 2.449 /log(2.);
-const double c15life_err = 0.005 /log(2.); // +- 0.005 (0.2%)
+const double c15life =     2.449e3 /log(2.);
+const double c15life_err = 0.005e3 /log(2.); // +- 0.005 (0.2%)
 
 // This is the NNDC value. Could alternatively use 838.75+-0.32 from PRC
 // 82, 027309

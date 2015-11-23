@@ -112,11 +112,11 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
     const double data = sig[i];
     const double model = acc*binwidth
-        + b12* b12life*(exp(-tl/b12life) - exp(-th/b12life))
-        + li8* li8life*(exp(-tl/li8life) - exp(-th/li8life))
-        + c15* c15life*(exp(-tl/c15life) - exp(-th/c15life))
-        + n16* n16life*(exp(-tl/n16life) - exp(-th/n16life))
-        +be11*be11life*(exp(-tl/be11life)- exp(-th/be11life));
+        + b12* b12life/1e3*(exp(-tl/b12life*1e3) - exp(-th/b12life*1e3))
+        + li8* li8life/1e3*(exp(-tl/li8life*1e3) - exp(-th/li8life*1e3))
+        + c15* c15life/1e3*(exp(-tl/c15life*1e3) - exp(-th/c15life*1e3))
+        + n16* n16life/1e3*(exp(-tl/n16life*1e3) - exp(-th/n16life*1e3))
+        +be11*be11life/1e3*(exp(-tl/be11life*1e3)- exp(-th/be11life*1e3));
 
     like += model - data;
     if(data > 0 && model > 0) like += data*log(data/model);
@@ -129,14 +129,14 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // value from Measday table 5.13, Kane column, but take Measday's 1%
   // error rather than the ~0.5% that Kane's errors sum to since he
   // probably knows better than me how much to trust Kane's errors.
-  like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life)/
-                             (n16eff*Ocaptures*0.025/n16life), 2);
+  like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life*1e3)/
+                             (n16eff*Ocaptures*0.025/n16life*1e3), 2);
 }
 
 static void scalemarker(TMarker * m)
 {
-  const double newx = m->GetX() * c15life/c15eff / Ocaptures * 100;
-  const double newy = m->GetY() * be11life/be11eff / Ccaptures * 100;
+  const double newx = m->GetX() * c15life/1e3/c15eff / Ocaptures * 100;
+  const double newy = m->GetY() * be11life/1e3/be11eff / Ccaptures * 100;
   m->SetX(newx);
   m->SetY(newy);
 }
@@ -145,8 +145,8 @@ static void scalegraph(TGraph * g)
 {
   if(!g) return;
   for(int i = 0; i < g->GetN(); i++){
-    const double newx = g->GetX()[i] * c15life/c15eff / Ocaptures * 100;
-    const double newy = g->GetY()[i] * be11life/be11eff / Ccaptures * 100;
+    const double newx = g->GetX()[i] * c15life/1e3/c15eff / Ocaptures * 100;
+    const double newy = g->GetY()[i] * be11life/1e3/be11eff / Ccaptures * 100;
     g->SetPoint(i, newx, newy);
   }
 }
@@ -194,7 +194,7 @@ void n16_finalfit()
   mn->SetFCN(fcn);
   int err;
   mn->mnparm(1 -1, "acc",  10, 0.01, 0, 100, err);
-  mn->mnparm(2 -1, "b12", 4e5,    1, 1e4, 1e6, err);
+  mn->mnparm(2 -1, "b12", 4e5,    1, 0, 1e6, err);
   mn->mnparm(3 -1, "li8", 200,  0.1, 100, 1000, err);
   mn->mnparm(4 -1, "c15",   1, 0.01, 0, 1000, err);
   mn->mnparm(5 -1, "n16",   5, 0.01, 0, 100, err);
@@ -218,7 +218,7 @@ void n16_finalfit()
   command(mn, "MINOS 10000 5");
 
   {
-    TF1* n16= new TF1("n16i", Form("[0]*exp(-x/%f)", n16life), 0, hightime);
+    TF1* n16= new TF1("n16i", Form("[0]*exp(-x/%f)", n16life/1e3), 0, hightime);
     double val, derr;
     mn->GetParameter(4, val, derr);
     n16->SetParameter(0, val);
@@ -238,7 +238,7 @@ void n16_finalfit()
     "+[2]*exp(-x/%f)"
     "+[3]*exp(-x/%f)"
     "+[4]*exp(-x/%f)"
-    "+[5]*exp(-x/%f)", b12life, li8life, c15life, n16life, be11life),
+    "+[5]*exp(-x/%f)", b12life/1e3, li8life/1e3, c15life/1e3, n16life/1e3, be11life/1e3),
     0, hightime);
   eep->SetNpx(200);
 
@@ -263,7 +263,7 @@ void n16_finalfit()
   const double allchi2 = mn->fAmin;
 
   {
-    TF1* n16= new TF1("n16i", Form("[0]*exp(-x/%f)", n16life), 0, hightime);
+    TF1* n16= new TF1("n16i", Form("[0]*exp(-x/%f)", n16life/1e3), 0, hightime);
     double val, derr;
     mn->GetParameter(4, val, derr);
     n16->SetParameter(0, val);
@@ -292,7 +292,7 @@ void n16_finalfit()
     "+[2]*exp(-x/%f)"
     "+[3]*exp(-x/%f)"
     "+[4]*exp(-x/%f)"
-    "+[5]*exp(-x/%f)", b12life, li8life, c15life, n16life, be11life),
+    "+[5]*exp(-x/%f)", b12life/1e3, li8life/1e3, c15life/1e3, n16life/1e3, be11life/1e3),
     0, hightime);
   ee->SetNpx(200);
 
@@ -311,11 +311,11 @@ void n16_finalfit()
   ee->SavePrimitive(cout);
   ee->Draw("same");
 
-  TF1* b12= new TF1("b12", Form("[0]*exp(-x/%f)", b12life), 0, hightime);
-  TF1* li8= new TF1("li8", Form("[0]*exp(-x/%f)", li8life), 0, hightime);
-  TF1* c15= new TF1("c15", Form("[0]*exp(-x/%f)", c15life), 0, hightime);
-  TF1* n16= new TF1("n16", Form("[0]*exp(-x/%f)", n16life), 0, hightime);
-  TF1* be11=new TF1("be11",Form("[0]*exp(-x/%f)",be11life), 0, hightime);
+  TF1* b12= new TF1("b12", Form("[0]*exp(-x/%f)", b12life/1e3), 0, hightime);
+  TF1* li8= new TF1("li8", Form("[0]*exp(-x/%f)", li8life/1e3), 0, hightime);
+  TF1* c15= new TF1("c15", Form("[0]*exp(-x/%f)", c15life/1e3), 0, hightime);
+  TF1* n16= new TF1("n16", Form("[0]*exp(-x/%f)", n16life/1e3), 0, hightime);
+  TF1* be11=new TF1("be11",Form("[0]*exp(-x/%f)",be11life/1e3), 0, hightime);
 
   b12->SetParameter(0, val[1]*hdisp->GetBinWidth(1));
   li8->SetParameter(0, val[2]*hdisp->GetBinWidth(1));
