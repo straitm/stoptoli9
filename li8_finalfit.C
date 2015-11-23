@@ -8,7 +8,8 @@
 #include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
 #include "carbondenominators_finalfit.out.h"
-#include "li9_finalfit_-1.out.h"
+#include "li9_finalfit_-1.out.h" // for pull term
+#include "li9_finalfit_1.out.h"  // ditto
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
