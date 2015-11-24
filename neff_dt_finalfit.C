@@ -129,7 +129,8 @@ void doit(TTree * t, const int ntrue, const bool hasdeadtime)
 
   printf("B-12gamma selected muons (i.e. under 215) that stop in the target: %.1f\n",
          b12gammatargfrac*100);
-  if(ntrue == 1) // Need this to only go in to the .out.h file once
+  if(ntrue == 1 && hasdeadtime) // Need this to only go in to the
+                                // .out.h file once
     printf("const double b12gamma215targfraction = %f;\n", b12gammatargfrac);
 
   reallydoit(t, "fq/8300 < 215", "_215MeV", "E_mu < 215 MeV (B-12 gamma search)", ntrue, hasdeadtime);

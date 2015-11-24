@@ -51,17 +51,26 @@ double neff_dt(const float fidoqid, const double x, const double y,
   const double r2 = x*x + y*y;
   const double r = sqrt(r2);
 
-  static double earlyprob = 1-exp(-5.5/179);
+  // Can't possibly see a capture until the next trigger window,
+  // and then can see "early" captures up until 5.5mus, by definition.
+  // Um, this is probably too optimistic, since there is another
+  // sort of deadtime in the "early" window.
+  static double earlyprob = exp(-0.5/179.)-exp(-5.5/179);
+
+  // Assume that no Gd captures are lost to being in the same
+  // trigger window as the previous event, since the probability
+  // of very early capture is very low.
+  static double gdearlyprob =  1-efffitg->Eval(0);
 
   // In the target
   if(fabs(z) < 1229 + 0.03*(1150-r) && r < 1150) 
-    return efffitg->Eval(fidoqid/8300) + early*0.0726;
+    return efffitg->Eval(fidoqid/8300) + early*gdearlyprob;
 
   // In the target acrylic -- 0.5449 chance of capturing in the target
   if(fabs(z) < 1237 + 0.03*(1158-r) && r < 1158) 
     return (efffith->Eval(fidoqid/8300) + reallyearlyh*early*earlyprob)*
       (1-0.5449)+
-    (efffitg->Eval(fidoqid/8300) + early*0.0726*(0.84+reallyearlyh*0.16))*
+    (efffitg->Eval(fidoqid/8300) + early*gdearlyprob*(gd_fraction+reallyearlyh*(1-gd_fraction)))*
       (0.5449);
 
   // In the GC
