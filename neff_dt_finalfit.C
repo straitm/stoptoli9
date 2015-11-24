@@ -22,7 +22,12 @@ unsigned int factorial(const unsigned int n)
 
 void reallydoit(TTree * t, const char * const cut,
                 const char * const varname, const char * const desc,
-                const int ntrue)
+                const int ntrue,
+                const bool hasdeadtime // i.e. No deadtime assumed for
+                                       // FD after FE upgrade, or ND
+                                       // anytime. This assumption still
+                                       // needs to be checked, however!
+)
 {
   // Only count each muon once, and verify that it is a stopping muon by
   // selecting michel decays
@@ -46,7 +51,10 @@ void reallydoit(TTree * t, const char * const cut,
       double effsum = 0;
       for(int i = 0; i < selt->GetEntries(); i++){
         selt->GetEntry(i);
-        const double dteff = neff_dt(fq, mx, my, mz, early);
+
+        // energy only matters if it causes deadtime, otherwise zero it
+        // to get the deadtime-free answer.
+        const double dteff = neff_dt(hasdeadtime*fq, mx, my, mz, early);
 
         // When there is only one neutron, we can separate out the dr
         // efficiency and handle it elsewhere, which is probably a
@@ -76,18 +84,19 @@ void reallydoit(TTree * t, const char * const cut,
       char xofx[7]; // works up to 99
       sprintf(xofx, "%dof%d", nseen, ntrue);
 
-      printf("const double n%seff_dt%s%s%s = %.16f;\n",
+      printf("const double n%seff_dt%s%s%s%s = %.16f;\n",
              ntrue>1?xofx:"",
              ntrue>1?"_dr_800":"",
              varname,
              early?"_wearly":"",
+             hasdeadtime?"":"_nodeadtime",
              effsum/selt->GetEntries());
     }
   }
   delete selt;
 }
 
-void doit(TTree * t, const int ntrue)
+void doit(TTree * t, const int ntrue, const bool hasdeadtime)
 {
   printf("Opening temp file...\n"); fflush(stdout);
   char filename[100];
@@ -106,28 +115,13 @@ void doit(TTree * t, const int ntrue)
     "(mx**2+my**2 < 1154**2 && "
     "abs(mz) < 1229 + 0.03*(1154 - sqrt(mx**2+my**2)))";
 
-  reallydoit(t, "1", "", "Overall", ntrue); 
+  reallydoit(t, "1", "", "Overall", ntrue, hasdeadtime); 
 
-  reallydoit(t, target_cut.c_str(), "_targ", "Target", ntrue); 
-  reallydoit(t, ("!"+target_cut).c_str(), "_gc", "Gamma Catcher", ntrue); 
+  reallydoit(t, target_cut.c_str(), "_targ", "Target", ntrue, hasdeadtime); 
+  reallydoit(t, ("!"+target_cut).c_str(), "_gc", "Gamma Catcher", ntrue, hasdeadtime); 
     
 
   const double spillout = 0.41;
-/*
-  
-  t->Draw(Form("%d * (1-%s*%f)**%d * (%s*%f)**%d >> h",
-               comb, eff, spillout, ntrue-nseen, eff, spillout, nseen),
-    "!(abs(mz) < 1586 + 0.03*(1508 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1508**2)");
-  printf("%sGC vessel efficiency: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  // Target acrylic region defined as T4 plus 200mm of GC.  Force events to be 
-  // in the acrylic for the deadtime calculation
-  t->Draw(Form("%d * (1-eff(fq,1154,0,0,%d,0))**%d * eff(fq,1154,0,0,%d,0)**%d >> h",
-               comb, early, ntrue-nseen, early, nseen),
-    "(abs(mz) < 1429 + 0.03*(1350 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1350**2) && "
-    "!(abs(mz) < 1068 && mx**2+my**2 < 1068**2) && (abs(mz) < 1233 + 0.03*(1154 - sqrt(mx*mx+my*my)) && mx**2+my**2 < 1154**2)");
-  printf("%sTarget vessel efficiency (no early H-n): %.2f%s\n", RED, h->GetMean()*100, CLR);
-*/
 
   const double b12gammatargfrac = 
     double(t->GetEntries(("ndecay == 0 && miche > 12 && fq/8300 < 215 && " + target_cut).c_str()))/
@@ -138,44 +132,13 @@ void doit(TTree * t, const int ntrue)
   if(ntrue == 1) // Need this to only go in to the .out.h file once
     printf("const double b12gamma215targfraction = %f;\n", b12gammatargfrac);
 
-  reallydoit(t, "fq/8300 < 215", "_215MeV", "E_mu < 215 MeV (B-12 gamma search)", ntrue);
+  reallydoit(t, "fq/8300 < 215", "_215MeV", "E_mu < 215 MeV (B-12 gamma search)", ntrue, hasdeadtime);
 
-  reallydoit(t, t0_cut.c_str(),                        "_t0", "He-6 T0 region", ntrue);
-  reallydoit(t, (t1_cut     + "&&!" + t0_cut).c_str(), "_t1", "He-6 T1 region", ntrue);
-  reallydoit(t, (t2_cut     + "&&!" + t1_cut).c_str(), "_t2", "He-6 T2 region", ntrue);
-  reallydoit(t, (target_cut + "&&!" + t2_cut).c_str(), "_t3", "He-6 T3 region", ntrue);
+  reallydoit(t, t0_cut.c_str(),                        "_t0", "He-6 T0 region", ntrue, hasdeadtime);
+  reallydoit(t, (t1_cut     + "&&!" + t0_cut).c_str(), "_t1", "He-6 T1 region", ntrue, hasdeadtime);
+  reallydoit(t, (t2_cut     + "&&!" + t1_cut).c_str(), "_t2", "He-6 T2 region", ntrue, hasdeadtime);
+  reallydoit(t, (target_cut + "&&!" + t2_cut).c_str(), "_t3", "He-6 T3 region", ntrue, hasdeadtime);
 
-/*
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "!(abs(mz) < 933 && mx**2+my**2 < 933**2) && (abs(mz) < 1068 && mx**2+my**2 < 1068**2)");
-  printf("%.2f, ", h->GetMean()*100);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "!(abs(mz) < 740 && mx**2+my**2 < 740**2) && (abs(mz) < 933 && mx**2+my**2 < 933**2)");
-  printf("%.2f, ", h->GetMean()*100);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "(abs(mz) < 740 && mx**2+my**2 < 740**2)");
-  printf("%.2f%s\n", h->GetMean()*100, CLR);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "(mz > -1175 && mx**2+my**2 < 1050**2 && rchi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
-  printf("%sHigh-purity cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "(mz > -1175 && mx**2+my**2 < 1050**2 && rchi2 < 1.25 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
-  printf("%sHigh-purity lesschi2 cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "(mz > -900 && mx**2+my**2 < 900**2 && rchi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 1000)");
-  printf("%sHigh-purity lesspos cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  t->Draw(Form(drawstring, comb, eff, ntrue-nseen, eff, nseen),
-    "(mz > -1175 && mx**2+my**2 < 1050**2 && rchi2 < 2 && abs(fez + 62*ivdedx/2 - 8847.2) < 600)");
-  printf("%sHigh-purity lessslant cuts: %.2f%s\n", RED, h->GetMean()*100, CLR);
-
-  puts("");
-*/
 }
 
 void neff_dt_finalfit(const int ntrue)
@@ -199,7 +162,8 @@ void neff_dt_finalfit(const int ntrue)
       t->SetBranchStatus(name, 0);
   }
 
-  doit(t, ntrue);
+  doit(t, ntrue, true);
+  doit(t, ntrue, false);
 
   printf("These are ONLY the dt efficiencies.  Don't forget the dr efficiencies!\n");
 }
