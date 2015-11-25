@@ -61,6 +61,10 @@ double neff_dt(const float fidoqid, const float fidoqiv, const double x,
 
   static const double htau = 179.;
 
+  // This is the FD value, but if ND, fidoqid is always passed in as
+  // zero, so it doesn't matter.
+  static const double qid_per_mev = 8300;
+
   // Can't possibly see a capture until the next accepted trigger
   // window, and then can see "early" captures up until 5.5mus, by
   // definition. VERY roughly handle the other sort of deadtime in the
@@ -80,36 +84,30 @@ double neff_dt(const float fidoqid, const float fidoqiv, const double x,
   const double hmult = fidoqid == 0 && fidoqiv > 200e3? nearhmult: 1;
   const double earlyhmult = fidoqid == 0 && fidoqiv > 200e3? 0: 1;
 
-  // In the target
-  if(fabs(z) < 1229 + 0.03*(1150-r) && r < 1150){
+  const double targeff =
     /* For the far detector, only time matters, but at the near detector,
     the DDR makes the capture type matter too. */
-    return (efffitg->Eval(fidoqid/8300) + early*gdearlyprob)
-     *gd_fraction                       /* XXX is this close enough? */
-                                        /* sic on h and gd mix, but does */
-                                        /* the h capture follow gd timing */
-                                        /* at early time? */
-    +(hmult*efffitg->Eval(fidoqid/8300) + earlyhmult*early*gdearlyprob)
+    (efffitg->Eval(fidoqid/qid_per_mev) + early*gdearlyprob)
+     *gd_fraction
+                                        /* XXX is this close enough?  */
+                                        /* sic on h and gd mix, but   */
+                                        /* does the h capture follow  */
+                                        /* gd timing at early time?   */
+    +(hmult*efffitg->Eval(fidoqid/qid_per_mev) + earlyhmult*early*gdearlyprob)
      *(1-gd_fraction);
-  }
+
+  const double gceff =
+      hmult*efffith->Eval(fidoqid/qid_per_mev) + earlyhmult*early*hearlyprob;
+
+  // In the target
+  if(fabs(z) < 1229 + 0.03*(1150-r) && r < 1150)
+    return targeff;
 
   // In the target acrylic -- 0.5449 chance of capturing in the target
   static const double acry_nt_prob = 0.5449;
-  if(fabs(z) < 1237 + 0.03*(1158-r) && r < 1158) {
-    return
-
-      /* GC */
-      (hmult*efffith->Eval(fidoqid/8300) + earlyhmult*early*hearlyprob)
-      *(1-acry_nt_prob) +
-
-      /* Target */
-      ((efffitg->Eval(fidoqid/8300) + early*gdearlyprob)
-        *gd_fraction
-       (hmult*efffitg->Eval(fidoqid/8300) + earlyhmult*early*gdearlyprob)
-        *(1-gd_fraction))
-      *acry_nt_prob;
-  }
+  if(fabs(z) < 1237 + 0.03*(1158-r) && r < 1158)
+    return gceff*(1-acry_nt_prob) + targeff*acry_nt_prob;
 
   // In the GC
-  return hmult*efffith->Eval(fidoqid/8300) + earlyhmult*early*hearlyprob;
+  return gceff;
 }
