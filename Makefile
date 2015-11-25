@@ -284,6 +284,8 @@ totallivetime_finalfit.out.h: \
 	./run_analysis_totallivetime.sh
 
 neff_dt_finalfit.out.h: \
+  neff.C \
+  consts.h \
   neff_dt_finalfit.C
 	./run_analysis_neff_dt.sh
 
