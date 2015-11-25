@@ -1156,7 +1156,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                  && bits.trgtime - mutime < 150e3;
 
     // The DDR used at the ND seriously harms the neutron search.  See
-    // details in doc-5709
+    // details in doc-5907
     if(search == neutron){
       ntoprint_e.push_back(bits.ctEvisID);
       ntoprint_t.push_back(dt);
