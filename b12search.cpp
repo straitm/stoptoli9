@@ -867,6 +867,11 @@ double logis(const double x,
 double corrmiche(const double e, const double me)
 {
   double pars[3] ={ 0.583, 287., 94.2};
+
+  // No idea yet if the ND needs a correction or what it is
+  if(near) return e;
+
+  // FD
   return e  - logis(me, pars[0], pars[1], pars[2]);
 }
 
@@ -875,6 +880,22 @@ bool isnenergy(const double e, const double dt, const double me)
   const double corre = dt > 5500? e: corrmiche(e, me);
 
   return (corre > 1.8 && corre < 2.6) || (corre > 4.0 && corre < 10 );
+}
+
+bool in_near_DDR_region(const double muon_fido_qiv, const double dt_ns,
+                        const double follower_e)
+{
+  if(!near) return false;
+
+  // The exact value of fido_qiv when we are in the clear is uncertain.
+  // With a fairly small sample set, 200e3 seems ok. The real DDR cut is
+  // not based on fido_qiv, of course, so it would be better to use the
+  // real cut, whatever it is. The 50 mus time is exact, on the other
+  // hand. On the gripping hand, the energy cut has the same problem as
+  // fido_qiv. The DDR surely does not use ctEvisID. This means that the
+  // DDR might cut into the Gd-n region a little bit, but fortunately
+  // this effect should be very small.
+  return muon_fido_qiv > 200e3 && dt_ns < 50e3 && follower_e < 4;
 }
 
 static const char *qrms_name[2]      = { "qrms",      "QRMS"      };
@@ -927,8 +948,16 @@ static inline void get_ctX(TBranch * const br, const int i,
       bits.ctX[j] = bits.Vtx_BAMA[j];
 }
 
+/* Count neutron captures after a through-going muon. Since this is
+*only* used for through-going muons, which are used to calculate the
+B-12 likelihood, do not worry about the wild and crazy vagaries of
+neutron efficiency following muons, which is a function of at least
+time, energy, and near vs. far detector. I don't think that the tables
+for the likelihood take this into account *anyway*, and the results
+(i.e. some number returned by the likelihood) remain valid as long as we
+are consistent. */
 static int nnaftermu(const unsigned int muoni, dataparts & bits,
-                      TTree * const chtree)
+                     TTree * const chtree)
 {
   const int whichname = !strcmp(chtree->GetName(), "GI");
   TBranch
@@ -1068,7 +1097,10 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctqbr           = chtree->GetBranch(ctq_name[whichname]),
     * const trgtimebr       = chtree->GetBranch(trgtime_name[whichname]);
 
-  const double max_micht = near?30000:5500;
+  // Ug. If we want to study michels, make the ND number bigger, like
+  // 30000 perhaps. But otherwise, it just means admitting lots of
+  // background to the gamma sample.
+  const double max_micht = near?5500:5500;
   const double max_time_probably_a_mich = 5500;
 
 
@@ -1081,15 +1113,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(coinovbr) coinovbr->GetEntry(i);
     const double dt = bits.trgtime - mutime;
 
-    // For any uncut Michels or (hopefully) prompt gammas from muon
-    // capture, record the time and energy. The *highest* energy
-    // event in the time window is accepted. I'm going to allow IV
-    // energy since these may be very close to the muon event. Note that
-    // we will often count this Michel as a neutron also for the zeroth
-    // element of the count arrays (but not the first), so don't double
-    // count by accident.
+    get_ctEvisID(ctEvisIDbr, i, whichname, bits);
+    // see comments at NOTE-tidestrip
+    if(in_near_DDR_region(mufqiv, dt, bits.ctEvisID)) continue;
+
+    // For any uncut Michels or prompt gammas from muon capture, record
+    // the time and energy. The *highest* energy event in the time
+    // window is accepted. I'm going to allow IV energy since these may
+    // be very close to the muon event. Note that we will often count
+    // this Michel as a neutron also for the zeroth element of the count
+    // arrays (but not the first), so don't double count by accident.
     if(dt < max_micht && !bits.coinov){
-      get_ctEvisID(ctEvisIDbr, i, whichname, bits);
       if(bits.ctEvisID == 0){
         ctqbr->GetEntry(i);
         bits.ctEvisID = bits.ctq/34e3;
@@ -1120,10 +1154,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       }
     }
 
-    // Skip past retriggers and whatnot, like DC3rdPub
+    // Skip past retriggers and whatnot, like DC3rdPub, so first valid
+    // dt is 512ns.
     if(dt < 500) continue;
 
-    // Not more than ~4 nH lifetimes
+    // Not more than ~4.5 nH lifetimes
     if(dt > 800e3) break;
 
     get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
@@ -1140,8 +1175,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       ctqbr->GetEntry(i);
       bits.ctEvisID = bits.ctq/34e3;
     }
-    // right energy for a neutron capture
-    if(!isnenergy(bits.ctEvisID, dt, near?mufqid*9.25e-5:mufqid/8300))
+
+    // NOTE-tidestrip: Right energy for a neutron capture AND not in the
+    // region of ND phase space that has uncharacterized efficiency due
+    // to the DDR. For the moment, I am just cutting these rather than
+    // trying to characterize the efficiency.
+    if(!isnenergy(bits.ctEvisID, dt, near?mufqid*9.25e-5:mufqid/8300) ||
+       in_near_DDR_region(mufqiv, dt, bits.ctEvisID))
       continue;
 
     get_ctX(ctXbr, i, whichname, bits);
