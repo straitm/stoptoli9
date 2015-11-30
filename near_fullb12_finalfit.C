@@ -803,7 +803,7 @@ void near_fullb12_finalfit(const char * const cut =
   selt->Write();
   events.clear();
 
-  float dt, mx, my, mz, fq;
+  float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
   selt->SetBranchAddress("laten", &nn);
@@ -811,6 +811,7 @@ void near_fullb12_finalfit(const char * const cut =
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
   selt->SetBranchAddress("fq", &fq);
+  selt->SetBranchAddress("fqiv", &fqiv);
   selt->SetBranchAddress("run", &run);
   selt->SetBranchAddress("trig", &trig);
 
@@ -821,7 +822,8 @@ void near_fullb12_finalfit(const char * const cut =
     events.push_back(ev(
       dt-offset,
       nn,
-      neff_dt(0/* because ND */, mx, my, mz)*neff_dr_800(mx, my, mz),
+      neff_dt(0/* because ND */, fqiv, mx, my, mz)
+        *neff_dr_800(mx, my, mz),
       isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }

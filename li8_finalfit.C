@@ -667,7 +667,7 @@ void li8_finalfit(const char * const cut =
   selt->Write();
   events.clear();
 
-  float dt, mx, my, mz, fq;
+  float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
   selt->SetBranchAddress("latennear", &nn);
@@ -675,6 +675,7 @@ void li8_finalfit(const char * const cut =
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
   selt->SetBranchAddress("fq", &fq);
+  selt->SetBranchAddress("fqiv", &fqiv);
   selt->SetBranchAddress("run", &run);
   selt->SetBranchAddress("trig", &trig);
 
@@ -685,7 +686,7 @@ void li8_finalfit(const char * const cut =
     events.push_back(ev(
       dt-offset,
       nn,
-      neff_dt(fq, mx, my, mz)*neff_dr_800(mx, my, mz),
+      neff_dt(fq, fqiv, mx, my, mz)*neff_dr_800(mx, my, mz),
       isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }

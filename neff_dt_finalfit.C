@@ -32,13 +32,15 @@ void reallydoit(TTree * t, const char * const cut,
   // selecting michel decays
   TTree * selt = t->CopyTree(Form("%s && ndecay == 0 && miche > 12", cut));
 
-  float fq, mx, my, mz;
+  float fq, fqiv, mx, my, mz;
   selt->SetBranchStatus("*", 0);
   selt->SetBranchStatus("fq", 1);
+  selt->SetBranchStatus("fqiv", 1);
   selt->SetBranchStatus("mx", 1);
   selt->SetBranchStatus("my", 1);
   selt->SetBranchStatus("mz", 1);
   selt->SetBranchAddress("fq", &fq);
+  selt->SetBranchAddress("fqiv", &fqiv);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
@@ -53,7 +55,7 @@ void reallydoit(TTree * t, const char * const cut,
 
         // energy only matters if it causes deadtime, otherwise zero it
         // to get the deadtime-free answer.
-        const double dteff = neff_dt(hasdeadtime*fq, mx, my, mz, early);
+        const double dteff = neff_dt(hasdeadtime*fq, fqiv, mx, my, mz, early);
 
         // When there is only one neutron, we can separate out the dr
         // efficiency and handle it elsewhere, which is probably a
