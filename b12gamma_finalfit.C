@@ -59,7 +59,8 @@ const double G4E = 3.759 + 0.006;
 
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* neutrons, so don't apply efficiency to them.
-const double paccn = 1.1e-4;
+static double paccn = 0; // replaced by find_paccn()
+static double paccn_e = 0; // ditto
 
 const double hn_e = 2.224573;
 
@@ -768,6 +769,18 @@ void setlinemarkercolor(TH1 * h, int c)
   h->SetMarkerColor(c);
 }
 
+// See comments in fullb12_finalfit.C, same function name
+void find_paccn(TTree * paccn_seltree)
+{
+  const double zero = paccn_seltree->GetEntries("latennear == 0");
+  const double one  = paccn_seltree->GetEntries("latennear == 1");
+
+  paccn = one/(zero + one);
+  paccn_e = sqrt(one)/(zero + one);
+
+  printf("Accidental neutron prob: %.6g +- %.6g\n", paccn, paccn_e);
+}
+
 void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double targfrac = 0)
 {
   if(region < 0){
@@ -900,6 +913,12 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
          "fq < %f && "
          "micht >= %f && micht < %f"
          , b12ecutlow, distcut, fq_per_mev*highfq, lowt*1000, hight*1000));
+
+  TTree * paccn_seltree = t->CopyTree(Form(
+         "ndecay == 0 && miche > 45 && miche < 80 && !earlymich && "
+         "fq < %f"
+         , fq_per_mev*highfq));
+  find_paccn(paccn_seltree);
 
   printf("%lld events in t, %lld in seltree\n",
          t->GetEntries(), seltree->GetEntries());
