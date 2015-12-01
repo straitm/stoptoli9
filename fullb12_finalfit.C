@@ -426,7 +426,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
           // and the neutron efficiency
         + pow(neffdelta/f_neff_dt_error, 2)
 
-          // and the accidental neutrin probability
+          // and the accidental neutron probability
         + pow((paccn - nom_paccn)/paccn_e, 2);
 
 
@@ -727,7 +727,7 @@ double b13limit()
 
 // Measured probablity of getting one accidental neutron. These are 
 // *detected* neutrons, so don't apply efficiency to them.
-void find_paccn(TTree * t, const char * const cut)
+void find_paccn(TTree * t)
 {
   // Assume that the only source of events 0-5.5mus after the muon
   // stop between 45 and 80 MeV is muon decay. Then all neutrons
@@ -774,7 +774,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
 
-  find_paccn(t, cut);
+  find_paccn(t);
 
   const int npar = 18;
   mn = new TMinuit(npar);
