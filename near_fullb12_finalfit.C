@@ -1,6 +1,5 @@
 #include <fstream>
 #include <math.h>
-#include "consts.h"
 #include "sub_muon_eff.out.h"
 #include "totallivetime_finalfit.out.h"
 #include "li8cutefficiency_finalfit.out.h"
@@ -136,8 +135,8 @@ const char * const countcut =
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
 const ve mum_count_ve = mucountfinalfit_cut(countcut);
-const double mum_count   = mum_count_ve.val;
-const double mum_count_e =  mum_count_ve.err;
+const double mum_count   = mum_count_ve.val * 15.78/17.35; // XXX not yet evaluated
+const double mum_count_e =  mum_count_ve.err * 15.78/17.35; // XXX
 
 /**********************************************************************/
 
@@ -198,9 +197,15 @@ const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li
 
 const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
-// Measured probablity of getting one accidental neutron.  These
-// are *detected* neutrons, so don't apply efficiency to them.
-const double paccn = 1.1e-4;
+// Measured probablity of getting one accidental neutron. These are
+// *detected* neutrons, so don't apply efficiency to them.
+//
+// XXX this is the FD number scaled up by the rough ratio of muon rates
+// and the rough ratio of efficiencies due to the different trigger
+// conditions. Since I am not currently reconstructing decaying muons, I
+// can't do the proper study. But clearly I should reconstruct decaying
+// muons, or at least a reasonable sample of them.
+const double paccn = 1.1e-4 * 6 * 90./55.;
 
 bool isibd(const int in_run, const int in_trig)
 {
@@ -429,11 +434,11 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
   // with a neutron so as not to double count. Since IBD candidates are
-  // cut, this is only the non-betan rate. The multiper is to account
+  // cut, this is only the non-betan rate (XXX except not). The multiper is to account
   // for the uncertainty in the Li-9 energy cut.
   static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
-  like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
-        + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
+  like += pow( p_li9n/(1/*XXX*/)/0.44e-4/energymultiplier, 2)
+        + pow((p_li9 /(1/*XXX*/) - 2.4e-4)/0.9e-4/energymultiplier, 2);
 
 
   // Pull term to impose unitarity bound on products of C-13. Width is
@@ -718,20 +723,20 @@ void near_fullb12_finalfit(const char * const cut =
 #ifdef LESSPOS
 "mx**2+my**2 < 900**2 && mz > -900 && "
 #else
-"mx**2+my**2 < 1050**2 && mz > -1175 && "
+//"mx**2+my**2 < 1050**2 && mz > -1175 && "
 #endif
 #ifdef LESSSLANT
 "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && "
 #else
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
+//"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
 #endif
 #ifdef LESSCHI2
 "rchi2 < 1.25 && "
 #else
-"rchi2 < 2 && "
+//"rchi2 < 2 && "
 #endif
 "timeleft > %f && miche < 12 && "
-"e > 4 && e < 15 && dt < %f && laten <= 2")
+"e > 4 && e < 15 && dt < %f && latennear <= 2")
 {
   printtwice("The number of mu- stopping in the high-purity sample, "
              " regardless of what they atomicly or nuclearly capture "
@@ -806,7 +811,7 @@ void near_fullb12_finalfit(const char * const cut =
   float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
-  selt->SetBranchAddress("laten", &nn);
+  selt->SetBranchAddress("latennear", &nn);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
