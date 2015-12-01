@@ -197,15 +197,9 @@ const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li
 
 const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
-// Measured probablity of getting one accidental neutron. These are
-// *detected* neutrons, so don't apply efficiency to them.
-//
-// XXX this is the FD number scaled up by the rough ratio of muon rates
-// and the rough ratio of efficiencies due to the different trigger
-// conditions. Since I am not currently reconstructing decaying muons, I
-// can't do the proper study. But clearly I should reconstruct decaying
-// muons, or at least a reasonable sample of them.
-const double paccn = 1.1e-4 * 6 * 90./55.;
+// Measured probablity of getting one accidental neutron.
+static double nom_paccn = 0; // replaced by find_paccn()
+static double paccn_e = 0; // ditto
 
 bool isibd(const int in_run, const int in_trig)
 {
@@ -343,7 +337,8 @@ const double n_li9n, const double li9t)
                li8t  = par[13]*li8life_err + li8life, \
                li9t  = par[14]*li9life_err + li9life, \
                n16t  = par[15]*n16life_err + n16life, \
-               neffdelta = par[16];
+               neffdelta = par[16], \
+               paccn = par[17];
 
 double priorerf(const double sig)
 {
@@ -429,7 +424,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((n16t - n16life)/n16life_err, 2)
 #endif
           // and the neutron efficiency
-        + pow(neffdelta/f_neff_dt_error, 2);
+        + pow(neffdelta/f_neff_dt_error, 2)
+
+          // and the accidental neutron probability
+        + pow((paccn - nom_paccn)/paccn_e, 2);
 
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
@@ -719,24 +717,46 @@ double b13limit()
   return answer;
 }
 
+
+#define CUT_PART_OK_FOR_FINDING_PACCN \
+"!earlymich"
+
+#define NEUTRONDEF "latennear"
+
+// Measured probablity of getting one accidental neutron. These are 
+// *detected* neutrons, so don't apply efficiency to them.
+void find_paccn(TTree * t)
+{
+  // Assume that the only source of events 0-5.5mus after the muon
+  // stop between 45 and 80 MeV is muon decay. Then all neutrons
+  // following this are accidental, and we can directly count to find
+  // the accidental probability for this sample.
+  //
+  // Complication: There is radiative capture to B-11 + n.  The photon
+  // can, in principle, go to up ~88MeV, but I think it is very strongly
+  // supressed at higher energies, so I am hoping that above 45MeV it is
+  // negligible.
+  //
+  // Compliction: I am ignoring multiple neutrons.  These are rare
+  // compared to single neutrons, but clearly come correlated to each
+  // other (i.e. the probability of two is not P(one)^2).
+
+  const double zero = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
+    "miche > 45 && miche < 80 && " NEUTRONDEF " == 0 && ndecay == 0");
+  const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
+    "miche > 45 && miche < 80 && " NEUTRONDEF " == 1 && ndecay == 0");
+
+  nom_paccn = one/(zero + one);
+  paccn_e = sqrt(one)/(zero + one);
+  
+  printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
+}
+
+
 void near_fullb12_finalfit(const char * const cut =
-#ifdef LESSPOS
-"mx**2+my**2 < 900**2 && mz > -900 && "
-#else
-//"mx**2+my**2 < 1050**2 && mz > -1175 && "
-#endif
-#ifdef LESSSLANT
-"abs(fez + 62*ivdedx/2 - 8847.2) < 600 && "
-#else
-//"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && "
-#endif
-#ifdef LESSCHI2
-"rchi2 < 1.25 && "
-#else
-//"rchi2 < 2 && "
-#endif
-"timeleft > %f && miche < 12 && "
-"e > 4 && e < 15 && dt < %f && latennear <= 2")
+CUT_PART_OK_FOR_FINDING_PACCN
+"&& miche < 12 && e > 4 && e < 15 && "
+"timeleft > %f && dt < %f && " NEUTRONDEF " <= 2")
 {
   printtwice("The number of mu- stopping in the high-purity sample, "
              " regardless of what they atomicly or nuclearly capture "
@@ -752,7 +772,9 @@ void near_fullb12_finalfit(const char * const cut =
   TFile *_file0 = TFile::Open("/cp/s4/strait/ndfido/foo.root");
   TTree * t = (TTree *)_file0->Get("t");
 
-  const int npar = 17;
+  find_paccn(t);
+
+  const int npar = 18;
   mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
   mn->fGraphicsMode = false;
@@ -779,6 +801,7 @@ void near_fullb12_finalfit(const char * const cut =
   mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
   mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
   mn->mnparm(16, "neffdelta", 0,  f_neff_dt_error, 0, 0, err);
+  mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
 
 #ifdef DISABLEN16
   mn->Command("SET PAR 8 0");
@@ -798,9 +821,6 @@ void near_fullb12_finalfit(const char * const cut =
   mn->Command("FIX 15");
 #endif
 
-  // XXX fix all lifetimes and the neutron efficiency
-  //for(int i = 12; i <= 17; i++) mn->Command(Form("FIX %d", i));
-
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   tmpfile->cd();
@@ -811,7 +831,7 @@ void near_fullb12_finalfit(const char * const cut =
   float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
-  selt->SetBranchAddress("latennear", &nn);
+  selt->SetBranchAddress(NEUTRONDEF, &nn);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
@@ -828,7 +848,11 @@ void near_fullb12_finalfit(const char * const cut =
       dt-offset,
       nn,
       neff_dt(0/* because ND */, fqiv, mx, my, mz)
-        *neff_dr_800(mx, my, mz),
+
+      // Apply the dr efficiency if we are using a "near" neutron variable
+      *(strstr(NEUTRONDEF, "near") != NULL?neff_dr_800(mx, my, mz):1)
+      ,
+
       isibd(run, trig)));
     hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
