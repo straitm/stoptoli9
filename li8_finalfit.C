@@ -1,6 +1,5 @@
 #include <fstream>
 #include <math.h>
-#include "consts.h"
 #include "sub_muon_eff.out.h"
 #include "distcuteff_b12like_finalfit.out.h"
 #include "distcuteff_wholeloose_finalfit.out.h"
