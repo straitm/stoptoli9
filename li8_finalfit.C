@@ -135,7 +135,8 @@ const double li9eff = b12likelihood_eff * light_noise_eff *
 
 // Measured probablity of getting one accidental neutron.  These
 // are *detected* muons, so don't apply efficiency to them.
-const double paccn = 1.1e-4;
+static double paccn = 0; // replaced by find_paccn()
+static double paccn_e = 0; // ditto
 
 /*
  * Prints the message once with the requested floating point precision,
@@ -609,13 +610,31 @@ void mncommand()
   }
 }
 
+#ifdef HP
+  #define CUT_PART_OK_FOR_FINDING_PACCN \
+  "!earlymich && mx**2+my**2 < 1050**2 && mz > -1175 && " \
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 "
+#else
+  #define CUT_PART_OK_FOR_FINDING_PACCN "!earlymich"
+#endif
+
+// See comments in fullb12_finalfit.C, same function
+void find_paccn(TTree * t)
+{
+  const double zero = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
+    "miche > 45 && miche < 80 && latennear == 0 && ndecay == 0");
+  const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
+    "miche > 45 && miche < 80 && latennear == 1 && ndecay == 0");
+
+  paccn = one/(zero + one);
+  paccn_e = sqrt(one)/(zero + one);
+
+  printf("Accidental neutron prob: %.6g +- %.6g\n", paccn, paccn_e);
+}
 
 void li8_finalfit(const char * const cut =
-#ifdef HP
-  "mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2 && "
-#endif
-"b12like < 0.02 && timeleft > %f && miche < 12 && !earlymich && "
+CUT_PART_OK_FOR_FINDING_PACCN
+"&& b12like < 0.02 && timeleft > %f && miche < 12 && "
 "e > 5 && e < 14 && dist < 400 && dt < %f && latennear <= 2 && "
 "mutime > %f" // to get a good b12like number
 )
@@ -629,6 +648,8 @@ void li8_finalfit(const char * const cut =
 
   TFile *_file0 = TFile::Open(rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
+
+  find_paccn(t);
  
   const int npar = 17;
   mn = new TMinuit(npar);
