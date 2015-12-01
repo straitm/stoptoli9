@@ -730,7 +730,7 @@ void fullb12_finalfit(const char * const cut =
 "rchi2 < 2 && "
 #endif
 "timeleft > %f && miche < 12 && !earlymich && "
-"e > 4 && e < 15 && dt < %f && laten <= 2")
+"e > 4 && e < 15 && dt < %f && latennear <= 2")
 {
   printtwice("The number of mu- stopping in the high-purity sample, "
              " regardless of what they atomicly or nuclearly capture "
@@ -805,7 +805,7 @@ void fullb12_finalfit(const char * const cut =
   float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
-  selt->SetBranchAddress("laten", &nn);
+  selt->SetBranchAddress("latennear", &nn);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
