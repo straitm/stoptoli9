@@ -135,7 +135,7 @@ const char * const countcut =
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
 const ve mum_count_ve = mucountfinalfit_cut(countcut);
-const double mum_count   = mum_count_ve.val * 15.78/17.35; // XXX not yet evaluated
+const double mum_count   = mum_count_ve.val * 15.78/17.35; // XXX not yet evaluated, so forced to give same C-12 -> B-12 answer as far
 const double mum_count_e =  mum_count_ve.err * 15.78/17.35; // XXX
 
 /**********************************************************************/
@@ -719,7 +719,7 @@ double b13limit()
 
 
 #define CUT_PART_OK_FOR_FINDING_PACCN \
-"!earlymich"
+"1"
 
 #define NEUTRONDEF "latennear"
 
@@ -741,6 +741,7 @@ void find_paccn(TTree * t)
   // compared to single neutrons, but clearly come correlated to each
   // other (i.e. the probability of two is not P(one)^2).
 
+  /* XXX doesn't work because of my pre-selection XXX
   const double zero = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
     "miche > 45 && miche < 80 && " NEUTRONDEF " == 0 && ndecay == 0");
   const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
@@ -748,6 +749,15 @@ void find_paccn(TTree * t)
 
   nom_paccn = one/(zero + one);
   paccn_e = sqrt(one)/(zero + one);
+  XXX
+  */
+
+  // Rough value equal to the FD value, scaled up for the muon rate
+  // and for the neutron efficiency
+  nom_paccn = 1.6e-4 * 6 * 0.90/0.55;
+
+  // 30% error on that.
+  paccn_e = (1.6e-4 * 6 * 0.90/0.55) * 0.3;
   
   printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
 }
