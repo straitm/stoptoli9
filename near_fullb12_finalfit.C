@@ -747,17 +747,25 @@ void find_paccn(TTree * t)
   const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
     "miche > 45 && miche < 80 && " NEUTRONDEF " == 1 && ndecay == 0");
 
-  nom_paccn = one/(zero + one);
-  paccn_e = sqrt(one)/(zero + one);
+  // To cover the several complications above (hopefully), assume
+  // that the rate of accidentals is overestimated by this amount,
+  // and take a gaussian systematic equal to this amount (this
+  // intentionally covers, to some extent, the possibility that we are
+  // *underestimating* the rate, too).
+  const double SYST = 0.05;
+
+  nom_paccn = one/(zero + one) * (1-SYST);
+  const double paccn_e_stat = sqrt(one)/(zero + one);
+  const double paccn_e_syst = nom_paccn * SYST;
+  paccn_e = sqrt(pow(paccn_e_stat, 2) + pow(paccn_e_syst, 2));
+
   XXX
   */
 
   // Rough value equal to the FD value, scaled up for the muon rate
   // and for the neutron efficiency
-  nom_paccn = 1.6e-4 * 6 * 0.90/0.55;
-
-  // 30% error on that.
-  paccn_e = (1.6e-4 * 6 * 0.90/0.55) * 0.3;
+  nom_paccn = 9.60e-4; // preliminary study
+  paccn_e = 2.7e-4;
   
   printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
 }
