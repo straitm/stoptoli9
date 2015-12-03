@@ -135,8 +135,8 @@ const char * const countcut =
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
 const ve mum_count_ve = mucountfinalfit_cut(countcut);
-const double mum_count   = mum_count_ve.val * 15.78/17.35; // XXX not yet evaluated, so forced to give same C-12 -> B-12 answer as far
-const double mum_count_e =  mum_count_ve.err * 15.78/17.35; // XXX
+const double mum_count   = mum_count_ve.val * 3* 15.78/17.35; // XXX not yet evaluated, so forced to give same C-12 -> B-12 answer as far
+const double mum_count_e =  mum_count_ve.err * 3* 15.78/17.35; // XXX
 
 /**********************************************************************/
 
