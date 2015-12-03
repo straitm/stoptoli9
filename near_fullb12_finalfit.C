@@ -249,7 +249,7 @@ const double n_n16, const double n16t)
   // event without an accidental or from a real one-neutron event with
   // an inefficiency and without an accidental. (Does ROOT optimize
   // these? No idea.)
-  static double unpaccn = 1-paccn; // always the same
+  double unpaccn = 1-paccn;
   double uneffunpaccn = (1-neff)*unpaccn; // function of pars
   return acc +
     (unpaccn*n_b12 + uneffunpaccn*n_b12n)/b12t*exp(mt/b12t) +
