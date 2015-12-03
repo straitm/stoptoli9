@@ -764,8 +764,8 @@ void find_paccn(TTree * t)
 
   // Rough value equal to the FD value, scaled up for the muon rate
   // and for the neutron efficiency
-  nom_paccn = 9.60e-4; // preliminary study
-  paccn_e = 2.7e-4;
+  nom_paccn = 10.01e-4; // preliminary study
+  paccn_e =    2.58e-4;
   
   printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
 }
