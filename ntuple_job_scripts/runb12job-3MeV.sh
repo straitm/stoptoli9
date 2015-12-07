@@ -4,7 +4,7 @@ n=$1
 shift
 . sr
 
-out=/cp/s4/strait/fullfido-300s-3-25MeV-20151117.d/$n
+out=/cp/s4/strait/fullfido-300s-3-25MeV-20151203.d/$n
 
 mkdir -p $(dirname $out)
 
