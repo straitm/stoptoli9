@@ -1060,7 +1060,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
          michele = 0, michdist = 0;
   bool followingov = false;
   double followingovtime = 0, followingqivtime = 0;
-  double firstlatenearneutrontime = 0, firstlatenearneutronenergy = 0;
+  double firstlatenearneutrontime = 0, firstlatenearneutronenergy = 0,
+         firstlateneutrondr = 0;
   double firstneutrontime = 0, firstneutronenergy = 0;
   float followingqiv = 0;
 
@@ -1186,11 +1187,13 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     get_ctX(ctXbr, i, whichname, bits);
 
-    // Note, not 1000mm, but 800mm.
-    const bool nnear =
+    const double n_dr =
       sqrt(pow(mux - bamacorrxy(bits.ctX[0], bits.ctEvisID), 2)+
            pow(muy - bamacorrxy(bits.ctX[1], bits.ctEvisID), 2)+
-           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2)) < 800;
+           pow(muz - bamacorrz( bits.ctX[2], bits.ctEvisID), 2));
+
+    // Note, not 1000mm, but 800mm.
+    const bool nnear = n_dr < 800;
 
     const bool gd = bits.ctEvisID > 4.0 && bits.ctEvisID < 10
                  && bits.trgtime - mutime < 150e3;
@@ -1218,6 +1221,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     if(!alsoamichel){
       nneutronanydist[1]++;
       if(gd) ngdneutronanydist[1]++;
+      if(firstlateneutrondr == 0) firstlateneutrondr = n_dr;
       if(nnear){
         // special case since these have turned out to be the most
         // useful count of neutrons. Record the time and energy of the
@@ -1279,7 +1283,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      "%f %f %d %f " \
      "%f %f %d " \
      "%f %f " \
-     "%f %f " \
+     "%f %f %f " \
      "%f %f " \
      "%f %f %f " \
      "%f %f %f "
@@ -1298,7 +1302,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      ttlastbufmuon, ttlastgcmuon, followingov, followingovtime, \
      followingqiv, followingqivtime, printed, \
      firstlatenearneutrontime, firstlatenearneutronenergy, \
-     firstneutrontime, firstneutronenergy, \
+     firstlateneutrondr, firstneutrontime, firstneutronenergy, \
      idexitqf, ivqbal, \
      id_entr_x, id_entr_y, id_entr_z, \
      id_end_x,  id_end_y,  id_end_z
@@ -1830,6 +1834,7 @@ int main(int argc, char ** argv)
     "ndecay/I:"
     "firstlatenneart/F:"
     "firstlatenneare/F:"
+    "firstlatendr/F:"
     "firstnt/F:"
     "firstne/F:"
     "idexitqf/F:"
@@ -1899,6 +1904,7 @@ int main(int argc, char ** argv)
     "ndecay2/I:"
     "firstlatenneart2/F:"
     "firstlatenneare2/F:"
+    "firstlatendr2/F:"
     "firstnt2/F:"
     "firstne2/F:"
     "idexitqf2/F:"
