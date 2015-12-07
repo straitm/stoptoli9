@@ -899,7 +899,13 @@ CUT_PART_OK_FOR_FINDING_PACCN
   const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
   for(int i = 0; i < 3; i++){
     printf("\n%s", commands[i]);
-    mn->Command(commands[i]);
+    int fails = 0;
+    while(4 == mn->Command(commands[i])){
+      if(++fails >= 3){
+        fprintf(stderr, "giving up on %s\n", commands[i]);
+        break;
+      }
+    }
     puts(""); mn->Command("show par");
   }
 

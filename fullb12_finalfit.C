@@ -22,6 +22,9 @@ using std::cin;
 //#define DISABLEN16
 //#define DISABLELI
 
+#define NEUTRONDEF "laten"
+const bool apply_dr_eff = strstr(NEUTRONDEF, "near") != NULL;
+
 using std::vector;
 
 bool unitarity = true;
@@ -424,7 +427,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((n16t - n16life)/n16life_err, 2)
 #endif
           // and the neutron efficiency
-        + pow(neffdelta/f_neff_dt_error, 2)
+        + pow(neffdelta/sqrt(pow(f_neff_dt_error, 2) +
+                apply_dr_eff?pow(f_neff_dr_800_avg_error, 2):0
+                            ), 2)
 
           // and the accidental neutron probability
         + pow((paccn - nom_paccn)/paccn_e, 2);
@@ -723,8 +728,6 @@ double b13limit()
 "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && " \
 "rchi2 < 2 && !earlymich"
 
-#define NEUTRONDEF "latennear"
-
 // Measured probablity of getting one accidental neutron. These are 
 // *detected* neutrons, so don't apply efficiency to them.
 void find_paccn(TTree * t)
@@ -811,7 +814,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
   mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
   mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
   mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
-  mn->mnparm(16, "neffdelta", 0,  f_neff_dt_error, 0, 0, err);
+  mn->mnparm(16, "neffdelta", 0,  0.01, 0, 0, err);
   mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
 
 #ifdef DISABLEN16
@@ -861,7 +864,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
       neff_dt(fq, fqiv, mx, my, mz)
 
       // Apply the dr efficiency if we are using a "near" neutron variable
-      *(strstr(NEUTRONDEF, "near") != NULL?neff_dr_800(mx, my, mz):1)
+      *(apply_dr_eff?neff_dr_800(mx, my, mz):1)
       ,
 
       isibd(run, trig)));
@@ -892,7 +895,13 @@ CUT_PART_OK_FOR_FINDING_PACCN
   const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
   for(int i = 0; i < 3; i++){
     printf("\n%s", commands[i]);
-    mn->Command(commands[i]);
+    int fails = 0;
+    while(4 == mn->Command(commands[i])){
+      if(++fails >= 3){
+        fprintf(stderr, "giving up on %s\n", commands[i]);
+        break;
+      }
+    }
     puts(""); mn->Command("show par");
   }
 

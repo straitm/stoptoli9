@@ -45,19 +45,67 @@ const double light_noise_eff = 0.999938;
 // I made this up, with some studies to back it.
 const double f_neff_dt_error = 0.01;
 
-// Taking the plot from doc-4807, slide 3, corrected by MC correction
-// factor from doc-4450, slide 8.
-const double neff_dr_800_gd =  0.991*0.993;
-const double neff_dr_1000_gd = 0.997*0.993;
+// First parts of the efficiencies direct from doc-4450, slide 17. The
+// table on the right side seems to be giving the numbers for data,
+// not MC, which is good, so no correction is needed. However, it is
+// probably not valid, past first order, to be treating these number as
+// constant over the whole detector.
+//
+// Note also that these figures are derived, I think, from Z-axis
+// Cf-252 events (maybe also from IBDs?). They use, therefore, the dr
+// between a low energy prompt and the neutron, which is going to be
+// different than between a stopping muon and a neutron, although if we
+// assume the dr is dominated by the true distance the neutron travels
+// before capturing, it shouldn't make too much difference what the
+// reconstruction resolution of the first event is. Still, presumably
+// our dr here is a bit larger on average, and therefore the efficiency
+// is a bit lower. A quick study shows that assuming the 1D neutron
+// gaussian resolution (including true position spread) is 278mm, and
+// the BAMA resolution is 100mm, I can reproduce the 800mm efficiency
+// here, while if the FIDO resolution is 150mm, it efficiency is 3.3%
+// absolute lower.
+//
+// Therefore let's correct down by this amount and also take a
+// systematic of half the correction since no proper study was done
+// (e.g. certainly not everything is gaussian).
+const double neff_dr_800_h_corr = 0.033;
+const double neff_dr_1000_h_corr = 0.015;
+const double neff_dr_800_h = 0.933297 - neff_dr_800_h_corr;
+const double neff_dr_1000_h = 0.972960 - neff_dr_1000_h_corr;
+const double f_neff_dr_800_h_error = neff_dr_800_h_corr/2/neff_dr_800_h;
+const double f_neff_dr_1000_h_error = neff_dr_1000_h_corr/2/neff_dr_1000_h;
 
-// Direct from doc-4450, slide 17.
-const double neff_dr_800_h = 0.933297;
-const double neff_dr_1000_h = 0.972960;
+// Taking the plot from doc-4807, slide 3, corrected by MC correction
+// factor from doc-4450, slide 8.  And see above comments on the _h 
+// figures.
+const double neff_dr_800_gd_corr  = 0.020;
+const double neff_dr_1000_gd_corr = 0.009;
+const double neff_dr_800_gd =  0.991*0.993 - neff_dr_800_gd_corr;
+const double neff_dr_1000_gd = 0.997*0.993 - neff_dr_1000_gd_corr;
+const double f_neff_dr_800_gd_error = neff_dr_800_gd_corr/2/neff_dr_800_gd;
+const double f_neff_dr_1000_gd_error = neff_dr_1000_gd_corr/2/neff_dr_1000_gd;
 
 const double neff_dr_800_targ = neff_dr_800_gd*gd_fraction +
                                 neff_dr_800_h*(1-gd_fraction);
 const double neff_dr_1000_targ = neff_dr_1000_gd*gd_fraction +
                                 neff_dr_1000_h*(1-gd_fraction);
+
+const double f_neff_dr_800_targ_error =
+                                f_neff_dr_800_gd_error*gd_fraction +
+                                f_neff_dr_800_h_error*(1-gd_fraction);
+const double f_neff_dr_1000_targ_error =
+                                f_neff_dr_1000_gd_error*gd_fraction +
+                                f_neff_dr_1000_h_error*(1-gd_fraction);
+
+// Rough detector average for the error on the 800mm neutron efficiency.
+// Since the error is currently made up (and probably conservative)
+// to begin with, I'm not going to stress about this average.
+const double f_neff_dr_800_avg_error =
+                                f_neff_dr_800_gd_error*0.3+
+                                f_neff_dr_800_h_error*0.7;
+const double f_neff_dr_1000_avg_error =
+                                f_neff_dr_1000_gd_error*0.3 +
+                                f_neff_dr_1000_h_error*0.7;
 
 // Using the method of CDF memo 5928, particularly section 3.5
 // TF1 hey("hey", "ROOT::Math::inc_gamma(1, x*[0])", 0, 10)

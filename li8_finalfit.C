@@ -393,7 +393,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((li9t - li9life)/li9life_err, 2)
         + pow((n16t - n16life)/n16life_err, 2)
           // and the neutron efficiency
-        + pow(neffdelta/f_neff_dt_error, 2);
+        + pow(neffdelta/sqrt(pow(f_neff_dt_error,2) +
+                             pow(f_neff_dr_800_avg_error, 2)
+                            ), 2);
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
   // with a neutron so as not to double count (use the central value
