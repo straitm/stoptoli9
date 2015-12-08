@@ -22,7 +22,7 @@ using std::cin;
 //#define DISABLEN16
 //#define DISABLELI
 
-#define NEUTRONDEF "laten"
+#define NEUTRONDEF "latennear"
 const bool apply_dr_eff = strstr(NEUTRONDEF, "near") != NULL;
 
 using std::vector;
@@ -109,31 +109,56 @@ void printtwice(const char * const msg, const int digits, ...)
 
 #include "mucount_finalfit.C"
 
+// With a very rough study, mz looks pure down to -1300 or so and
+// sqrt(mx**2+my**2) out to 1400 given mz > -1300. So reusing the 
+// FD cuts should be quite conservative.
+#define STD_POS_CUT  "mx**2+my**2 < 1050**2 && mz > -1175"
+
+// Another very rough study suggests full purity up to about this point.
+// It might be ok to go to 6, but there was a mildly significant dip 
+// after 4.
+#define STD_CHI2_CUT "rchi2 < 4"
+
+// As far as I can tell, a cut of the form used at the FD does nothing
+// to improve the signal/bg at the ND. At the FD, there is a drop-off in
+// purity on the high end of the cut (but not the low end -- that just
+// cuts chimney muons, which may or may not be a good thing). But at the
+// ND, the purity is pretty much flat.
+#define STD_IVDEDX_CUT "1"
+
 #define STD
 
 #ifdef STD
 const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+  "ndecay == 0 && " STD_POS_CUT " && "
+  STD_IVDEDX_CUT " && " STD_CHI2_CUT;
 #endif
 
 #ifdef LESSPOS
 const char * const countcut = 
   "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2";
+  STD_IVDEDX_CUT " && " STD_CHI2_CUT;
 #endif
 
 #ifdef LESSSLANT
 const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2";
+  "ndecay == 0 && " STD_POS_CUT " && "
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && " STD_CHI2_CUT;
 #endif
 
 #ifdef LESSCHI2
 const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25";
+  "ndecay == 0 && " STD_POS_CUT " && "
+  STD_IVDEDX_CUT " && rchi2 < 1.25";
 #endif
+
+// XXX not at all clear that this gives a pure sample, and surely the
+// contamination figures in consts.h are not justified for the ND even
+// if this is reasonably pure.
+#define CUT_PART_OK_FOR_FINDING_PACCN \
+STD_POS_CUT " && " \
+STD_IVDEDX_CUT " && " \
+STD_CHI2_CUT
 
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
@@ -723,14 +748,6 @@ double b13limit()
 }
 
 
-// XXX not at all clear that this gives a pure sample, and surely the
-// contamination figures in consts.h are not justified for the ND even
-// if this is reasonably pure.
-#define CUT_PART_OK_FOR_FINDING_PACCN \
-"mx**2+my**2 < 1050**2 && mz > -1175 && " \
-"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && " \
-"rchi2 < 10"
-
 // Measured probablity of getting one accidental neutron. These are 
 // *detected* neutrons, so don't apply efficiency to them.
 void find_paccn(TTree * t)
@@ -777,7 +794,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
 {
   printtwice("The number of mu- stopping in the high-purity sample, "
              " regardless of what they atomicly or nuclearly capture "
-             "on, is %f %f\n", 4, mum_count, mum_count_e);
+             "on, is %f +- %f\n", 4, mum_count, mum_count_e);
   
   printtwice("B-12 selection efficiency is %f%%\n", 2, b12eff*100);
   printtwice("B-13 selection efficiency is %f%%\n", 2, b13eff*100);
