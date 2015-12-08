@@ -12,6 +12,11 @@ ve mucountfinalfit_cut(const char * const cut, const bool far)
   const int rawcount = t->GetEntries(cut);
   printf("Raw count: %d\n", rawcount);
 
+  if(!far)
+    fprintf(stderr,"WARNING! The mu- fraction and muon contamination\n"
+                   "are those for the FD, even though you are looking\n"
+                   "at ND data.  The numbers are surely different.\n");
+
   ve answer;
   answer.val = rawcount*mum_frac*(1-mum_contamination);
   answer.err = sqrt(pow(rawcount*mum_frac_err,2)
