@@ -24,28 +24,3 @@ ve mucountfinalfit_cut(const char * const cut, const bool far)
 
   return answer;
 }
-
-void mucount_finalfit()
-{
-  mucountfinalfit_cut(
-    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
-
-  puts("LESSPOS:");
-
-  mucountfinalfit_cut(
-    "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
-    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
-
-  puts("LESSSLANT:");
-
-  mucountfinalfit_cut(
-    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-    "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && rchi2 < 2");
-
-  puts("LESSCHI2:");
-
-  mucountfinalfit_cut(
-    "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-    "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 1.25");
-}
