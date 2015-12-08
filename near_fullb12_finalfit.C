@@ -22,6 +22,9 @@ using std::cin;
 //#define DISABLEN16
 //#define DISABLELI
 
+#define NEUTRONDEF "laten"
+const bool apply_dr_eff = strstr(NEUTRONDEF, "near") != NULL;
+
 using std::vector;
 
 bool unitarity = true;
@@ -134,9 +137,9 @@ const char * const countcut =
 
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
-const ve mum_count_ve = mucountfinalfit_cut(countcut);
-const double mum_count   = mum_count_ve.val * 3* 15.78/17.35; // XXX not yet evaluated, so forced to give same C-12 -> B-12 answer as far
-const double mum_count_e =  mum_count_ve.err * 3* 15.78/17.35; // XXX
+const ve mum_count_ve = mucountfinalfit_cut(countcut, false /* near */);
+const double mum_count   = mum_count_ve.val;
+const double mum_count_e =  mum_count_ve.err;
 
 /**********************************************************************/
 
@@ -424,7 +427,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         + pow((n16t - n16life)/n16life_err, 2)
 #endif
           // and the neutron efficiency
-        + pow(neffdelta/f_neff_dt_error, 2)
+        + pow(neffdelta/sqrt(pow(f_neff_dt_error, 2) +
+                apply_dr_eff?pow(f_neff_dr_800_avg_error, 2):0
+                            ), 2)
 
           // and the accidental neutron probability
         + pow((paccn - nom_paccn)/paccn_e, 2);
@@ -718,10 +723,13 @@ double b13limit()
 }
 
 
+// XXX not at all clear that this gives a pure sample, and surely the
+// contamination figures in consts.h are not justified for the ND even
+// if this is reasonably pure.
 #define CUT_PART_OK_FOR_FINDING_PACCN \
-"1"
-
-#define NEUTRONDEF "latennear"
+"mx**2+my**2 < 1050**2 && mz > -1175 && " \
+"abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && " \
+"rchi2 < 10"
 
 // Measured probablity of getting one accidental neutron. These are 
 // *detected* neutrons, so don't apply efficiency to them.
@@ -741,7 +749,6 @@ void find_paccn(TTree * t)
   // compared to single neutrons, but clearly come correlated to each
   // other (i.e. the probability of two is not P(one)^2).
 
-  /* XXX doesn't work because of my pre-selection XXX
   const double zero = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
     "miche > 45 && miche < 80 && " NEUTRONDEF " == 0 && ndecay == 0");
   const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
@@ -758,14 +765,6 @@ void find_paccn(TTree * t)
   const double paccn_e_stat = sqrt(one)/(zero + one);
   const double paccn_e_syst = nom_paccn * SYST;
   paccn_e = sqrt(pow(paccn_e_stat, 2) + pow(paccn_e_syst, 2));
-
-  XXX
-  */
-
-  // Rough value equal to the FD value, scaled up for the muon rate
-  // and for the neutron efficiency
-  nom_paccn = 10.01e-4; // preliminary study
-  paccn_e =    2.58e-4;
   
   printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
 }
@@ -787,7 +786,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
   printtwice("Number of C-12 captures %g\n", 2, c12nuc_cap);
   printtwice("Number of C-13 captures %g\n", 2, c13nuc_cap);
 
-  TFile *_file0 = TFile::Open("/cp/s4/strait/ndfido/foo.root");
+  TFile *_file0 = TFile::Open(rootfile3up_near);
   TTree * t = (TTree *)_file0->Get("t");
 
   find_paccn(t);
@@ -818,7 +817,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
   mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
   mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
   mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
-  mn->mnparm(16, "neffdelta", 0,  f_neff_dt_error, 0, 0, err);
+  mn->mnparm(16, "neffdelta", 0,  0.01, 0, 0, err);
   mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
 
 #ifdef DISABLEN16
@@ -868,7 +867,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
       neff_dt(0/* because ND */, fqiv, mx, my, mz)
 
       // Apply the dr efficiency if we are using a "near" neutron variable
-      *(strstr(NEUTRONDEF, "near") != NULL?neff_dr_800(mx, my, mz):1)
+      *(apply_dr_eff?neff_dr_800(mx, my, mz):1)
       ,
 
       isibd(run, trig)));

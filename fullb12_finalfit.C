@@ -137,7 +137,7 @@ const char * const countcut =
 
 // The number of mu- stopping, regardless of what they atomicly or
 // nuclearly capture on
-const ve mum_count_ve = mucountfinalfit_cut(countcut);
+const ve mum_count_ve = mucountfinalfit_cut(countcut, true /* far */);
 const double mum_count   = mum_count_ve.val;
 const double mum_count_e =  mum_count_ve.err;
 

@@ -9,8 +9,8 @@ struct ve{
 const char * const RED     = ""; // bold red
 const char * const CLR     = ""; // clear
 
-const char * const rootfile3up_extended = // XXX now out of date
-  "/cp/s4/strait/fullfido-300s-3-25MeV-20150924-3rdpub+post3rdpub.root";
+const char * const rootfile3up_extended =
+  "/cp/s4/strait/fullfido-300s-3-25MeV-20151203-withpost3rdpub.root";
 const char * const rootfile3up =
   "/cp/s4/strait/fullfido-300s-3-25MeV-20151117.root";
 const char * const rootfile0up =
@@ -23,6 +23,9 @@ const char * const rootfilethru = // XXX now out of date -- but doesn't matter, 
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 const char * const rootfilemusic =
   "/cp/s4/strait/DC_FD_Muon_Surface_Dist_Ecut_both.root";
+
+const char * const rootfile3up_near =
+  "/cp/s4/strait/ndfido/near3up.root";
 
 const double mum_contamination = 0.0028,
              mum_contamination_err = 0.0019;

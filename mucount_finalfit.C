@@ -3,10 +3,10 @@
 
 /* Meant to be run #included in other files */
 
-ve mucountfinalfit_cut(const char * const cut)
+ve mucountfinalfit_cut(const char * const cut, const bool far)
 {
   printf("Counting muons...\n");
-  TFile *_file0 = TFile::Open(rootfile3up, "read");
+  TFile *_file0 = TFile::Open(far?rootfile3up:rootfile3up_near, "read");
   TTree * t = (TTree *)_file0->Get("t");
 
   const int rawcount = t->GetEntries(cut);
