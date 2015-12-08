@@ -912,6 +912,16 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
   corrbg->Sumw2();
   ehist->Sumw2();
 
+  printf("Opening temp file...\n"); fflush(stdout);
+  char filename[100];
+  strcpy(filename, "/tmp/b12like.XXXXXX");
+  close(mkstemp(filename));
+  TFile * tmpfile = new TFile(filename, "recreate", "", 0);
+  if(!tmpfile || tmpfile->IsZombie()){
+    fprintf(stderr, "Could not open temp file %s\n", filename);
+    exit(1);
+  }
+
   printf("Pre-selecting...\n");
   TTree * seltree = t->CopyTree(Form(
          "!earlymich && "
