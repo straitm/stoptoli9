@@ -188,9 +188,17 @@ void he6_finalfit(const int nreq_ = 0,
   teff[3]=eff*disteff[3]*neffdtby_pos_n[3][nreq];
   teff[4]=eff*disteff[4]*neffdtby_pos_n[4][nreq];
 
-  for(int i = 0; i < nrbins; i++)
+  for(int i = 0; i < nrbins; i++){
     printf("%sEfficiency in region %d: %.1f%s\n",
            RED, i, 100*teff[i], CLR);
+    double avgeff = 0, totmu = 0;
+    for(int j = 0; j < nrbins; j++){
+      avgeff += he6mus[j]*teff[j];
+      totmu   = he6mus[j];
+    }
+    avgeff /= totmu;
+    printf("Efficiency averaged over regions: %.1f\n", avgeff*100);
+  }
 
   double nfrac[nrbins];
   double nfracerr[nrbins];
