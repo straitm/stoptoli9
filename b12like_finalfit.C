@@ -114,7 +114,7 @@ static void printtwice(const char * const msg, const int digits, ...)
 // The number of stopping mu-.
 const ve mum_count_ve = mucountfinalfit_cut(
   "ndecay == 0 && mx**2+my**2 < 1050**2 && mz > -1175 && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2");
+  "abs(fez + 62*ivdedx/2 - 8847.2) < 1000 && rchi2 < 2", true /* far */);
 const double mum_count = mum_count_ve.val;
 const double mum_count_e = mum_count_ve.err;
 
