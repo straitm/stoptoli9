@@ -289,9 +289,13 @@ neff_dt_finalfit.out.h: \
   neff_dt_finalfit.C
 	./run_analysis_neff_dt.sh
 
-musicchargeratio_finalfit.out.h: \
+musicchargeratio_finalfit_far.out.h: \
   musicchargeratio_finalfit.C
 	./run_analysis_musicchargeratio.sh far
+
+musicchargeratio_finalfit_near.out.h: \
+  musicchargeratio_finalfit.C
+	./run_analysis_musicchargeratio.sh near
 
 carbondenominators_finalfit.out.h: \
   consts.h \
@@ -300,7 +304,8 @@ carbondenominators_finalfit.out.h: \
   li8cutefficiency_finalfit.out.h \
   b12cutefficiency_finalfit.out.h \
   run_analysis_carbondenominators.sh \
-  musicchargeratio_finalfit.out.h \
+  musicchargeratio_finalfit_far.out.h \
+  musicchargeratio_finalfit_near.out.h \
   mucount_finalfit.C \
   carbondenominators_finalfit.C
 	./run_analysis_carbondenominators.sh
