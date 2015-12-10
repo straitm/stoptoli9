@@ -291,7 +291,7 @@ neff_dt_finalfit.out.h: \
 
 musicchargeratio_finalfit.out.h: \
   musicchargeratio_finalfit.C
-	./run_analysis_musicchargeratio.sh
+	./run_analysis_musicchargeratio.sh far
 
 carbondenominators_finalfit.out.h: \
   consts.h \

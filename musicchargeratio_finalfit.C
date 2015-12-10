@@ -50,9 +50,9 @@ void minos5013(double & fpi, double & fk)
 }
 
 
-void musicchargeratio_finalfit()
+void musicchargeratio_finalfit(const string det)
 {
-  TFile * music = new TFile(rootfilemusic);
+  TFile * music = new TFile(det == "far"?rootfilemusic:rootfilemusic_near);
   TTree * t = (TTree *)music->Get("mu_initial");
 
   float costheta, energy;
@@ -93,6 +93,7 @@ void musicchargeratio_finalfit()
         t->GetEntry(i);
         fracsum += fracmuminus(energy, costheta, fpiplus, fkplus);
       }
+      if(trial%0x100 == 0) fprintf(stderr, ".");
 
       const double frac = fracsum/t->GetEntries();
 
@@ -111,8 +112,10 @@ void musicchargeratio_finalfit()
                      1/sqrt(1/pow(l3csyst,2) + 1/pow(minossyst,2)))    );
 
     if(exper == 2){
-      printf("const double mum_frac = %.16f;\n", results.GetMean());
-      printf("const double mum_frac_err = %.16f;\n",results.GetMean()*l3csyst);
+      printf("const double mum_frac%s = %.16f;\n", det == "far"?"":"_near",
+             results.GetMean());
+      printf("const double mum_frac%s_err = %.16f;\n",det == "far"?"":"_near",
+             results.GetMean()*l3csyst);
     }
   }
 }

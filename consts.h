@@ -23,6 +23,8 @@ const char * const rootfilethru = // XXX now out of date -- but doesn't matter, 
   "/cp/s4/strait/fullfido-stopandthru-1ms-3-25MeV-20150325.root";
 const char * const rootfilemusic =
   "/cp/s4/strait/DC_FD_Muon_Surface_Dist_Ecut_both.root";
+const char * const rootfilemusic_near =
+  "/cp/s4/strait/DC_ND_Muon_Surface_Dist_Ecut_both.root";
 
 const char * const rootfile3up_near =
   "/cp/s4/strait/ndfido/near3up.root";
