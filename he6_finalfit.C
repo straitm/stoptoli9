@@ -85,10 +85,12 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
       like += model - data;
       if(data > 0 && model > 0) like += data*log(data/model);
     } 
-    like += pow((1-mnbgnorm[j])/bgerr[j], 2);
   }
 
-  like *= 2;
+  like *= 2; // convert to "chi2"
+
+  for(int j = 0; j < nrbins; j++)
+    like += pow((1-mnbgnorm[j])/bgerr[j], 2);
 }
 
 int classi(const double x, const double y, const double z)
