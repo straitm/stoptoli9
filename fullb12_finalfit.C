@@ -239,13 +239,9 @@ const double n_n16, const double n16t)
     // is easier. (Ok, N-16 might come from O-17, but it is only a
     // nuisance parameter here...)
     unpaccn*n_b13/b13t*exp(mt/b13t)
-#ifndef DISABLELI
   + (unpaccn*n_li8 + uneffunpaccn*n_li8n)/li8t*exp(mt/li8t) +
     (unpaccn*n_li9 + uneffunpaccn*n_li9n)/li9t*exp(mt/li9t)
-#endif
-#ifndef DISABLEN16
   + unpaccn*n_n16/n16t*exp(mt/n16t)
-#endif
     ;
 }
 
@@ -266,13 +262,9 @@ const double n_n16, const double n16t)
   // Can only get B-13 with a neutron from an inefficiency, assuming
   // there's no O-16(mu,ppn)B-13 to speak of.
   paccn*n_b13/b13t*exp(mt/b13t)
-#ifndef DISABLELI
  +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)
  +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)
-#endif
-#ifndef DISABLEN16
   + paccn*n_n16/n16t*exp(mt/n16t)
-#endif
   ;
 }
 
@@ -288,10 +280,8 @@ const double n_li9n, const double li9t)
   // case for the above normalization component of the likelihood to be
   // correct.
   neff*paccn*(n_b12n/b12t*exp(mt/b12t)
-#ifndef DISABLELI
             + n_li8n/li8t*exp(mt/li8t)
             + n_li9n/li9t*exp(mt/li9t)
-#endif
   );
 }
 
@@ -351,14 +341,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   const double norm =
       (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
-#ifndef DISABLELI
     + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
     + (n_li9 + n_li9n)*(exp(-lowtime/li9t) - exp(-hightime/li9t))
-#endif
     +      n_b13      *(exp(-lowtime/b13t) - exp(-hightime/b13t))
-#ifndef DISABLEN16
     +      n_n16      *(exp(-lowtime/n16t) - exp(-hightime/n16t))
-#endif
     + totaltime*(acc+accn+accn2);
 
   like = norm;
@@ -398,13 +384,9 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // pull terms for lifetimes
   like += pow((b12t - b12life)/b12life_err, 2)
         + pow((b13t - b13life)/b13life_err, 2)
-#ifndef DISABLELI
         + pow((li8t - li8life)/li8life_err, 2)
         + pow((li9t - li9life)/li9life_err, 2)
-#endif
-#ifndef DISABLEN16
         + pow((n16t - n16life)/n16life_err, 2)
-#endif
           // and the neutron efficiency
         + pow(neffdelta/sqrt(pow(f_neff_dt_error, 2) +
                 apply_dr_eff?pow(f_neff_dr_800_avg_error, 2):0
@@ -700,6 +682,9 @@ double b13limit()
   if(smallcount <= 3)
     printf("Not sure you integrated out far enough\n");
 
+  mn->Command("release 3");
+  mn->Command("Migrad");
+
   return answer;
 }
 
@@ -840,28 +825,11 @@ void fullb12_finalfit()
   mn->mnparm(16, "neffdelta", 0,  0.01, 0, 0, err);
   mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
 
-#ifdef DISABLEN16
-  mn->Command("SET PAR 8 0");
-  mn->Command("FIX 8");
-  mn->Command("FIX 16");
-#endif
-#ifdef DISABLELI
-  mn->Command("SET PAR 4 0");
-  mn->Command("SET PAR 5 0");
-  mn->Command("SET PAR 6 0");
-  mn->Command("SET PAR 7 0");
-  mn->Command("FIX 4");
-  mn->Command("FIX 5");
-  mn->Command("FIX 6");
-  mn->Command("FIX 7");
-  mn->Command("FIX 14");
-  mn->Command("FIX 15");
-#endif
-
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   tmpfile->cd();
-  selt = t->CopyTree(Form(cut.c_str(), hightime+offset, hightime+offset));
+  const string fullcut = Form(cut.c_str(), hightime+offset, hightime+offset);
+  selt = t->CopyTree(fullcut.c_str());
   selt->Write();
   events.clear();
 
@@ -928,6 +896,48 @@ void fullb12_finalfit()
     puts(""); mn->Command("show par");
   }
 
+  {
+    printf("FIGURE const double meaneff[3] = { ");
+    for(int i = 0; i < 3; i++) printf("%.9f, ", meaneff[i]);
+    printf("};\n");
+
+    printf("FIGURE const double pars[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
+
+    printf("FIGURE const double mum_count = %.9f;\n", mum_count);
+
+    const int nbins = 50;
+    TH1D * n0 = new TH1D("n0","",nbins,1, 501);
+    TH1D * n1 = new TH1D("n1","",nbins,1, 501);
+    TH1D * n2 = new TH1D("n2","",nbins,1, 501);
+
+    selt->Draw("dt >> n0", Form("%s && %s == 0", fullcut.c_str(), NEUTRONDEF.c_str()));
+    selt->Draw("dt >> n1", Form("%s && %s == 1", fullcut.c_str(), NEUTRONDEF.c_str()));
+    selt->Draw("dt >> n2", Form("%s && %s == 2", fullcut.c_str(), NEUTRONDEF.c_str()));
+
+    printf("FIGURE const double n0contents[%d] = {", nbins+2);
+    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n0->GetBinContent(i));
+    printf("};\n");
+
+    printf("FIGURE const double n1contents[%d] = {", nbins+2);
+    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n1->GetBinContent(i));
+    printf("};\n");
+
+    printf("FIGURE const double n2contents[%d] = {", nbins+2);
+    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n2->GetBinContent(i));
+    printf("};\n");
+
+    printf("FIGURE const double b12eff = %.9f;\n", b12eff);
+    printf("FIGURE const double b13eff = %.9f;\n", b13eff);
+    printf("FIGURE const double li8eff = %.9f;\n", li8eff);
+    printf("FIGURE const double li9eff = %.9f;\n", li9eff);
+    printf("FIGURE const double c12nuc_cap = %.9f;\n", c12nuc_cap);
+    printf("FIGURE const double c13nuc_cap = %.9f;\n", c13nuc_cap);
+    printf("FIGURE const double nom_paccn = %.9f;\n", nom_paccn);
+    printf("FIGURE const int npar = %d;\n", npar);
+  }
+
   mn->SetPrintLevel(0);
   mn->Command("MINOS 2000 1 2 3");
   puts("");
@@ -950,6 +960,7 @@ void fullb12_finalfit()
   mn->SetPrintLevel(-1);
   b13limit();
   mn->SetPrintLevel(0);
+  puts("");
 }
 
 void near_fullb12_finalfit()
