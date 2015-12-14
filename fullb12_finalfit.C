@@ -19,11 +19,12 @@ using std::cin;
 #include <algorithm>
 #include "neff.C" // <-- note inclusion of source
 
-//#define DISABLEN16
-//#define DISABLELI
+// Should only be changed by near_fullb12_finalfit()
+static bool near = false;
+static string NEUTRONDEF = "laten";
 
-#define NEUTRONDEF "laten"
-const bool apply_dr_eff = strstr(NEUTRONDEF, "near") != NULL;
+// Reset at the top of fullb12_finalfit
+bool apply_dr_eff = true; 
 
 using std::vector;
 
@@ -109,46 +110,14 @@ void printtwice(const char * const msg, const int digits, ...)
 
 #include "mucount_finalfit.C"
 
-#define STD_POS_CUT  "mx**2+my**2 < 1050**2 && mz > -1175"
-#define STD_CHI2_CUT "rchi2 < 2"
-#define STD_IVDEDX_CUT "abs(fez + 62*ivdedx/2 - 8847.2) < 1000"
-
-#define STD
-
-#ifdef STD
-const char * const countcut = 
-  "ndecay == 0 && " STD_POS_CUT " && "
-  STD_IVDEDX_CUT " && " STD_CHI2_CUT;
-#endif
-
-#ifdef LESSPOS
-const char * const countcut = 
-  "ndecay == 0 && mx**2+my**2 < 900**2 && mz > -900 && "
-  STD_IVDEDX_CUT " && " STD_CHI2_CUT;
-#endif
-
-#ifdef LESSSLANT
-const char * const countcut = 
-  "ndecay == 0 && " STD_POS_CUT " && "
-  "abs(fez + 62*ivdedx/2 - 8847.2) < 600 && " STD_CHI2_CUT;
-#endif
-
-#ifdef LESSCHI2
-const char * const countcut = 
-  "ndecay == 0 && " STD_POS_CUT " && "
-  STD_IVDEDX_CUT " && rchi2 < 1.25";
-#endif
-
-#define CUT_PART_OK_FOR_FINDING_PACCN \
-STD_POS_CUT " && " \
-STD_IVDEDX_CUT " && " \
-STD_CHI2_CUT " && !earlymich"
+// set below
+static string countcut = "asergd!";
+static string CUT_PART_OK_FOR_FINDING_PACCN  = "skrree!";
 
 // The number of mu- stopping, regardless of what they atomicly or
-// nuclearly capture on
-const ve mum_count_ve = mucountfinalfit_cut(countcut, true /* far */);
-const double mum_count   = mum_count_ve.val;
-const double mum_count_e =  mum_count_ve.err;
+// nuclearly capture on, set below
+static double mum_count   = 0;
+static double mum_count_e = 0;
 
 /**********************************************************************/
 
@@ -171,8 +140,9 @@ const double err_capprob = sqrt(pow(errcapprob12,2)*(1-f13_HP)
                               + pow(errcapprob13,2)*f13_HP +
   pow(c_atomic_capture_prob_err/c_atomic_capture_prob * capprob, 2));
 
-const double c12nuc_cap = c_atomic_capture_prob*(1-f13_HP)*mum_count*capprob12;
-const double c13nuc_cap = c_atomic_capture_prob*f13_HP    *mum_count*capprob13;
+// Set below
+double c12nuc_cap = 0;
+double c13nuc_cap = 0;
 
 
 // Will subtract mean muon lifetime, 2028ns, and mean transit time for
@@ -449,8 +419,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // cut, this is only the non-betan rate. The multiper is to account
   // for the uncertainty in the Li-9 energy cut.
   static const double energymultiplier = 1 + li9eff_energy_e/li9eff_energy;
-  like += pow( p_li9n/(1-0.508)/0.44e-4/energymultiplier, 2)
-        + pow((p_li9 /(1-0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
+
+  //                      XXX no betan list for ND yet
+  like += pow( p_li9n/(1-(!near)*0.508)/0.44e-4/energymultiplier, 2)
+        + pow((p_li9 /(1-(!near)*0.508) - 2.4e-4)/0.9e-4/energymultiplier, 2);
 
 
   // Pull term to impose unitarity bound on products of C-13. Width is
@@ -750,10 +722,10 @@ void find_paccn(TTree * t)
   // compared to single neutrons, but clearly come correlated to each
   // other (i.e. the probability of two is not P(one)^2).
 
-  const double zero = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
-    "miche > 45 && miche < 80 && " NEUTRONDEF " == 0 && ndecay == 0");
-  const double one = t->GetEntries(CUT_PART_OK_FOR_FINDING_PACCN " && "
-    "miche > 45 && miche < 80 && " NEUTRONDEF " == 1 && ndecay == 0");
+  const double zero = t->GetEntries((CUT_PART_OK_FOR_FINDING_PACCN + " && "
+    "miche > 45 && miche < 80 && " + NEUTRONDEF + " == 0 && ndecay == 0").c_str());
+  const double one = t->GetEntries((CUT_PART_OK_FOR_FINDING_PACCN + " && "
+    "miche > 45 && miche < 80 && " + NEUTRONDEF + " == 1 && ndecay == 0").c_str());
 
   // To cover the several complications above (hopefully), assume
   // that the rate of accidentals is overestimated by this amount,
@@ -771,11 +743,58 @@ void find_paccn(TTree * t)
 }
 
 
-void fullb12_finalfit(const char * const cut =
-CUT_PART_OK_FOR_FINDING_PACCN
-"&& miche < 12 && e > 4 && e < 15 && "
-"timeleft > %f && dt < %f && " NEUTRONDEF " <= 2")
+void fullb12_finalfit()
 {
+  // Known by careful study to be good for FD (see tech note).  For ND, 
+  // with a very rough study, mz looks pure down to -1300 or so and
+  // sqrt(mx**2+my**2) out to 1400 given mz > -1300. So reusing the 
+  // FD cuts should be quite conservative.
+  string STD_POS_CUT = "mx**2+my**2 < 1050**2 && mz > -1175";
+
+  // ND: Another very rough study suggests full purity up to about
+  // this point. It might be ok to go to 6, but there was a mildly
+  // significant dip after 4.
+  string STD_CHI2_CUT = near?"rchi2 < 4":"rchi2 < 2";
+
+  // ND: As far as I can tell, a cut of the form used at the FD does
+  // nothing to improve the signal/bg at the ND. At the FD, there is a
+  // drop-off in purity on the high end of the cut (but not the low end
+  // -- that just cuts chimney muons, which may or may not be a good
+  // thing). But at the ND, the purity is pretty much flat.
+  string STD_IVDEDX_CUT =
+    near?"1":"abs(fez + 62*ivdedx/2 - 8847.2) < 1000";
+
+  countcut = 
+    "ndecay == 0 && " +
+    STD_POS_CUT + " && " +
+    STD_IVDEDX_CUT + " && " +
+    STD_CHI2_CUT;
+
+  // For ND, not at all clear that this gives a pure sample, and surely
+  // the contamination figures in consts.h are not justified for the ND
+  // even if this is reasonably pure.
+  CUT_PART_OK_FOR_FINDING_PACCN  = 
+    STD_POS_CUT + " && " +
+    STD_IVDEDX_CUT + " && " +
+    STD_CHI2_CUT;
+
+  // The number of mu- stopping, regardless of what they atomicly or
+  // nuclearly capture on
+  const ve mum_count_ve = mucountfinalfit_cut(countcut.c_str(), !near);
+  mum_count   = mum_count_ve.val;
+  mum_count_e =  mum_count_ve.err;
+
+  c12nuc_cap = c_atomic_capture_prob*(1-f13_HP)*mum_count*capprob12;
+  c13nuc_cap = c_atomic_capture_prob*f13_HP    *mum_count*capprob13;
+
+  const string cut = 
+  CUT_PART_OK_FOR_FINDING_PACCN
+  + string(near?"":"&& !earlymich") +
+  "&& miche < 12 && e > 4 && e < 15 && "
+  "timeleft > %f && dt < %f && " + NEUTRONDEF + " <= 2";
+
+  apply_dr_eff = strstr(NEUTRONDEF.c_str(), "near") != NULL;
+
   printtwice("The number of mu- stopping in the high-purity sample, "
              " regardless of what they atomicly or nuclearly capture "
              "on, is %f +- %f\n", 4, mum_count, mum_count_e);
@@ -787,7 +806,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
   printtwice("Number of C-12 captures %g\n", 2, c12nuc_cap);
   printtwice("Number of C-13 captures %g\n", 2, c13nuc_cap);
 
-  TFile *_file0 = TFile::Open(rootfile3up);
+  TFile *_file0 = TFile::Open(near?rootfile3up_near:rootfile3up);
   TTree * t = (TTree *)_file0->Get("t");
 
   find_paccn(t);
@@ -842,14 +861,14 @@ CUT_PART_OK_FOR_FINDING_PACCN
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
   tmpfile->cd();
-  selt = t->CopyTree(Form(cut, hightime+offset, hightime+offset));
+  selt = t->CopyTree(Form(cut.c_str(), hightime+offset, hightime+offset));
   selt->Write();
   events.clear();
 
   float dt, mx, my, mz, fq, fqiv;
   int nn, run, trig;
   selt->SetBranchAddress("dt", &dt);
-  selt->SetBranchAddress(NEUTRONDEF, &nn);
+  selt->SetBranchAddress(NEUTRONDEF.c_str(), &nn);
   selt->SetBranchAddress("mx", &mx);
   selt->SetBranchAddress("my", &my);
   selt->SetBranchAddress("mz", &mz);
@@ -865,7 +884,7 @@ CUT_PART_OK_FOR_FINDING_PACCN
     events.push_back(ev(
       dt-offset,
       nn,
-      neff_dt(fq, fqiv, mx, my, mz)
+      neff_dt(near?0:fq, fqiv, mx, my, mz)
 
       // Apply the dr efficiency if we are using a "near" neutron variable
       *(apply_dr_eff?neff_dr_800(mx, my, mz):1)
@@ -931,4 +950,11 @@ CUT_PART_OK_FOR_FINDING_PACCN
   mn->SetPrintLevel(-1);
   b13limit();
   mn->SetPrintLevel(0);
+}
+
+void near_fullb12_finalfit()
+{
+  near = true;
+  NEUTRONDEF = "latennear";
+  fullb12_finalfit();
 }
