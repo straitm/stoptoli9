@@ -43,11 +43,9 @@ struct ev{
   }
 };
 
+const int npar = 18;
 TMinuit * mn = NULL;
 TTree * selt = NULL;
-TF1 * zero= NULL;
-TF1 * one = NULL;
-TF1 * two = NULL;
 
 vector<ev> events;
 
@@ -650,6 +648,13 @@ double b13limit()
     const double prob = i*increment;
     mn->Command(Form("set par 3 %f", prob));
     mn->Command("Migrad 2000 1");
+
+    if(prob == 0){
+      printf("FIGURE const double pars_nob13[%d] = { ", npar);
+      for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+      printf("};\n");
+    }
+
     const double p = exp(bestchi2-mn->fAmin);
     printf("\n%8.6f %8.3g %8.3g ", prob, mn->fAmin-bestchi2, p);
     for(int j = 0; j < p*10 - 1; j++) printf("#");
@@ -796,7 +801,6 @@ void fullb12_finalfit()
 
   find_paccn(t);
 
-  const int npar = 18;
   mn = new TMinuit(npar);
   mn->SetPrintLevel(-1);
   mn->fGraphicsMode = false;
@@ -912,20 +916,26 @@ void fullb12_finalfit()
     TH1D * n1 = new TH1D("n1","",nbins,1, 501);
     TH1D * n2 = new TH1D("n2","",nbins,1, 501);
 
-    selt->Draw("dt >> n0", Form("%s && %s == 0", fullcut.c_str(), NEUTRONDEF.c_str()));
-    selt->Draw("dt >> n1", Form("%s && %s == 1", fullcut.c_str(), NEUTRONDEF.c_str()));
-    selt->Draw("dt >> n2", Form("%s && %s == 2", fullcut.c_str(), NEUTRONDEF.c_str()));
+    selt->Draw("dt >> n0", Form("%s && %s == 0", fullcut.c_str(),
+                                NEUTRONDEF.c_str()));
+    selt->Draw("dt >> n1", Form("%s && %s == 1", fullcut.c_str(),
+                                NEUTRONDEF.c_str()));
+    selt->Draw("dt >> n2", Form("%s && %s == 2", fullcut.c_str(),
+                                NEUTRONDEF.c_str()));
 
     printf("FIGURE const double n0contents[%d] = {", nbins+2);
-    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n0->GetBinContent(i));
+    for(int i = 0; i <= nbins+1; i++)
+      printf("%.9f, ", n0->GetBinContent(i));
     printf("};\n");
 
     printf("FIGURE const double n1contents[%d] = {", nbins+2);
-    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n1->GetBinContent(i));
+    for(int i = 0; i <= nbins+1; i++)
+      printf("%.9f, ", n1->GetBinContent(i));
     printf("};\n");
 
     printf("FIGURE const double n2contents[%d] = {", nbins+2);
-    for(int i = 0; i <= nbins+1; i++) printf("%.9f, ", n2->GetBinContent(i));
+    for(int i = 0; i <= nbins+1; i++)
+      printf("%.9f, ", n2->GetBinContent(i));
     printf("};\n");
 
     printf("FIGURE const double b12eff = %.9f;\n", b12eff);
@@ -939,23 +949,15 @@ void fullb12_finalfit()
   }
 
   mn->SetPrintLevel(0);
-  mn->Command("MINOS 2000 1 2 3");
-  puts("");
-  mn->Command("show min");
+  for(int i = 1; i <= 3; i++){
+    mn->Command(Form("MINOS 2000 %d", i));
+    puts("");
+    mn->Command("show min");
+  }
 
   printc12b12results();
   printc13b12nresults();
   printc13b13results();
-
-  zero= new TF1("zero",dispf0, 0, 100e3, npar);
-  one = new TF1("one", dispf1, 0, 100e3, npar);
-  two = new TF1("two", dispf2, 0, 100e3, npar);
-
-  for(int i = 0; i < npar; i++){
-    zero->SetParameter(i, getpar(i));
-    one ->SetParameter(i, getpar(i));
-    two ->SetParameter(i, getpar(i));
-  }
 
   mn->SetPrintLevel(-1);
   b13limit();
