@@ -950,7 +950,7 @@ void fullb12_finalfit()
 
   mn->SetPrintLevel(0);
   for(int i = 1; i <= 3; i++){
-    mn->Command(Form("MINOS 2000 %d", i));
+    mn->Command(Form("MINOS 5000 %d", i));
     puts("");
     mn->Command("show min");
   }
