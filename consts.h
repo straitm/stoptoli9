@@ -29,8 +29,16 @@ const char * const rootfilemusic_near =
 const char * const rootfile3up_near =
   "/cp/s4/strait/ndfido/near3up.root";
 
+// Throughgoing muon contamination in the high-purity sample for the
+// far detector
 const double mum_contamination = 0.0028,
              mum_contamination_err = 0.0019;
+
+// Same, for the near detector.
+// Currently set to dummy guess values.  Pretty sure the contamination
+// is higher, but don't know how much.
+const double mum_contamination_near = 0.05,
+             mum_contamination_err_near = 2*mum_contamination_near/sqrt(12.);
 
 const double mass_n14targ = 4.763769, mass_n14gc = 2.831346;
 const double mass_o16targ = 20.865041,
