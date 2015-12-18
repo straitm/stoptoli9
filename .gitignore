@@ -29,4 +29,5 @@ seq?.ntuple.root
 *.technote
 .~*#
 *.out.h
+*.out.fig.h
 b12search-SL5
