@@ -147,9 +147,6 @@ double c13nuc_cap = 0;
 // light from B-12, 12ns. Doesn't make a real difference.
 const double offset = 2.040e-3;
 
-TH2D * hdisp = new TH2D("hdisp", "", 3, 0, 3, 50, 1-offset, 501-offset);
-
-
 const double lowtime = 1.0 - offset;
 const double hightime = 100e3;
 const double totaltime = hightime - lowtime;
@@ -428,30 +425,6 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   static const double likeoffset = 252637;
 
   like += likeoffset;
-}
-
-double dispf0(double * x, double * par)
-{
-  DECODEPARS;
-  return hdisp->GetYaxis()->GetBinWidth(1)*
-    zeron_f(-x[0], acc, paccn, meaneff[0]+neffdelta, n_b12, n_b12n,
-            b12t, n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
-}
-
-double dispf1(double * x, double * par)
-{
-  DECODEPARS;
-  return hdisp->GetYaxis()->GetBinWidth(1)*
-    onen_f(-x[0], accn, paccn, meaneff[1]+neffdelta, n_b12, n_b12n,
-           b12t, n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
-}
-
-double dispf2(double * x, double * par)
-{
-  DECODEPARS;
-  return hdisp->GetYaxis()->GetBinWidth(1)*
-    twon_f(-x[0], accn2, paccn, meaneff[2]+neffdelta, n_b12, b12t,
-           n_li8, li8t, n_li9, li9t);
 }
 
 double getpar(int i)
@@ -809,7 +782,7 @@ void fullb12_finalfit()
   int err;
   mn->mnparm(0, "p_b12", 0.2,  0.001, 0, 2, err);
   mn->mnparm(1, "p_b12n",0.5,  0.01,  0, 2, err);
-  mn->mnparm(2, "p_b13", 0.2,  0.01,  0, 2, err);
+  mn->mnparm(2, "p_b13", 0.2,  0.01,  0, unitarity?2:10, err);
   mn->mnparm(3, "p_li8", 0.01,  0.01, 0, 2, err);
   mn->mnparm(4, "p_li8n",0.05,  0.01, 0, 2, err);
   mn->mnparm(5, "p_li9", 0.01,  0.01, 0, 2, err);
@@ -819,13 +792,12 @@ void fullb12_finalfit()
   mn->mnparm(9, "accn",  0.1,  0.001, 0, 10, err);
   mn->mnparm(10, "accn2", 0.01, 0.001, 0, 1, err);
 
-  // Sometimes the B-12 lifetime spins out of control.  Not sure why,
-  // but constrain it to be somewhat reasonable.
-  mn->mnparm(11, "b12t", 0,  b12life_err/b12life, -5, +5, err);
-  mn->mnparm(12, "b13t", 0,  b13life_err/b13life, -5, +5, err);
-  mn->mnparm(13, "li8t", 0,  li8life_err/li8life, -5, +5, err);
-  mn->mnparm(14, "li9t", 0,  li9life_err/li9life, -5, +5, err);
-  mn->mnparm(15, "n16t", 0,  n16life_err/n16life, -5, +5, err);
+  // All constrained with pull terms
+  mn->mnparm(11, "b12t", 0,  b12life_err/b12life, 0, 0, err);
+  mn->mnparm(12, "b13t", 0,  b13life_err/b13life, 0, 0, err);
+  mn->mnparm(13, "li8t", 0,  li8life_err/li8life, 0, 0, err);
+  mn->mnparm(14, "li9t", 0,  li9life_err/li9life, 0, 0, err);
+  mn->mnparm(15, "n16t", 0,  n16life_err/n16life, 0, 0, err);
   mn->mnparm(16, "neffdelta", 0,  0.01, 0, 0, err);
   mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
 
@@ -863,7 +835,6 @@ void fullb12_finalfit()
       ,
 
       isibd(run, trig)));
-    hdisp->Fill(nn, dt-offset);
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }
   puts("");
@@ -883,10 +854,12 @@ void fullb12_finalfit()
     printf("Mean neutron efficiency: %f\n", emean);
   }
 
-  // I know that MIGRAD often fails, so instead of doing MINIMIZE, do
-  // SIMPLEX in the first place to save a little time and get it to
-  // converge. I think SIMPLEX is needed because the way I implement the
-  // unitarity constraint is really harsh on MIGRAD.
+  // I know that MIGRAD often fails, so instead of doing MINIMIZE,
+  // do SIMPLEX in the first place to save a little time and get it
+  // to converge. I'm not sure why MIGRAD tends to fail. At first I
+  // thought it was because the way I implement the unitarity constraint
+  // is really harsh, but then I found it still fails without the
+  // constraint.
   const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
   for(int i = 0; i < 3; i++){
     printf("\n%s", commands[i]);
@@ -911,7 +884,7 @@ void fullb12_finalfit()
 
     printf("FIGURE const double mum_count = %.9f;\n", mum_count);
 
-    const int nbins = 50;
+    const int nbins = 250;
     TH1D * n0 = new TH1D("n0","",nbins,1, 501);
     TH1D * n1 = new TH1D("n1","",nbins,1, 501);
     TH1D * n2 = new TH1D("n2","",nbins,1, 501);
@@ -938,6 +911,10 @@ void fullb12_finalfit()
       printf("%.9f, ", n2->GetBinContent(i));
     printf("};\n");
 
+    printf("FIGURE const int nbin = %d;\n", n0->GetNbinsX());
+    printf("FIGURE const double lowx = %.9f;\n", n0->GetBinLowEdge(1));
+    printf("FIGURE const double highx = %.9f;\n",
+           n0->GetBinLowEdge(n0->GetNbinsX()+1));
     printf("FIGURE const double b12eff = %.9f;\n", b12eff);
     printf("FIGURE const double b13eff = %.9f;\n", b13eff);
     printf("FIGURE const double li8eff = %.9f;\n", li8eff);
@@ -949,11 +926,8 @@ void fullb12_finalfit()
   }
 
   mn->SetPrintLevel(0);
-  for(int i = 1; i <= 3; i++){
+  for(int i = 1; i <= 3; i++)
     mn->Command(Form("MINOS 5000 %d", i));
-    puts("");
-    mn->Command("show min");
-  }
 
   printc12b12results();
   printc13b12nresults();
