@@ -164,15 +164,15 @@ const double li9eff_energy_e = 0.05; // made up!
 // time until end of run
 const double eor_eff = (livetime_s - num_runs*(hightime+offset)/1e3)/livetime_s;
 
-const double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
+/* const */ double b12eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b12energyeff;
 const double b12ferr_energy = b12energyeff_e/b12energyeff;
 
-const double b13eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b13energyeff;
+/* const */ double b13eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * b13energyeff;
 const double b13ferr_energy = b13energyeff_e/b13energyeff;
 
-const double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8energyeff4MeV;
+/* const */ double li8eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li8energyeff4MeV;
 
-const double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
+/* const */ double li9eff = mich_eff * light_noise_eff * eor_eff * sub_muon_eff05 * li9eff_energy;
 
 // Measured probablity of getting one accidental neutron.
 static double nom_paccn = 0; // replaced by find_paccn()
@@ -368,6 +368,7 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
         f = twon_f(mt, accn2, neff, paccn, n_b12n, b12t, n_li8n, li8t, n_li9n, li9t);
         break;
       default:
+        // Has turned out to be a useful check!
         printf("NOT REACHED with %d neutrons\n", events[i].n);
         break;
     }
@@ -608,9 +609,8 @@ double b13limit()
 {
   double sump = 0;
 
-  unsigned int smallcount = 0;
   const double increment = 0.05;
-  const int N = 20;
+  const int N = 21;
   double ps[N];
 
   const double bestchi2 = mn->fAmin;
@@ -622,8 +622,9 @@ double b13limit()
     mn->Command(Form("set par 3 %f", prob));
     mn->Command("Migrad 2000 1");
 
-    if(prob == 0){
-      printf("FIGURE const double pars_nob13[%d] = { ", npar);
+    if(prob == 0 || fabs(prob-1) < 1e-5){
+      printf("FIGURE const double pars_%sb13[%d] = { ",
+             prob == 0?"no":"all", npar);
       for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
       printf("};\n");
     }
@@ -636,7 +637,6 @@ double b13limit()
     printf("\n");
     sump += p;
     ps[i] = p;
-    if(p < 1e-6 && ++smallcount > 3) break;
   }
 
   printf("Norm: %f\n", sump);
@@ -656,9 +656,6 @@ double b13limit()
        break;
     }
   }
-
-  if(smallcount <= 3)
-    printf("Not sure you integrated out far enough\n");
 
   mn->Command("release 3");
   mn->Command("Migrad");
@@ -714,6 +711,16 @@ void fullb12_finalfit()
   // FD cuts should be quite conservative.
   string STD_POS_CUT = "mx**2+my**2 < 1050**2 && mz > -1175";
 
+  // XXX dr efficiency
+  if(near){
+    const double dreff = /* for 600 vs. 1000 : */ 0.65
+                       * /* for 1000: */ (0.1603 + 0.003)/0.1735;
+    b12eff *= dreff;
+    b13eff *= dreff;
+    li8eff *= dreff;
+    li9eff *= dreff;
+  }
+
   // ND: Another very rough study suggests full purity up to about
   // this point. It might be ok to go to 6, but there was a mildly
   // significant dip after 4.
@@ -753,8 +760,9 @@ void fullb12_finalfit()
   const string cut = 
   CUT_PART_OK_FOR_FINDING_PACCN
   + string(near?"":"&& !earlymich") +
-  "&& miche < 12 && e > 4 && e < 15 && "
-  "timeleft > %f && dt < %f && " + NEUTRONDEF + " <= 2";
+  "&& miche < 12 && e > 4 && e < 15 "
+  " && dist < 600 " // XXX not standard, just testing
+  "&& timeleft > %f && dt < %f && " + NEUTRONDEF + " <= 2";
 
   apply_dr_eff = strstr(NEUTRONDEF.c_str(), "near") != NULL;
 
