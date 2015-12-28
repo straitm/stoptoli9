@@ -11,7 +11,10 @@ fi
 sli9dir=/home/cp/strait/stoptoli9/
 datadir=/cp/s4/strait/
 
-JP=$datadir/jplighttree/SEQ13/data.$run.root
+JP=$datadir/jplighttree/SEQ14/data.$run.root
+if ! [ -e $JP ]; then
+  JP=$datadir/jplighttree/SEQ13/data.$run.root
+fi
 if ! [ -e $JP ]; then
   JP=$datadir/jplighttree/SEQ12/data.$run.root
 fi
@@ -21,5 +24,5 @@ if ! [ -e $JP ]; then
 fi
 
 
-root -l -b -n -q $sli9dir/preselectforfido.C'("'$JP'")' \
+root -l -b -n -q $sli9dir/preselectforfido.C+'("'$JP'")' \
 | grep -vE '^$|Processing' > $listout
