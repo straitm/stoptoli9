@@ -1961,6 +1961,7 @@ int main(int argc, char ** argv)
           argv[i], argv[i+1],
           long(chtree->GetEntries()), long(fitree->GetEntries()));
         errcode |= 0x10;
+        goto cleanup;
       }
     }
     else{ // JP tree is expected to have fewer entries
@@ -1970,6 +1971,7 @@ int main(int argc, char ** argv)
           argv[i], argv[i+1],
           long(chtree->GetEntries()), long(fitree->GetEntries()));
         errcode |= 0x10;
+        goto cleanup;
       }
     }
 
