@@ -10,6 +10,7 @@
 #include "TF1.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TError.h"
 #include "TROOT.h"
 #include <stdio.h>
 #include <vector>
@@ -609,8 +610,8 @@ double b13limit()
 {
   double sump = 0;
 
-  const double increment = 0.05;
-  const int N = 21;
+  const double increment = 0.1;
+  const int N = 11;
   double ps[N];
 
   const double bestchi2 = mn->fAmin;
@@ -705,6 +706,8 @@ void find_paccn(TTree * t)
 
 void fullb12_finalfit()
 {
+  gErrorIgnoreLevel = kError;
+
   // Known by careful study to be good for FD (see tech note).  For ND, 
   // with a very rough study, mz looks pure down to -1300 or so and
   // sqrt(mx**2+my**2) out to 1400 given mz > -1300. So reusing the 
@@ -713,8 +716,8 @@ void fullb12_finalfit()
 
   // XXX dr efficiency
   if(near){
-    const double dreff = /* for 600 vs. 1000 : */ 0.65
-                       * /* for 1000: */ (0.1603 + 0.003)/0.1735;
+    const double dreff = 1; // /* for 600 vs. 1000 : */ 0.65
+                       1; // * /* for 1000: */ (0.1603 + 0.003)/0.1735;
     b12eff *= dreff;
     b13eff *= dreff;
     li8eff *= dreff;
@@ -761,7 +764,7 @@ void fullb12_finalfit()
   CUT_PART_OK_FOR_FINDING_PACCN
   + string(near?"":"&& !earlymich") +
   "&& miche < 12 && e > 4 && e < 15 "
-  " && dist < 600 " // XXX not standard, just testing
+  //" && dist < 600 " // XXX not standard, just testing
   "&& timeleft > %f && dt < %f && " + NEUTRONDEF + " <= 2";
 
   apply_dr_eff = strstr(NEUTRONDEF.c_str(), "near") != NULL;
