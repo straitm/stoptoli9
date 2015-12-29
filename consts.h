@@ -27,7 +27,7 @@ const char * const rootfilemusic_near =
   "/cp/s4/strait/DC_ND_Muon_Surface_Dist_Ecut_both.root";
 
 const char * const rootfile3up_near =
-  "/cp/s4/strait/ndfido/near3up.root";
+  "/cp/s4/strait/ndfido/near3up.seq7.root";
 
 // Throughgoing muon contamination in the high-purity sample for the
 // far detector
