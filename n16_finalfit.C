@@ -124,13 +124,10 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   like *= 2;
 
-  // pull term for N-16, which is already measured by other people to be
-  // 11+-1%. I take this to be 10.7+-1, where I recompute the central
-  // value from Measday table 5.13, Kane column, but take Measday's 1%
-  // error rather than the ~0.5% that Kane's errors sum to since he
-  // probably knows better than me how much to trust Kane's errors.
-  like += dopull * pow((n16 - n16eff*Ocaptures*0.107/n16life*1e3)/
-                             (n16eff*Ocaptures*0.025/n16life*1e3), 2);
+  // pull term for N-16
+  like += dopull *
+    pow((n16 - n16eff*Ocaptures*n16prob_measday    /n16life*1e3)/
+              (n16eff*Ocaptures*n16prob_measday_err/n16life*1e3), 2);
 }
 
 static void scalemarker(TMarker * m)

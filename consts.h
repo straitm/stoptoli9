@@ -89,7 +89,7 @@ const double f_neff_dr_800_h_error = neff_dr_800_h_corr/2/neff_dr_800_h;
 const double f_neff_dr_1000_h_error = neff_dr_1000_h_corr/2/neff_dr_1000_h;
 
 // Taking the plot from doc-4807, slide 3, corrected by MC correction
-// factor from doc-4450, slide 8.  And see above comments on the _h 
+// factor from doc-4450, slide 8.  And see above comments on the _h
 // figures.
 const double neff_dr_800_gd_corr  = 0.020;
 const double neff_dr_1000_gd_corr = 0.009;
@@ -142,7 +142,7 @@ const double b12lineEsyst[4] = { 0.00170994 / 0.315747,
                                  0.00107529/0.464471,
                                  0.000441855/0.0258321};
 
-// Systematic error on B-12 gamma lines due to uncertainly on neutron 
+// Systematic error on B-12 gamma lines due to uncertainty on neutron
 // background.  Technote section 11.7
 const double b12lineNsyst[4] = { 0,
                                  0.03,
@@ -253,3 +253,13 @@ const double li9bn = 0.5080,
              li11bn = 0.789; // Li-11 does *not* include beta-2n
                              // decays, (4.1%) because these
                              // will fail the multiplicity cut.
+
+// O-16 -> N-16 probability from external measurements. Measday gives
+// this as 11+-1%. I take this to be 10.7+-1, where I recompute the
+// central value from Measday table 5.13, Kane column, but take
+// Measday's 1% error rather than the ~0.5% that Kane's errors sum to
+// since he probably knows better than me how much to trust Kane's
+// errors, and then I blow up the error to account for not really
+// knowing how many oxygen captures we have.
+const double n16prob_measday     = 0.107,
+             n16prob_measday_err = 0.025;
