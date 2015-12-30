@@ -4,6 +4,19 @@
 #include "totallivetime_finalfit.out.h"
 #include "li8cutefficiency_finalfit.out.h"
 #include "b12cutefficiency_finalfit.out.h"
+
+/*** BEGIN For near detector pull terms ***/
+#include "li9_finalfit_1.out.h"
+#include "li9_finalfit_-1.out.h"
+#include "li8_finalfit.out.h"
+
+#include "noncarbondenominators_finalfit.out.h"
+
+// XXX awkward since carbondenominators has mum_count in it.
+const double n_c12cap     = 360.9878604679215073;
+//#include "carbondenominators_finalfit.out.h"
+/*** END For near detector pull terms ***/
+
 #include "TFile.h"
 #include "TMinuit.h"
 #include "TTree.h"
@@ -391,6 +404,21 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
           // and the accidental neutron probability
         + pow((paccn - nom_paccn)/paccn_e, 2);
+
+  if(near){
+    // Use FD constraints on Li-8 and Li-9 production
+    like +=
+    + pow((p_li8 -probEightLiFromTwelveC)/probEightLiFromTwelveC_statup, 2)
+    + pow((p_li8n-probEightLiFromThirteenC)/probEightLiFromThirteenC_statup, 2)
+    + pow((p_li9 -probNineLiFromTwelveC)/probNineLiFromTwelveC_uperr, 2)
+    + pow((p_li9n-primaryresult/f13)/(primaryresult_uperr/f13), 2);
+
+    // Use Measday's data for constraint on N-16 production
+    const double o16nuc_cap = c12nuc_cap*n_o16cap_beta/n_c12cap;
+    const double n16expected = o16nuc_cap * n16prob_measday;
+    const double n16err = o16nuc_cap * n16prob_measday_err;
+    like += pow((n_n16 - n16expected)/n16err, 2);
+  }
 
 
   // pull terms for Li-9 from the betan analysis. Assume zero production
@@ -937,8 +965,17 @@ void fullb12_finalfit()
   }
 
   mn->SetPrintLevel(0);
-  for(int i = 1; i <= 3; i++)
-    mn->Command(Form("MINOS 5000 %d", i));
+  for(int i = 1; i <= 2; i++){
+    int fails = 0;
+    while(4 == mn->Command(Form("MINOS 10000 %d", i))){
+      if(++fails >= 3){
+        fprintf(stderr, "giving up on MINOS %d\n", i);
+        break;
+      }
+      fprintf(stderr, "retrying MINOS %d\n", i);
+    }
+
+  }
 
   printc12b12results();
   printc13b12nresults();
