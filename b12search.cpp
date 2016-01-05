@@ -920,7 +920,7 @@ static inline void get_##old(TBranch * const br, const int i, \
 
 TRANS(ctmqtqall, Qratio[0]); // or 1?
 TRANS(ctrmsts, RMSTstart);
-TRANS(ctEvisID, EvisID);
+TRANS(ctEvisID, EvisIDg[0]);
 TRANS(qrms, QRMS);
 TRANS(qdiff, Qdiff);
 TRANS(run, RunNumber);
@@ -2073,11 +2073,17 @@ int main(int argc, char ** argv)
     cSBA2(run, RunNumber);
     cSBA2(trgId, TriggerID);
 
-    // Can't use cSBA2 because one is an array and the other isn't
+    // Can't use cSBA2 for these two because one is an array and the
+    // other isn't.
     if(!strcmp(chtree->GetName(), "data"))
       chtree->SetBranchAddress("ctmqtqall", &parts.ctmqtqall);
     else
       chtree->SetBranchAddress("Qratio", parts.Qratio);
+
+    if(!strcmp(chtree->GetName(), "data"))
+      chtree->SetBranchAddress("ctEvisID", &parts.ctEvisID);
+    else
+      chtree->SetBranchAddress("EvisIDg", parts.EvisIDg);
 
     cSBA2(ctrmsts, RMSTstart);
 
@@ -2085,8 +2091,6 @@ int main(int argc, char ** argv)
     // unsigned short called OVTrigCoin, as compared to coinov, a bool.
     if(!strcmp(chtree->GetName(), "data"))
       chtree->SetBranchAddress("coinov", &parts.coinov);
-
-    cSBA2(ctEvisID, EvisID);
 
     cSBA2(qrms, QRMS);
     cSBA2(qdiff, Qdiff);
