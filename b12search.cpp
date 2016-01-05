@@ -1255,17 +1255,19 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
   // again.
   expire_tmuons(tmuons, mutime);
 
+
+  // "main" loop that looks for beta decays
   for(unsigned int i = muoni+1; i < chtree->GetEntries(); i++){
 
     trgtimebr->GetEntry(i);
     get_trgId(trgIdbr, i, whichname, bits, fitree);
 
     const double itime = bits.trgtime;
-    const double dt_ms = (itime - mutime)/1e6;
-    const double ttlastvalid =(itime-lastvalidtime  )/1e6;
-    const double ttlastmuon  =(itime-lastmuontime   )/1e6;
-    const double ttlastbufmuon=(itime-lastbufmuontime )/1e6;
-    const double ttlastgcmuon=(itime-lastgcmuontime )/1e6;
+    const double dt_ms         = (itime - mutime         )/1e6;
+    const double ttlastvalid   = (itime - lastvalidtime  )/1e6;
+    const double ttlastmuon    = (itime - lastmuontime   )/1e6;
+    const double ttlastbufmuon = (itime - lastbufmuontime)/1e6;
+    const double ttlastgcmuon  = (itime - lastgcmuontime )/1e6;
 
      // NOTE-luckplan
      #define MUONFORM \
@@ -1329,10 +1331,11 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       bits.ctEvisID = bits.ctq/34e3;
     }
 
-    // Ignore low energy accidentals and H-neutrons
+    // Depending what minenergy is, perhaps ignore low energy
+    // accidentals and/or H-neutrons
     if(bits.ctEvisID < minenergy) goto end;
 
-    // Ignore events above the end point + res
+    // Ignore events above the end point of interest + resolution
     if(bits.ctEvisID > maxenergy) goto end;
 
     fido_qivbr->GetEntry(bits.trgId);
