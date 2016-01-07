@@ -48,7 +48,7 @@ struct dataparts{
   float ctX[3];
   double Vtx_BAMA[3]; // incompatible type in JP tree
   float ctEvisID;
-  double EvisID; // incompatible type in JP tree
+  double EvisIDg[3]; // incompatible type in JP tree
   float qrms, qdiff;
   double QRMS, Qdiff; // incompatible type in JP tree
 
