@@ -25,7 +25,7 @@ ve mucountfinalfit_cut(const char * const cut, const bool far, TTree * intree = 
 
   ve answer;
   answer.val = rawcount*mumf*(1-con);
-  answer.err = sqrt(pow(rawcount*con_e,2) +pow(rawcount*mumf*con_e,2));
+  answer.err = rawcount*sqrt(pow((1-con)*mumf_e,2) +pow(mumf*con_e,2));
   printf("Translated to mu- & corrected for contamination: %f +- %f\n",
     answer.val, answer.err);
 
