@@ -371,7 +371,11 @@ static inline double kahan_sum(const double * const numbers,
   return sum;
 }
 
-void fcn(int & npar, double * gin, double & like, double *par, int flag)
+void fcn(__attribute__((unused)) int & X,
+         __attribute__((unused)) double * gin,
+                                 double & like,
+                                 double *par,
+         __attribute__((unused)) int flag)
 {
   DECODEPARS;
 
@@ -682,7 +686,7 @@ double b13limit()
     if(prob == 0 || fabs(prob-1) < 1e-5){
       printf("FIGURE const double pars_%sb13[%d] = { ",
              prob == 0?"no":"all", npar);
-      for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+      for(int j = 0; j < npar; j++) printf("%.9f, ", getpar(j));
       printf("};\n");
     }
 
@@ -1026,4 +1030,9 @@ void near_fullb12_finalfit()
   near = true;
   NEUTRONDEF = "latennear";
   fullb12_finalfit();
+}
+
+int main()
+{
+  near_fullb12_finalfit();
 }

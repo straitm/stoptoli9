@@ -1,4 +1,4 @@
-all: stoptoli9 b12search
+all: stoptoli9 b12search near_fullb12_finalfit
 
 # No code depends on these results.  They are just to illustrate examples 
 # in the technote.
@@ -319,6 +319,10 @@ noncarbondenominators_finalfit.out.h: \
 
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -Wshadow
+
+near_fullb12_finalfit: near_fullb12_finalfit.C
+	g++ -ffast-math -O3 -o near_fullb12_finalfit near_fullb12_finalfit.C \
+      `root-config --libs --cflags` -lMinuit -Wall -Wextra -Wshadow
 
 b12search.o: b12search.cpp search.h
 	g++ -ffast-math -O3 -c b12search.cpp `root-config --cflags` -Wall -Wextra -Wshadow
