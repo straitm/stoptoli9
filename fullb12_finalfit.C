@@ -45,15 +45,13 @@ using std::vector;
 bool unitarity = true;
 
 struct ev{
-  double t; // time
-  int n; // number of neutrons
+  double mt; // negative time
   double e; // nominal neutron efficiency
-  bool i; // is IBD?
-  ev(double t_, int n_, double e_, bool i_){
-    t = t_;
+  int n; // number of neutrons
+  ev(double t /* positive time goes in */, int n_, double e_){
+    mt = -t; // negative time comes out
     n = n_;
     e = e_;
-    i = i_;
   }
 };
 
@@ -194,6 +192,8 @@ static double paccn_e = 0; // ditto
 
 bool isibd(const int in_run, const int in_trig)
 {
+  if(near) return false; // XXX until/unless we have an IBD list
+
   static bool firsttime = true;
   static vector< pair<int,int> > ibds;
 
@@ -223,12 +223,12 @@ bool isibd(const int in_run, const int in_trig)
   return false;
 }
 
-double clamp(double x, double lo, double hi)
+static inline double clamp(double x, double lo, double hi)
 {
   return x < lo? lo: x > hi? hi: x;
 }
 
-double zeron_f(
+static inline double zeron_f(
 const double mt, const double acc,const double paccn, const double neff,
 const double n_b12, const double n_b12n, const double b12t,
 const double n_li8, const double n_li8n, const double li8t,
@@ -240,8 +240,8 @@ const double n_n16, const double n16t)
   // event without an accidental or from a real one-neutron event with
   // an inefficiency and without an accidental. (Does ROOT optimize
   // these? No idea.)
-  double unpaccn = 1-paccn;
-  double uneffunpaccn = (1-neff)*unpaccn; // function of pars
+  const double unpaccn = 1-paccn;
+  const double uneffunpaccn = (1-neff)*unpaccn; // function of pars
   return acc +
     (unpaccn*n_b12 + uneffunpaccn*n_b12n)/b12t*exp(mt/b12t) +
     // For B-13 and N-16, there are no real one-neutron events, so it
@@ -254,7 +254,7 @@ const double n_n16, const double n16t)
     ;
 }
 
-double onen_f(
+static inline double onen_f(
 const double mt,const double accn,const double paccn, const double neff,
 const double n_b12, const double n_b12n, const double b12t,
 const double n_li8, const double n_li8n, const double li8t,
@@ -277,7 +277,7 @@ const double n_n16, const double n16t)
   ;
 }
 
-double twon_f(
+static inline double twon_f(
 const double mt,const double accn2,const double neff,const double paccn,
 const double n_b12n, const double b12t,
 const double n_li8n, const double li8t,
@@ -344,6 +344,33 @@ double unit_penalty(const double x)
   return mlogprior;
 }
 
+// Sums the input array, losing the minimum precision via the Kahan
+// Summation Algorithm.
+// See https://en.wikipedia.org/wiki/Kahan_summation_algorithm
+//
+// This may help MIGRAD converge by providing a smoother function. Note,
+// however, that it requires storing all the intermediate numbers in
+// memory, which in some cases means reducing from 80-bit floats to
+// 64-bit ones. But at least it will be consistent, and I think that
+// MINUIT figures out what the effective precision is.
+//
+// In theory, an optimizing compiler with options like GCC's -ffast-math
+// set could analyze this function, see that c is algebraically always
+// zero, and eliminate it, thereby destroying the algorithm. In
+// practice, we use GCC and it doesn't happen.
+static inline double kahan_sum(const double * const numbers,
+                              const unsigned int n)
+{
+  double sum = 0, c = 0;
+  for(unsigned int i = 0; i < n; i++){
+    const double y = numbers[i] - c;
+    const double t = sum + y;
+    c = (t - sum) - y;
+    sum = t;
+  }
+  return sum;
+}
+
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   DECODEPARS;
@@ -358,36 +385,35 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
 
   like = norm;
 
-  {
-    static int dotcount = 0;
-    if(mn->fCfrom != "CONtour   " && dotcount++%128 == 0){
-      printf(".");  fflush(stdout); }
-  }
-
+  vector<double> per_event_like(events.size());
   for(unsigned int i = 0; i < events.size(); i++){
-    const double mt = -events[i].t;
     const double neff = clamp(events[i].e + neffdelta, 0.00, 1.00);
 
     double f = 0;
     switch(events[i].n){
       case 0:
-        f = zeron_f(mt, acc, paccn, neff, n_b12, n_b12n, b12t,
-                    n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+        f = zeron_f(events[i].mt, acc, paccn, neff, n_b12, n_b12n, b12t,
+                    n_li8, n_li8n, li8t, n_li9, n_li9n, li9t,
+                    n_b13, b13t, n_n16, n16t);
         break;
       case 1:
-        f = onen_f(mt, accn, paccn, neff, n_b12, n_b12n, b12t,
-                   n_li8, n_li8n, li8t, n_li9, n_li9n, li9t, n_b13, b13t, n_n16, n16t);
+        f = onen_f(events[i].mt, accn, paccn, neff, n_b12, n_b12n, b12t,
+                   n_li8, n_li8n, li8t, n_li9, n_li9n, li9t,
+                   n_b13, b13t, n_n16, n16t);
         break;
       case 2:
-        f = twon_f(mt, accn2, neff, paccn, n_b12n, b12t, n_li8n, li8t, n_li9n, li9t);
+        f = twon_f(events[i].mt, accn2, neff, paccn, n_b12n, b12t,
+                   n_li8n, li8t, n_li9n, li9t);
         break;
       default:
         // Has turned out to be a useful check!
         printf("NOT REACHED with %d neutrons\n", events[i].n);
         break;
     }
-    if(f > 0) like -= log(f);
+    per_event_like[i] = f > 0? -log(f): 0;
   }
+
+  like += kahan_sum(&(per_event_like[0]), events.size());
 
   like *= 2; // Convert to "chi2"
 
@@ -452,9 +478,11 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   // up the muon track, here admitted since I don't use a distance cut?
   if(unitarity) like += unit_penalty(p_b12n +p_b13 /* +p_li8n +p_li9*/);
 
-  static const double likeoffset = 252637;
-
-  like += likeoffset;
+  if(mn->fCfrom != "CONtour   "){
+    static int dotcount = 0;
+    printf("%d %16f\n", dotcount++, like);
+    fflush(stdout);
+  }
 }
 
 double getpar(int i)
@@ -731,6 +759,11 @@ void find_paccn(TTree * t)
   printf("Accidental neutron prob: %.6g +- %.6g\n", nom_paccn, paccn_e);
 }
 
+static bool compare_events(const ev & a, const ev & b)
+{
+  if(a.n != b.n) return a.mt < b.mt;
+  return a.n < b.n;
+}
 
 void fullb12_finalfit()
 {
@@ -745,7 +778,7 @@ void fullb12_finalfit()
   // XXX dr efficiency
   if(near){
     const double dreff = 1; // /* for 600 vs. 1000 : */ 0.65
-                       1; // * /* for 1000: */ (0.1603 + 0.003)/0.1735;
+                         // /* * * for 1000: */ (0.1603 + 0.003)/0.1735;
     b12eff *= dreff;
     b13eff *= dreff;
     li8eff *= dreff;
@@ -779,11 +812,14 @@ void fullb12_finalfit()
     STD_IVDEDX_CUT + " && " +
     STD_CHI2_CUT;
 
+  TFile *_file0 = TFile::Open(near?rootfile3up_near:rootfile3up);
+  TTree * t = (TTree *)_file0->Get("t");
+
   // The number of mu- stopping, regardless of what they atomicly or
   // nuclearly capture on
-  const ve mum_count_ve = mucountfinalfit_cut(countcut.c_str(), !near);
+  const ve mum_count_ve=mucountfinalfit_cut(countcut.c_str(), !near, t);
   mum_count   = mum_count_ve.val;
-  mum_count_e =  mum_count_ve.err;
+  mum_count_e = mum_count_ve.err;
 
   c12nuc_cap = c_atomic_capture_prob*(1-f13_HP)*mum_count*capprob12;
   c13nuc_cap = c_atomic_capture_prob*f13_HP    *mum_count*capprob13;
@@ -807,9 +843,6 @@ void fullb12_finalfit()
   printtwice("Li-9 selection efficiency is %f%%\n", 2, li9eff*100);
   printtwice("Number of C-12 captures %g\n", 2, c12nuc_cap);
   printtwice("Number of C-13 captures %g\n", 2, c13nuc_cap);
-
-  TFile *_file0 = TFile::Open(near?rootfile3up_near:rootfile3up);
-  TTree * t = (TTree *)_file0->Get("t");
 
   find_paccn(t);
 
@@ -871,12 +904,13 @@ void fullb12_finalfit()
 
       // Apply the dr efficiency if we are using a "near" neutron variable
       *(apply_dr_eff?neff_dr_800(mx, my, mz):1)
-      ,
 
-      isibd(run, trig)));
+      ));
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }
-  puts("");
+  printf("%d events to be used in the fit\n", (int)events.size());
+  std::sort(events.begin(), events.end(), compare_events);
+  printf("Sorted by time and number of neutrons\n");
 
   {
     double emean = 0;
