@@ -20,6 +20,11 @@ enum searchtype{ b12, be12, neutron, buffer };
 // True if we are processing ND data.
 static bool near = true;
 
+// Ug. If we want to study michels, make the ND number bigger, like
+// 30000 perhaps. But otherwise, it just means admitting lots of
+// background to the gamma sample.
+static double max_micht = 5500;
+
 static double distcut = 0;
 static double maxtime = 1000;
 static double minenergy = 4;
@@ -1098,10 +1103,6 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     * const ctqbr           = chtree->GetBranch(ctq_name[whichname]),
     * const trgtimebr       = chtree->GetBranch(trgtime_name[whichname]);
 
-  // Ug. If we want to study michels, make the ND number bigger, like
-  // 30000 perhaps. But otherwise, it just means admitting lots of
-  // background to the gamma sample.
-  const double max_micht = near?5500:5500;
   const double max_time_probably_a_mich = 5500;
 
 
@@ -1753,6 +1754,10 @@ int main(int argc, char ** argv)
 
     fprintf(stderr, "\nA distcut of zero means unlimited\n");
 
+    fprintf(stderr, "\nThe environment variable MAXMICHT can be used "
+      "to change the time\n window in which we search for Michel "
+      "decays and gammas\n");
+
     exit(1);
   }
 
@@ -1767,6 +1772,9 @@ int main(int argc, char ** argv)
   maxtime = atof(argv[3]);
   minenergy = atof(argv[4]);
   maxenergy = atof(argv[5]);
+
+  if(getenv("MAXMICHT") != NULL)
+    max_micht = atof(getenv("MAXMICHT"));
 
   const searchtype search =
     !strcmp(basename(argv[0]),    "be12search")? be12:
