@@ -320,7 +320,7 @@ noncarbondenominators_finalfit.out.h: \
 search.o: search.cpp
 	g++ -O2 -c search.cpp -Wall -Wextra -Wshadow
 
-near_fullb12_finalfit: near_fullb12_finalfit.C
+near_fullb12_finalfit: near_fullb12_finalfit.C consts.h mucount_finalfit.C neff.C
 	g++ -ffast-math -O3 -o near_fullb12_finalfit near_fullb12_finalfit.C \
       `root-config --libs --cflags` -lMinuit -Wall -Wextra -Wshadow
 
