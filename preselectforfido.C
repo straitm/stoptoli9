@@ -22,8 +22,14 @@ void preselectforfido(const char * const jpfilename)
 
   for(int i = 0; i < GI->GetEntries(); i++){
     GI->GetEntry(i);
-    
-    if(EvisID[0] > 70){
+
+    // Ok, now that I have a handle on EvisID, I see that 70MeV is an
+    // overly conservative cutoff. 60MeV would be fine to avoid the tail
+    // of the Michel spectrum, or whatever combination of things it is
+    // that ends somewhat sharply around 50MeV.  But I don't really want to
+    // reprocess everything (weeks on the grid, although it should be faster)
+    // to get that bottom 10MeV, so leave it for now.
+    if(EvisIDg[0] > 70){
       const unsigned int muontrigid = TriggerID;
       const double muontrigtime = TrigTime;
       bool ok = true;
