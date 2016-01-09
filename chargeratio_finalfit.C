@@ -26,14 +26,15 @@ double ff(double * ta, double * par)
                           *(par[7]/par[3] * exp(-t/par[3])
                            +par[8]/par[6] * exp(-t/par[6])
                            +par[9]/par[5] * exp(-t/par[5])
-                           +par[10]/lifetime_gd*1e-6*exp(-t/lifetime_gd*1e-6)));
+                           +par[10]/lifetime_gd*1e-6*exp(-t/lifetime_gd*1e-6)))
+       + fabs(par[11]); // accidental background
 }
 
 void fcn(int & npar, double * gin, double & like, double *par, int flag)
 {
   like = 0;
   
-  for(int i = (far?40:56); i <= (far?78:86); i++){
+  for(int i = (far?40:71); i <= (far?78:192); i++){
     const double data = mt->GetBinContent(i);
     const double t0 = mt->GetBinLowEdge(i)-par[2];
     const double t1 = mt->GetBinLowEdge(i+1)-par[2];
@@ -55,15 +56,15 @@ void fcn(int & npar, double * gin, double & like, double *par, int flag)
   like += pow((par[4] - 0.9888)/0.003, 2);
   like += pow((par[5] - lifetime_o16*1e6)/lifetime_o16_err*1e-6, 2);
   like += pow((par[6] - lifetime_c13*1e6)/lifetime_c13_err*1e-6, 2);
-  like += pow((par[9] - 0.002)/0.002, 2);
+  like += pow((par[9] - 0.002)/0.001, 2);
   like += pow((par[10] - 0.00022)/0.00007, 2);
 }
 
 void chargeratio_finalfit(const bool far_ = true)
 {
-  mt = new TH1D("mt", "", 90, 0, 5760);
   far=far_;
   if(far){
+    mt = new TH1D("mt", "", 90, 0, 5760);
     mt->SetBinContent(3,65);
     mt->SetBinContent(4,2984);
     mt->SetBinContent(5,20636);
@@ -151,18 +152,20 @@ void chargeratio_finalfit(const bool far_ = true)
     mt->SetBinContent(87,5);
   }
   else{
-   TFile * tf = new TFile(rootfile3up_near, "read");
+   mt = new TH1D("mt", "", 192, 0, 12288);
+   const char * const rootfilenearmich = "/cp/s4/strait/ndfido/nearmich.root";
+   TFile * tf = new TFile(rootfilenearmich, "read");
    if(!tf || tf->IsZombie()){
-     fprintf(stderr, "Could not open %s\n", rootfile3up_near);
+     fprintf(stderr, "Could not open %s\n", rootfilenearmich);
      exit(1);
    }
    TTree * tt = dynamic_cast<TTree *>(tf->Get("t"));
    if(!tt){
-     fprintf(stderr, "Could not get t TTree from %s\n", rootfile3up_near);
+     fprintf(stderr, "Could not get t TTree from %s\n", rootfilenearmich);
      exit(1);
    }
 
-   tt->Draw("micht >> mkt(90, 0, 5760)", "ndecay == 0 && miche > 10 && miche < 80");
+   tt->Draw("micht >> mkt(192, 0, 12288)", "ndecay == 0 && miche > 30 && miche < 60");
            //"&& rchi2 < 4 && mx**2+my**2 < 1050**2 && mz > -1175");
    TH1F * mkt = (TH1F *)gROOT->FindObject("mkt");
    for(int i = 1; i <= mkt->GetNbinsX(); i++)
@@ -173,7 +176,7 @@ void chargeratio_finalfit(const bool far_ = true)
 
   mt->Draw("e");
 
-  const unsigned int npar = 11;
+  const unsigned int npar = 12;
   TMinuit * mn = new TMinuit(npar);
   mn->SetFCN(fcn);
 
@@ -187,8 +190,9 @@ void chargeratio_finalfit(const bool far_ = true)
   mn->mnparm(6, "c13time", lifetime_c13*1e6, lifetime_c13_err*1e6, 0, 0, err);
   mn->mnparm(7, "c12afrac", 0.98767, 0.01, 0, 1, err);
   mn->mnparm(8, "c13afrac", 0.01088, 0.01, 0, 1, err);
-  mn->mnparm(9, "o16afrac", 0.002, 0.01, 0, 1, err);
+  mn->mnparm(9, "o16afrac", 0.002, 0.01, 0, 0.1, err);
   mn->mnparm(10, "gdafrac", 0.0002, 0.01, 0, 1, err);
+  mn->mnparm(11, "acc",      10, 0.01, 0, 1000, err);
 
   mn->Command("SET STRATEGY 2");
 
@@ -218,7 +222,7 @@ void chargeratio_finalfit(const bool far_ = true)
   mn->Command("MINOS");
   mn->Command("SHOW MINOS");
 
-  TF1 * result = new TF1("result", ff, 0, 10000, npar);
+  TF1 * result = new TF1("result", ff, 0, 100000, npar);
   for(unsigned int i = 0; i < npar; i++){
     double par, e;
     mn->GetParameter(i, par, e);
