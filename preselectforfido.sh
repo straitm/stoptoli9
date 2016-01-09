@@ -24,5 +24,5 @@ if ! [ -e $JP ]; then
 fi
 
 
-root -l -b -n -q $sli9dir/preselectforfido.C+'("'$JP'")' \
+root -l -b -n -q $sli9dir/preselectforfido.C'("'$JP'")' \
 | grep -vE '^$|Processing' > $listout
