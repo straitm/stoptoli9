@@ -228,69 +228,110 @@ static inline double clamp(double x, double lo, double hi)
   return x < lo? lo: x > hi? hi: x;
 }
 
+static inline double mexp(const double arg)
+{
+  return arg < -746? 0: exp(arg);
+}
+
+// Return mult*exp(arg) if adding this to prev could possibly make a difference.
+// This is only OK for negative arg! (And it is always negative for us.)
+//
+// Get an overall improvement of 20% in speed from this!
+static inline double expif(const double arg, const double mult, const double prev)
+{
+  // An upper bound for how big exp(arg) is is
+  // 2^((int(arg)+1)*log_2(e)), e.g. for arg=-137.1, we know that
+  // exp(arg) < 2**(-136/M_LN_2) So the 2**-136 place is an upper bound
+  // on the bit this could affect. If the lowest bit in prev is higher
+  // than this, exp(arg) is irrelevant. THe lowest bit is the exponent
+  // of prev - 53, where 53 is the number of significant bits in the
+  // mantissa.
+  
+  int multexponent;
+  frexp(mult, &multexponent);
+
+  const int upbound = (int(arg) + 1 + multexponent+1)/M_LN2;
+  int prevexponent;
+  frexp(prev, &prevexponent);
+  const int lowdigit = prevexponent - 53;
+  if(upbound < lowdigit) return 0;
+  return mult*exp(arg); 
+}
+
+static inline double justexp(const double arg, const double mult,
+__attribute__((unused)) double prev)
+{
+  return mult*exp(arg);
+}
+
 static inline double zeron_f(
-const double mt, const double acc,const double paccn, const double neff,
-const double n_b12, const double n_b12n, const double b12t,
-const double n_li8, const double n_li8n, const double li8t,
-const double n_li9, const double n_li9n, const double li9t,
-const double n_b13, const double b13t,
-const double n_n16, const double n16t)
+const double mt,const double acc,const double unpaccn,const double neff,
+const double unpaccn_x_n_b12_x_b12r, const double n_b12n_x_b12r,const double b12r,
+const double unpaccn_x_n_li8_x_li8r, const double n_li8n_x_li8r,const double li8r,
+const double unpaccn_x_n_li9_x_li9r, const double n_li9n_x_li9r,const double li9r,
+const double unpaccn_x_n_b13_x_b13r, const double b13r,
+const double unpaccn_x_n_n16_x_n16r, const double n16r)
 {
   // Be really careful. Can get zero neutrons from a real zero-neutron
   // event without an accidental or from a real one-neutron event with
-  // an inefficiency and without an accidental. (Does ROOT optimize
-  // these? No idea.)
-  const double unpaccn = 1-paccn;
-  const double uneffunpaccn = (1-neff)*unpaccn; // function of pars
-  return acc +
-    (unpaccn*n_b12 + uneffunpaccn*n_b12n)/b12t*exp(mt/b12t) +
-    // For B-13 and N-16, there are no real one-neutron events, so it
-    // is easier. (Ok, N-16 might come from O-17, but it is only a
-    // nuisance parameter here...)
-    unpaccn*n_b13/b13t*exp(mt/b13t)
-  + (unpaccn*n_li8 + uneffunpaccn*n_li8n)/li8t*exp(mt/li8t) +
-    (unpaccn*n_li9 + uneffunpaccn*n_li9n)/li9t*exp(mt/li9t)
-  + unpaccn*n_n16/n16t*exp(mt/n16t)
-    ;
+  // an inefficiency and without an accidental.
+  const double uneffunpaccn = (1-neff)*unpaccn; // function of pars AND event
+      
+  // For B-13 and N-16, there are no real one-neutron events, so it is
+  // easier. (Ok, N-16 might come from O-17, but it is only a nuisance
+  // parameter here...)
+      
+  double answer = acc;
+  answer += justexp(mt*n16r, unpaccn_x_n_n16_x_n16r, answer);
+
+  answer += expif(mt*li8r, unpaccn_x_n_li8_x_li8r
+                     + uneffunpaccn*n_li8n_x_li8r, answer);
+  answer += expif(mt*li9r, unpaccn_x_n_li9_x_li9r
+                     + uneffunpaccn*n_li9n_x_li9r, answer);
+  answer += expif(mt*b12r, unpaccn_x_n_b12_x_b12r
+                     + uneffunpaccn*n_b12n_x_b12r, answer);
+  answer += expif(mt*b13r, unpaccn_x_n_b13_x_b13r, answer);
+      
+  return answer;
 }
 
 static inline double onen_f(
 const double mt,const double accn,const double paccn, const double neff,
-const double n_b12, const double n_b12n, const double b12t,
-const double n_li8, const double n_li8n, const double li8t,
-const double n_li9, const double n_li9n, const double li9t,
-const double n_b13, const double b13t,
-const double n_n16, const double n16t)
+const double n_b12, const double n_b12n, const double b12r,
+const double n_li8, const double n_li8n, const double li8r,
+const double n_li9, const double n_li9n, const double li9r,
+const double n_b13, const double b13r,
+const double n_n16, const double n16r)
 {
   return accn +
   // Can get one neutron from a real one-neutron event that is efficient
   // and doesn't have an accidental, or that is inefficient and does
   // have an accidental, or from a real zero-neutron event that is
   // inefficient.
-  ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n+paccn*n_b12)/b12t*exp(mt/b12t)+
+  ((neff*(1-paccn)+(1-neff)*paccn)*n_b12n+paccn*n_b12)*b12r*exp(mt*b12r)+
   // Can only get B-13 with a neutron from an inefficiency, assuming
   // there's no O-16(mu,ppn)B-13 to speak of.
-  paccn*n_b13/b13t*exp(mt/b13t)
- +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)/li8t*exp(mt/li8t)
- +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)/li9t*exp(mt/li9t)
-  + paccn*n_n16/n16t*exp(mt/n16t)
+  paccn*n_b13*b13r*exp(mt*b13r)
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li8n+paccn*n_li8)*li8r*exp(mt*li8r)
+ +((neff*(1-paccn)+(1-neff)*paccn)*n_li9n+paccn*n_li9)*li9r*exp(mt*li9r)
+  + paccn*n_n16*n16r*exp(mt*n16r)
   ;
 }
 
 static inline double twon_f(
 const double mt,const double accn2,const double neff,const double paccn,
-const double n_b12n, const double b12t,
-const double n_li8n, const double li8t,
-const double n_li9n, const double li9t)
+const double n_b12n, const double b12r,
+const double n_li8n, const double li8r,
+const double n_li9n, const double li9r)
 {
   return accn2 +
   // Can get two neutrons from a real one-neutron event that is
   // efficient and has an accidental. Note that we *must* handle this
   // case for the above normalization component of the likelihood to be
   // correct.
-  neff*paccn*(n_b12n/b12t*exp(mt/b12t)
-            + n_li8n/li8t*exp(mt/li8t)
-            + n_li9n/li9t*exp(mt/li9t)
+  neff*paccn*(n_b12n*b12r*exp(mt*b12r)
+            + n_li8n*li8r*exp(mt*li8r)
+            + n_li9n*li9r*exp(mt*li9r)
   );
 }
 
@@ -318,6 +359,11 @@ const double n_li9n, const double li9t)
                li8t  = par[13]*li8life_err + li8life, \
                li9t  = par[14]*li9life_err + li9life, \
                n16t  = par[15]*n16life_err + n16life, \
+               b12r  = 1/b12t, \
+               b13r  = 1/b13t, \
+               li8r  = 1/li8t, \
+               li9r  = 1/li9t, \
+               n16r  = 1/n16t, \
                neffdelta = par[16], \
                paccn = par[17];
 
@@ -380,14 +426,26 @@ void fcn(__attribute__((unused)) int & X,
   DECODEPARS;
 
   const double norm =
-      (n_b12 + n_b12n)*(exp(-lowtime/b12t) - exp(-hightime/b12t))
-    + (n_li8 + n_li8n)*(exp(-lowtime/li8t) - exp(-hightime/li8t))
-    + (n_li9 + n_li9n)*(exp(-lowtime/li9t) - exp(-hightime/li9t))
-    +      n_b13      *(exp(-lowtime/b13t) - exp(-hightime/b13t))
-    +      n_n16      *(exp(-lowtime/n16t) - exp(-hightime/n16t))
+      (n_b12 + n_b12n)*(exp(-lowtime*b12r) - exp(-hightime*b12r))
+    + (n_li8 + n_li8n)*(exp(-lowtime*li8r) - exp(-hightime*li8r))
+    + (n_li9 + n_li9n)*(exp(-lowtime*li9r) - exp(-hightime*li9r))
+    +      n_b13      *(exp(-lowtime*b13r) - exp(-hightime*b13r))
+    +      n_n16      *(exp(-lowtime*n16r) - exp(-hightime*n16r))
     + totaltime*(acc+accn+accn2);
 
   like = norm;
+
+  // These products are invariant over the set of events for a given 
+  // set of parameters, so do them once out of the loop
+  const double unpaccn = 1-paccn;
+  const double unpaccn_x_n_b13_x_b13r = unpaccn*n_b13*b13r;
+  const double unpaccn_x_n_n16_x_n16r = unpaccn*n_n16*n16r;
+  const double unpaccn_x_n_b12_x_b12r = unpaccn*n_b12*b12r;
+  const double unpaccn_x_n_li8_x_li8r = unpaccn*n_li8*li8r;
+  const double unpaccn_x_n_li9_x_li9r = unpaccn*n_li9*li9r;
+  const double n_b12n_x_b12r = n_b12n*b12r;
+  const double n_li8n_x_li8r = n_li8n*li8r;
+  const double n_li9n_x_li9r = n_li9n*li9r;
 
   vector<double> per_event_like(events.size());
   for(unsigned int i = 0; i < events.size(); i++){
@@ -396,18 +454,21 @@ void fcn(__attribute__((unused)) int & X,
     double f = 0;
     switch(events[i].n){
       case 0:
-        f = zeron_f(events[i].mt, acc, paccn, neff, n_b12, n_b12n, b12t,
-                    n_li8, n_li8n, li8t, n_li9, n_li9n, li9t,
-                    n_b13, b13t, n_n16, n16t);
+        f = zeron_f(events[i].mt, acc, unpaccn, neff,
+                    unpaccn_x_n_b12_x_b12r, n_b12n_x_b12r, b12r,
+                    unpaccn_x_n_li8_x_li8r, n_li8n_x_li8r, li8r,
+                    unpaccn_x_n_li9_x_li9r, n_li9n_x_li9r, li9r,
+                    unpaccn_x_n_b13_x_b13r, b13r,
+                    unpaccn_x_n_n16_x_n16r, n16r);
         break;
       case 1:
-        f = onen_f(events[i].mt, accn, paccn, neff, n_b12, n_b12n, b12t,
-                   n_li8, n_li8n, li8t, n_li9, n_li9n, li9t,
-                   n_b13, b13t, n_n16, n16t);
+        f = onen_f(events[i].mt, accn, paccn, neff, n_b12, n_b12n, b12r,
+                   n_li8, n_li8n, li8r, n_li9, n_li9n, li9r,
+                   n_b13, b13r, n_n16, n16r);
         break;
       case 2:
-        f = twon_f(events[i].mt, accn2, neff, paccn, n_b12n, b12t,
-                   n_li8n, li8t, n_li9n, li9t);
+        f = twon_f(events[i].mt, accn2, neff, paccn, n_b12n, b12r,
+                   n_li8n, li8r, n_li9n, li9r);
         break;
       default:
         // Has turned out to be a useful check!
@@ -484,7 +545,7 @@ void fcn(__attribute__((unused)) int & X,
 
   if(mn->fCfrom != "CONtour   "){
     static int dotcount = 0;
-    printf("%d %16f\n", dotcount++, like);
+    if(dotcount++%10 == 9) printf("%d %16f\n", dotcount, like);
     fflush(stdout);
   }
 }
@@ -765,7 +826,12 @@ void find_paccn(TTree * t)
 
 static bool compare_events(const ev & a, const ev & b)
 {
-  if(a.n != b.n) return a.mt < b.mt;
+  // put the late time ones first on the theory that starting the
+  // likelihood sum with smaller numbers makes it slightly more
+  // accurate.  Might not be true, but shouldn't hurt anyway.
+  if(a.n != b.n) return a.mt > b.mt;
+
+  // Primary sort is by neutron number to aid branch prediction in fcn()
   return a.n < b.n;
 }
 
@@ -792,7 +858,11 @@ void fullb12_finalfit()
   // ND: Another very rough study suggests full purity up to about
   // this point. It might be ok to go to 6, but there was a mildly
   // significant dip after 4.
-  string STD_CHI2_CUT = near?"rchi2 < 4":"rchi2 < 2";
+  //
+  // XXX kludge in a minimum energy cut here for the ND, since I let
+  // lots of non-muons in by accident due to confusion with EvisID(g).
+  // This can be taken back out again once everything is reprocessed.
+  string STD_CHI2_CUT = near?"rchi2 < 4 && fq > 1100e3":"rchi2 < 2";
 
   // ND: As far as I can tell, a cut of the form used at the FD does
   // nothing to improve the signal/bg at the ND. At the FD, there is a
@@ -851,31 +921,33 @@ void fullb12_finalfit()
   find_paccn(t);
 
   mn = new TMinuit(npar);
-  mn->SetPrintLevel(-1);
+  mn->SetPrintLevel(1);
   mn->fGraphicsMode = false;
   mn->Command("SET STRATEGY 2");
   mn->SetFCN(fcn);
   int err;
-  mn->mnparm(0, "p_b12", 0.2,  0.001, 0, 2, err);
-  mn->mnparm(1, "p_b12n",0.5,  0.01,  0, 2, err);
-  mn->mnparm(2, "p_b13", 0.2,  0.01,  0, unitarity?2:10, err);
-  mn->mnparm(3, "p_li8", 0.01,  0.01, 0, 2, err);
-  mn->mnparm(4, "p_li8n",0.05,  0.01, 0, 2, err);
-  mn->mnparm(5, "p_li9", 0.01,  0.01, 0, 2, err);
-  mn->mnparm(6, "p_li9n",0.05,  0.01, 0, 2, err);
-  mn->mnparm(7, "n_n16",   1,  1, 0, 1e3, err);
-  mn->mnparm(8, "acc",   1,    0.01, 0, 100, err);
-  mn->mnparm(9, "accn",  0.1,  0.001, 0, 10, err);
-  mn->mnparm(10, "accn2", 0.01, 0.001, 0, 1, err);
+  mn->mnparm(0, "p_b12" , 0.16,                 0.001, 0,   2, err);
+  mn->mnparm(1, "p_b12n", 0.40,                  0.01, 0,   2, err);
+  mn->mnparm(2, "p_b13" , 0.40,                  0.01, 0,
+                                               unitarity?2:10, err);
+  mn->mnparm(3, "p_li8" , 0.01,                  0.01, 0,   1, err);
+  mn->mnparm(4, "p_li8n", 0.05,                  0.01, 0,   1, err);
+  mn->mnparm(5, "p_li9" , probNineLiFromTwelveC, 0.01, 0,   1, err);
+  mn->mnparm(6, "p_li9n", primaryresult/f13,     0.01, 0,   1, err);
+  mn->mnparm(7, "n_n16" ,   10,                     1, 0, 1e3, err);
+
+  mn->mnparm(8, "acc"   ,   10,                  0.01, 0,1000, err);
+  mn->mnparm(9, "accn"  ,  0.1,                 0.001, 0,  10, err);
+  mn->mnparm(10, "accn2", 0.01,                 0.001, 0,   1, err);
 
   // All constrained with pull terms
-  mn->mnparm(11, "b12t", 0,  b12life_err/b12life, 0, 0, err);
-  mn->mnparm(12, "b13t", 0,  b13life_err/b13life, 0, 0, err);
-  mn->mnparm(13, "li8t", 0,  li8life_err/li8life, 0, 0, err);
-  mn->mnparm(14, "li9t", 0,  li9life_err/li9life, 0, 0, err);
-  mn->mnparm(15, "n16t", 0,  n16life_err/n16life, 0, 0, err);
-  mn->mnparm(16, "neffdelta", 0,  0.01, 0, 0, err);
-  mn->mnparm(17, "paccn", nom_paccn,  paccn_e, 0, 0, err);
+  mn->mnparm(11, "b12t",      0,  b12life_err/b12life, 0, 0, err);
+  mn->mnparm(12, "b13t",      0,  b13life_err/b13life, 0, 0, err);
+  mn->mnparm(13, "li8t",      0,  li8life_err/li8life, 0, 0, err);
+  mn->mnparm(14, "li9t",      0,  li9life_err/li9life, 0, 0, err);
+  mn->mnparm(15, "n16t",      0,  n16life_err/n16life, 0, 0, err);
+  mn->mnparm(16, "neffdelta", 0,                 0.01, 0, 0, err);
+  mn->mnparm(17, "paccn",     nom_paccn,      paccn_e, 0, 0, err);
 
   printf("Making cuts...\n");
   TFile * tmpfile = new TFile("/tmp/b12tmp.root", "recreate");
@@ -912,7 +984,7 @@ void fullb12_finalfit()
       ));
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
   }
-  printf("%d events to be used in the fit\n", (int)events.size());
+  printf("\n%d events to be used in the fit\n", (int)events.size());
   std::sort(events.begin(), events.end(), compare_events);
   printf("Sorted by time and number of neutrons\n");
 
@@ -931,40 +1003,11 @@ void fullb12_finalfit()
     printf("Mean neutron efficiency: %f\n", emean);
   }
 
-  // I know that MIGRAD often fails, so instead of doing MINIMIZE,
-  // do SIMPLEX in the first place to save a little time and get it
-  // to converge. I'm not sure why MIGRAD tends to fail. At first I
-  // thought it was because the way I implement the unitarity constraint
-  // is really harsh, but then I found it still fails without the
-  // constraint.
-  const char * const commands[3] = { "SIMPLEX", "MIGRAD", "HESSE" };
-  for(int i = 0; i < 3; i++){
-    printf("\n%s", commands[i]);
-    int fails = 0;
-    while(4 == mn->Command(commands[i])){
-      if(++fails >= 3){
-        fprintf(stderr, "giving up on %s\n", commands[i]);
-        break;
-      }
-    }
-    puts(""); mn->Command("show par");
-  }
-
   {
-    printf("FIGURE const double meaneff[3] = { ");
-    for(int i = 0; i < 3; i++) printf("%.9f, ", meaneff[i]);
-    printf("};\n");
-
-    printf("FIGURE const double pars[%d] = { ", npar);
-    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
-    printf("};\n");
-
-    printf("FIGURE const double mum_count = %.9f;\n", mum_count);
-
-    const int nbins = 250;
-    TH1D * n0 = new TH1D("n0","",nbins,1, 501);
-    TH1D * n1 = new TH1D("n1","",nbins,1, 501);
-    TH1D * n2 = new TH1D("n2","",nbins,1, 501);
+    const int nbins = 1000;
+    TH1D * n0 = new TH1D("n0","",nbins,1, 2001);
+    TH1D * n1 = new TH1D("n1","",nbins,1, 2001);
+    TH1D * n2 = new TH1D("n2","",nbins,1, 2001);
 
     selt->Draw("dt >> n0", Form("%s && %s == 0", fullcut.c_str(),
                                 NEUTRONDEF.c_str()));
@@ -1000,6 +1043,66 @@ void fullb12_finalfit()
     printf("FIGURE const double c13nuc_cap = %.9f;\n", c13nuc_cap);
     printf("FIGURE const double nom_paccn = %.9f;\n", nom_paccn);
     printf("FIGURE const int npar = %d;\n", npar);
+    printf("FIGURE const double meaneff[3] = { ");
+    for(int i = 0; i < 3; i++) printf("%.9f, ", meaneff[i]);
+    printf("};\n");
+
+    printf("FIGURE const double mum_count = %.9f;\n", mum_count);
+  }
+
+  // Ease into the fit by fitting the major features first, then 
+  // gradually relaxing constraints.
+  mn->Command("FIX 1 2 3 4 5 6 7 8         12 13 14 15 16 17 18");
+  mn->Command("MIGRAD");
+  {
+    printf("FIGURE const double pars_imed1[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
+  }
+  mn->Command("REL 1 2   4 5                                   ");
+  mn->Command("MIGRAD");
+  {
+    printf("FIGURE const double pars_imed2[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
+  }
+  mn->Command("REL     3     6 7 8                             ");
+  mn->Command("MIGRAD");
+  {
+    printf("FIGURE const double pars_imed3[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
+  }
+  mn->Command("REL                                        17 18");
+  mn->Command("MIGRAD");
+  {
+    printf("FIGURE const double pars_imed4[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
+  }
+  mn->Command("REL                         12 13 14 15 16      ");
+
+  const char * const commands[2] = { "MIGRAD", "HESSE" };
+  for(int i = 0; i < 2; i++){
+    printf("\n%s\n", commands[i]);
+    int fails = 0;
+    while(4 == mn->Command(commands[i])){
+      puts(""); mn->Command("show par");
+      if(++fails >= 3){
+        printf("\nGiving up on %s\n", commands[i]);
+        break;
+      }
+      else{
+        printf("\nTrying %s again\n", commands[i]);
+      }
+    }
+    puts(""); mn->Command("show par");
+  }
+
+  {
+    printf("FIGURE const double pars[%d] = { ", npar);
+    for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
+    printf("};\n");
   }
 
   mn->SetPrintLevel(0);
@@ -1012,7 +1115,6 @@ void fullb12_finalfit()
       }
       fprintf(stderr, "retrying MINOS %d\n", i);
     }
-
   }
 
   printc12b12results();
