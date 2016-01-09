@@ -1646,7 +1646,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     // cut some of those.
     if(near){
       get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts);
-      if(parts.ctEvisID > 70) goto end;
+      if(parts.ctEvisID < 70) goto end;
     }
 
     nivtubesbr->GetEntry(parts.trgId);
