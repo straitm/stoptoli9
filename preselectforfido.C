@@ -14,16 +14,16 @@ void preselectforfido(const char * const jpfilename)
     fprintf(stderr, "Could not get GI tree from %s\n", jpfilename);
     exit(1);
   }
-  double TrigTime, EvisID;
+  double TrigTime, EvisIDg[3];
   unsigned int TriggerID;
   GI->SetBranchAddress("TrigTime", &TrigTime);
   GI->SetBranchAddress("TriggerID", &TriggerID);
-  GI->SetBranchAddress("EvisID", &EvisID);
+  GI->SetBranchAddress("EvisIDg", EvisIDg);
 
   for(int i = 0; i < GI->GetEntries(); i++){
     GI->GetEntry(i);
     
-    if(EvisID > 70){
+    if(EvisID[0] > 70){
       const unsigned int muontrigid = TriggerID;
       const double muontrigtime = TrigTime;
       bool ok = true;
@@ -50,7 +50,7 @@ void preselectforfido(const char * const jpfilename)
         GI->GetEntry(j);
         if(TrigTime - muontrigtime <= 512) continue;
         if(TrigTime - muontrigtime > 10*2197.) break;
-        if(EvisID > 10){
+        if(EvisIDg[0] > 10){
           ok = false;
           break;
         }

@@ -1640,6 +1640,15 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     if(parts.fido_qid/(near?(1/9.25e-5):8300) > 700) goto end;
     if(parts.fido_qid/(near?(1/9.25e-5):8300) < (search == neutron?1:60)) goto end;
 
+    // Kludge: This cut is meant to be applied in preselectforfido.C, but because
+    // the definition of EvisID changed bewteen SEQ13 and SEQ14, I *think* making
+    // the old variable always too big, we preselected too much, and now want to 
+    // cut some of those.
+    if(near){
+      get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts);
+      if(parts.ctEvisID > 70) goto end;
+    }
+
     nivtubesbr->GetEntry(parts.trgId);
     nidtubesbr->GetEntry(parts.trgId);
 
