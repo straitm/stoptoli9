@@ -1053,28 +1053,28 @@ void fullb12_finalfit()
   // Ease into the fit by fitting the major features first, then 
   // gradually relaxing constraints.
   mn->Command("FIX 1 2 3 4 5 6 7 8         12 13 14 15 16 17 18");
-  mn->Command("MIGRAD");
+  if(mn->Command("MIGRAD") == 4) mn->Command("SCAN");
   {
     printf("FIGURE const double pars_imed1[%d] = { ", npar);
     for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
     printf("};\n");
   }
   mn->Command("REL 1 2   4 5                                   ");
-  mn->Command("MIGRAD");
+  if(mn->Command("MIGRAD") == 4) mn->Command("SCAN");
   {
     printf("FIGURE const double pars_imed2[%d] = { ", npar);
     for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
     printf("};\n");
   }
   mn->Command("REL     3     6 7 8                             ");
-  mn->Command("MIGRAD");
+  if(mn->Command("MIGRAD") == 4) mn->Command("SCAN");
   {
     printf("FIGURE const double pars_imed3[%d] = { ", npar);
     for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
     printf("};\n");
   }
   mn->Command("REL                                        17 18");
-  mn->Command("MIGRAD");
+  if(mn->Command("MIGRAD") == 4) mn->Command("SCAN");
   {
     printf("FIGURE const double pars_imed4[%d] = { ", npar);
     for(int i = 0; i < npar; i++) printf("%.9f, ", getpar(i));
@@ -1082,22 +1082,27 @@ void fullb12_finalfit()
   }
   mn->Command("REL                         12 13 14 15 16      ");
 
-  const char * const commands[2] = { "MIGRAD", "HESSE" };
-  for(int i = 0; i < 2; i++){
-    printf("\n%s\n", commands[i]);
-    int fails = 0;
-    while(4 == mn->Command(commands[i])){
-      puts(""); mn->Command("show par");
-      if(++fails >= 3){
-        printf("\nGiving up on %s\n", commands[i]);
-        break;
-      }
-      else{
-        printf("\nTrying %s again\n", commands[i]);
-      }
-    }
+
+  while(4 == mn->Command("MIGRAD")){
+    mn->Command("SCAN");
+    static int fails = 0;
     puts(""); mn->Command("show par");
+    if(++fails >= 3){
+      printf("\nGosh, this isn't going well.  Let's try something else\n");
+      mn->Command("SIMPLEX");
+      if(4 == mn->Command("MIGRAD")){
+        printf("\nStill having trouble.  One last try.\n");
+        mn->Command("HESSE");
+        if(4 == mn->Command("MIGRAD"))
+          printf("Well, I dunno man.  It isn't working.\n");
+      }
+      break;
+    }
+    else{
+      printf("\nTrying MIGRAD again\n");
+    }
   }
+  puts(""); mn->Command("show par");
 
   {
     printf("FIGURE const double pars[%d] = { ", npar);
