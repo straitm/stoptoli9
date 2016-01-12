@@ -16,7 +16,18 @@ using std::vector;
 
 #include "search.h"
 
-using std::pair;
+struct ibdevent{
+  int run, trig, type; // 0 == Gd-n
+};
+
+ibdevent mkibd(const int run_, const int trig_, const int type_)
+{
+  ibdevent ans;
+  ans.run = run_;
+  ans.trig = trig_;
+  ans.type = type_;
+  return ans;
+}
 
 enum searchtype{ b12, be12, neutron, buffer };
 
@@ -890,58 +901,75 @@ bool isnenergy(const double e, const double dt, const double me)
   return (corre > 1.8 && corre < 2.6) || (corre > 4.0 && corre < 10 );
 }
 
-bool compareibds(const pair<int,int> & a, const pair<int,int> & b)
+bool compareibds(const ibdevent & a, const ibdevent & b)
 {
-  if(a.first != b.first) return a.first < b.first;
-  return a.second < b.second;
+  if(a.run != b.run) return a.run < b.run;
+  return a.trig < b.trig;
 }
 
-// Return 0 if not an IBD event, 1 if prompt, 2 if delayed.
-// XXX to be useful for the beta-n analysis, need to also encode whether
-// it was Gd-n or H-n
+// IBD events are equal if they are the same trigger. Ignore the capture
+// type, since it's a pain to determine for an incoming event, and
+// run+trig is already unique.
+bool ibd_eq(const ibdevent & a, const ibdevent & b)
+{
+  return a.run == b.run && a.trig == b.trig;
+}
+
+// Return 0 if not part of an IBD event.
+// If it is an IBD event, the lowest bit is 1.
+// The 2's bit means Gd-n (0), H-n (1).
+// The 4's bit means prompt (0), delayed (1)
 int ibd_status(const int in_run, const int in_trig)
 {
   static bool firsttime = true;
-  static vector< pair<int,int> > ibds;
-  static vector< pair<int,int> > ibd_delays;
+  static vector<ibdevent> ibds;
+  static vector<ibdevent> ibd_delays;
 
   if(firsttime){
-    TTree ibd;
     firsttime = false;
+    TTree gdn, hn;
+    const char * const form = "run/I:trig/I";
     if(near){
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/ND-Gd-9months.txt",
-                   "run:trig");
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/ND-H-9months.txt");
+      gdn.ReadFile("/cp/s4/strait/li9ntuples/ND-Gd-9months.txt", form);
+      hn .ReadFile("/cp/s4/strait/li9ntuples/ND-H-9months.txt", form);
     }
     else{ // far
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119",
-                   "run:trig");
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
-
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/FD-Gd-9months.txt");
-      ibd.ReadFile("/cp/s4/strait/li9ntuples/FD-H-9months.txt");
+      gdn.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925", form);
+      gdn.ReadFile("/cp/s4/strait/li9ntuples/FD-H-9months.txt");
+      hn .ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119", form);
+      hn .ReadFile("/cp/s4/strait/li9ntuples/FD-Gd-9months.txt");
     }
-    float run, trig; // Yes, float
-    ibd.SetBranchAddress("run", &run);
-    ibd.SetBranchAddress("trig", &trig);
-    for(int i = 0; i < ibd.GetEntries(); i++){
-      ibd.GetEntry(i);
-      ibds.push_back(pair<int,int>(int(run), int(trig)));
+    for(int c = 0; c < 2; c++){
+      TTree * const tt = c==0?&gdn:&hn;
+      int run, trig;
+      tt->SetBranchAddress("run", &run);
+      tt->SetBranchAddress("trig", &trig);
+      for(int i = 0; i < tt->GetEntries(); i++){
+        tt->GetEntry(i);
+        ibds.push_back(mkibd(run, trig, c));
 
-      // Get the delayed event too.  ROUGH, since there could be
-      // an intervening event
-      ibd_delays.push_back(pair<int,int>(int(run), int(trig+1)));
+        // Get the delayed event too.  ROUGH, since there is sometimes
+        // an intervening event
+        ibd_delays.push_back(mkibd(run, trig+1, c));
+      }
     }
-
     std::sort(ibds.begin(), ibds.end(), compareibds);
     std::sort(ibd_delays.begin(), ibd_delays.end(), compareibds);
   }
 
-  const pair<int,int> in(in_run, in_trig);
-  if(std::binary_search(ibds.begin(), ibds.end(), in))
-    return 1;
-  if(std::binary_search(ibd_delays.begin(), ibd_delays.end(), in))
-    return 2;
+  const ibdevent in = mkibd(in_run, in_trig, -1);
+
+  if(std::binary_search(ibds.begin(), ibds.end(), in, compareibds))
+    return
+        1
+      + 2*std::lower_bound(ibds.begin(), ibds.end(), in, compareibds)->type
+      + 0;
+  if(std::binary_search(ibd_delays.begin(),ibd_delays.end(),in,compareibds))
+    return
+        1
+      + 2*std::lower_bound(ibd_delays.begin(), ibd_delays.end(), in, compareibds)->type
+      + 4;
+
   return 0;
 }
 
@@ -1448,8 +1476,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         printf(DECAYFORM MUONFORM "%c",
                bits.trgId, dt_ms, dist,
                bits.ctEvisID, bits.fido_qiv, ix[got], iy[got], iz[got],
-               b12like.like, b12like.altlike, bits.pscs, bits.psco,
-               ibd_status(murun, bits.trgId),
+               b12like.like, b12like.altlike, bits.pscs, bits.psco, ibd,
                MUONVARS,
                search == be12?' ':'\n');
       }
