@@ -896,7 +896,9 @@ bool compareibds(const pair<int,int> & a, const pair<int,int> & b)
   return a.second < b.second;
 }
 
-// Return 0 if not an IBD event, 1 if prompt, 2 if delayed
+// Return 0 if not an IBD event, 1 if prompt, 2 if delayed.
+// XXX to be useful for the beta-n analysis, need to also encode whether
+// it was Gd-n or H-n
 int ibd_status(const int in_run, const int in_trig)
 {
   static bool firsttime = true;
@@ -1376,11 +1378,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
       break;
     }
 
+    // See if this is part of an IBD event. If so, we're going to 
+    // ignore all of the other cuts and pass it. For the most part, it 
+    // should pass the other cuts anyway, but notably it may well fail 
+    // the minimum energy cut.
+    const int ibd = ibd_status(murun, bits.trgId);
+
     // Require at least 500us since the last muon so we don't count
     // neutrons as isotope decays
-    if(ttlastmuon < 0.5) goto end;
+    if(!ibd && ttlastmuon < 0.5) goto end;
 
-    if(dt_ms < 1) goto end; // Go past all H neutron captures
+    if(!ibd && dt_ms < 1) goto end; // Go past all H neutron captures
 
     get_ctEvisID(ctEvisIDbr, i, whichname, bits);
     if(bits.ctEvisID == 0){
@@ -1390,17 +1398,17 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
 
     // Depending what minenergy is, perhaps ignore low energy
     // accidentals and/or H-neutrons
-    if(bits.ctEvisID < minenergy) goto end;
+    if(!ibd && bits.ctEvisID < minenergy) goto end;
 
     // Ignore events above the end point of interest + resolution
-    if(bits.ctEvisID > maxenergy) goto end;
+    if(!ibd && bits.ctEvisID > maxenergy) goto end;
 
     fido_qivbr->GetEntry(bits.trgId);
     // No IV, OV energy
-    if(bits.fido_qiv > fido_qiv_muon_def) goto end;
+    if(!ibd && bits.fido_qiv > fido_qiv_muon_def) goto end;
 
     if(coinovbr) coinovbr->GetEntry(i);
-    if(bits.coinov) goto end;
+    if(!ibd && bits.coinov) goto end;
 
     get_ctmqtqall(ctmqtqallbr, i, whichname, bits);
     get_ctrmsts  (ctrmstsbr,   i, whichname, bits);
@@ -1408,7 +1416,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
     get_qrms     (qrmsbr,      i, whichname, bits);
 
     // Looks good for both detectors
-    if(lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
+    if(!ibd &&
+       lightnoise(bits.qrms, bits.ctmqtqall, bits.ctrmsts, bits.qdiff))
       goto end;
 
     get_ctX(ctXbr, i, whichname, bits);
@@ -1425,7 +1434,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
         sqrt(pow(ix[0]-ix[1],2)+pow(iy[0]-iy[1],2)+pow(iz[0]-iz[1],2));
 
       // And, optionally, they must be near each other.
-      if(distcut != 0 && dist > distcut) goto end;
+      if(!ibd && distcut != 0 && dist > distcut) goto end;
 
       get_run(runbr, i, whichname, bits);
       get_trgId(trgIdbr, i, whichname, bits, fitree);
