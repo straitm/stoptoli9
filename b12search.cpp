@@ -7,6 +7,7 @@
 #include <vector>
 using std::vector;
 #include <iostream>
+#include <algorithm>
 
 #include "TTree.h"
 #include "TFile.h"
@@ -14,6 +15,8 @@ using std::vector;
 #include "TH1.h"
 
 #include "search.h"
+
+using std::pair;
 
 enum searchtype{ b12, be12, neutron, buffer };
 
@@ -887,6 +890,59 @@ bool isnenergy(const double e, const double dt, const double me)
   return (corre > 1.8 && corre < 2.6) || (corre > 4.0 && corre < 10 );
 }
 
+bool compareibds(const pair<int,int> & a, const pair<int,int> & b)
+{
+  if(a.first != b.first) return a.first < b.first;
+  return a.second < b.second;
+}
+
+// Return 0 if not an IBD event, 1 if prompt, 2 if delayed
+int ibd_status(const int in_run, const int in_trig)
+{
+  static bool firsttime = true;
+  static vector< pair<int,int> > ibds;
+  static vector< pair<int,int> > ibd_delays;
+
+  if(firsttime){
+    TTree ibd;
+    firsttime = false;
+    if(near){
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/ND-Gd-9months.txt",
+                   "run:trig");
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/ND-H-9months.txt");
+    }
+    else{ // far
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/Hprompts20141119",
+                   "run:trig");
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/Gdprompts20140925");
+
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/FD-Gd-9months.txt");
+      ibd.ReadFile("/cp/s4/strait/li9ntuples/FD-H-9months.txt");
+    }
+    float run, trig; // Yes, float
+    ibd.SetBranchAddress("run", &run);
+    ibd.SetBranchAddress("trig", &trig);
+    for(int i = 0; i < ibd.GetEntries(); i++){
+      ibd.GetEntry(i);
+      ibds.push_back(pair<int,int>(int(run), int(trig)));
+
+      // Get the delayed event too.  ROUGH, since there could be
+      // an intervening event
+      ibd_delays.push_back(pair<int,int>(int(run), int(trig+1)));
+    }
+
+    std::sort(ibds.begin(), ibds.end(), compareibds);
+    std::sort(ibd_delays.begin(), ibd_delays.end(), compareibds);
+  }
+
+  const pair<int,int> in(in_run, in_trig);
+  if(std::binary_search(ibds.begin(), ibds.end(), in))
+    return 1;
+  if(std::binary_search(ibd_delays.begin(), ibd_delays.end(), in))
+    return 2;
+  return 0;
+}
+
 bool in_near_DDR_region(const double muon_fido_qiv, const double dt_ns,
                         const double follower_e)
 {
@@ -1310,8 +1366,8 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
      id_entr_x, id_entr_y, id_entr_z, \
      id_end_x,  id_end_y,  id_end_z
 
-     #define DECAYFORM "%d %lf %f %f %f %f %f %f %f %f %f %f "
-     #define DECAYBLANK "0  0  0  0  0  0  0  0  0  0  0  0 "
+     #define DECAYFORM "%d %lf %f %f %f %f %f %f %f %f %f %f %d "
+     #define DECAYBLANK "0  0  0  0  0  0  0  0  0  0  0  0  0 "
     if(dt_ms > maxtime){ // stop looking and print muon info
       // This is just overhead for the neutron and be12 searches,
       // so don't do it.
@@ -1384,6 +1440,7 @@ static void searchfrommuon(dataparts & bits, TTree * const chtree,
                bits.trgId, dt_ms, dist,
                bits.ctEvisID, bits.fido_qiv, ix[got], iy[got], iz[got],
                b12like.like, b12like.altlike, bits.pscs, bits.psco,
+               ibd_status(murun, bits.trgId),
                MUONVARS,
                search == be12?' ':'\n');
       }
@@ -1810,6 +1867,7 @@ int main(int argc, char ** argv)
     "b12altlike/F:"
     "pscs/F:"
     "psco/F:"
+    "ibd/I:"
     "run/I:"
     "mutrig/I:"
     "mutime/F:"
@@ -1880,6 +1938,7 @@ int main(int argc, char ** argv)
     "b12altlike2/F:"
     "pscs2/F:"
     "psco2/F:"
+    "ibd2/I:"
     "run2/I:"
     "mutrig2/I:"
     "mutime2/F:"
