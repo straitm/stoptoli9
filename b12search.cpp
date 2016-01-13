@@ -1696,7 +1696,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
       // use it to get the B-12 likelihood.
       else if(
        hambr &&
-       (get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts),
+       (get_ctEvisID(ctEvisIDbr, mi, whichname, parts),
         parts.ctEvisID > 80) &&
        (hambr->GetEntry(mi), parts.Trk_MuHamID[0][0] != 0) &&
        parts.Trk_MuHamID[0][2] > parts.Trk_MuHamID[1][2]
@@ -1738,7 +1738,7 @@ static void searchforamuon(dataparts & parts, TTree * const chtree,
     // the old variable always too big, we preselected too much, and now want to 
     // cut some of those.
     if(near){
-      get_ctEvisID(ctEvisIDbr, parts.trgId, whichname, parts);
+      get_ctEvisID(ctEvisIDbr, mi, whichname, parts);
       if(parts.ctEvisID < 70) goto end;
     }
 
