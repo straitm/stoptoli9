@@ -11,13 +11,20 @@ TH1D * b13spec = new TH1D("b13spec", "", 200, 0, 20);
 TH1D * b14spec = new TH1D("b14spec", "", 300, 0, 30);
 TH1D * li8spec = new TH1D("li8spec", "", 200, 0, 20);
 
-const int nb12b = 4;
+const double quench = 16.5;
+
+const int nb12b = 5;
 const double b12q = 13.370;
-double b12branchbe[nb12b] = {b12q - 10.3, b12q - 7.6542, b12q - 4.4389, b12q};
-double b12branchge[nb12b] = {0.12*3.03,          7.6542,        4.4389, 0};
-double b12branchp[nb12b] = {0.0008,   0.015,         0.013,         0.9722};
-bool   b12brancha[nb12b] = {1, 1, 1, 1};
-double b12branch_aw[nb12b] = {0, 0, 0.0, 0}; // no idea
+double b12branchbe[nb12b] = {b12q-10.3,  b12q-7.6542, b12q-7.6542, b12q-4.4389,   b12q};
+double b12branchge[nb12b] = {0.12*3.03,
+                                // Excitation energy minus 3 alpha mass
+                                (7.6542-7.27)/quench, // 7.65 -> gammas
+                                                           7.6542,      4.4389,      0};
+
+// Using arXiv:1601.02853 for the Hoyle state
+double b12branchp[nb12b] = {    0.0008,0.0064*(1-0.0123), 0.064*0.0123,  0.013, 0.9798};
+bool   b12brancha[nb12b] = {         1,                1,            1,      1,      1};
+double b12branch_aw[nb12b] = {       0,                0,            0,      0,      0}; // no idea
 
 const int nb13b = 8;
 double b13branchbe[nb13b] = {8.4909, 3.540, 4.577, 5.890, 9.834, 9.7527, 10.3478, 13.4372};
