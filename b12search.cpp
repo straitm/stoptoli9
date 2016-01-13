@@ -946,11 +946,19 @@ int ibd_status(const int in_run, const int in_trig)
       tt->SetBranchAddress("trig", &trig);
       for(int i = 0; i < tt->GetEntries(); i++){
         tt->GetEntry(i);
-        ibds.push_back(mkibd(run, trig, c));
 
-        // Get the delayed event too.  ROUGH, since there is sometimes
-        // an intervening event
-        ibd_delays.push_back(mkibd(run, trig+1, c));
+        // XXX If this test is done, CANNOT run over multiple runs!!!
+        // XXX But the binary search below looks like it is taking a
+        // XXX substantial portion (~15%) of the total run time, what
+        // XXX with being called on every candidate decay. (Not measured
+        // XXX carefully.)
+        if(run == in_run){
+          ibds.push_back(mkibd(run, trig, c));
+
+          // Get the delayed event too.  ROUGH, since there is sometimes
+          // an intervening event
+          ibd_delays.push_back(mkibd(run, trig+1, c));
+        }
       }
     }
     std::sort(ibds.begin(), ibds.end(), compareibds);
