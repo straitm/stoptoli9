@@ -490,7 +490,7 @@ void fcn(__attribute__((unused)) int & X,
         + pow((n16t - n16life)/n16life_err, 2)
           // and the neutron efficiency
         + pow(neffdelta/sqrt(pow(f_neff_dt_error, 2) +
-                apply_dr_eff?pow(f_neff_dr_800_avg_error, 2):0
+                apply_dr_eff?pow(f_neff_dr_800_avg_error, 2):neff_ne_corr_e
                             ), 2)
 
           // and the accidental neutron probability
@@ -978,8 +978,11 @@ void fullb12_finalfit()
       nn,
       neff_dt(near?0:fq, fqiv, mx, my, mz)
 
-      // Apply the dr efficiency if we are using a "near" neutron variable
-      *(apply_dr_eff?neff_dr_800(mx, my, mz):1)
+      // Apply the dr efficiency if we are using a "near" neutron
+      // variable. Otherwise, apply just the efficiency correction for
+      // high energy neutrons that is otherwise folded into the dr
+      // efficiency.
+      *(apply_dr_eff?neff_dr_800(mx, my, mz):(1-neff_ne_corr))
 
       ));
     if(i%10000 == 9999){ printf("."); fflush(stdout); }
