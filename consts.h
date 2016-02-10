@@ -75,28 +75,62 @@ const double f_neff_dt_error = 0.01;
 // is a bit lower. A quick study shows that assuming the 1D neutron
 // gaussian resolution (including true position spread) is 278mm, and
 // the BAMA resolution is 100mm, I can reproduce the 800mm efficiency
-// here, while if the FIDO resolution is 150mm, it efficiency is 3.3%
+// here, while if the FIDO resolution is 150mm, the efficiency is 3.3%
 // absolute lower.
 //
 // Therefore let's correct down by this amount and also take a
 // systematic of half the correction since no proper study was done
 // (e.g. certainly not everything is gaussian).
-const double neff_dr_800_h_corr = 0.033;
+
+const double  neff_dr_800_h_corr = 0.033;
 const double neff_dr_1000_h_corr = 0.015;
-const double neff_dr_800_h = 0.933297 - neff_dr_800_h_corr;
-const double neff_dr_1000_h = 0.972960 - neff_dr_1000_h_corr;
-const double f_neff_dr_800_h_error = neff_dr_800_h_corr/2/neff_dr_800_h;
-const double f_neff_dr_1000_h_error = neff_dr_1000_h_corr/2/neff_dr_1000_h;
+const double  neff_dr_800_h_corr_e = neff_dr_800_h_corr/2.;
+const double neff_dr_1000_h_corr_e = neff_dr_1000_h_corr/2.;
+
+// 2016-02-10: I have learned that one must be more careful using an
+// efficiency constructed for neutrons of one energy (IBD) for neutrons
+// of another energy (muon capture). According to a plot by Zelimir,
+// about 1.5% of neutrons from AmBe are lost to (n,alpha) reactions,
+// and comparing that energy spectrum to the spectrum of neutrons
+// from muon capture on C-12 (Measday Fig. 4.18), the fraction over
+// the threshold of ~5MeV is of the same order, but somewhat less. So let's fold in an
+// additional correction and error of (-1.0 +- 0.5)% here.
+const double neff_ne_corr   = 0.010;
+const double neff_ne_corr_e = 0.005;
+
+const double neff_dr_800_h_ibd  = 0.933297;
+const double neff_dr_1000_h_ibd = 0.972960;
+
+const double neff_dr_800_h  = (neff_dr_800_h_ibd  - neff_dr_800_h_corr )*(1-neff_ne_corr);
+const double neff_dr_1000_h = (neff_dr_1000_h_ibd - neff_dr_1000_h_corr)*(1-neff_ne_corr);
+
+// Being sloppy with absolute v. relative error here, but differences are <10% and all the
+// errors are made up anyway.
+const double f_neff_dr_800_h_error =
+  sqrt(pow(neff_dr_800_h_corr_e,2) + pow(neff_ne_corr_e,2))/neff_dr_800_h;
+
+const double f_neff_dr_1000_h_error =
+  sqrt(pow(neff_dr_1000_h_corr_e,2)+pow(neff_ne_corr_e,2))/neff_dr_1000_h;
 
 // Taking the plot from doc-4807, slide 3, corrected by MC correction
 // factor from doc-4450, slide 8.  And see above comments on the _h
 // figures.
 const double neff_dr_800_gd_corr  = 0.020;
 const double neff_dr_1000_gd_corr = 0.009;
-const double neff_dr_800_gd =  0.991*0.993 - neff_dr_800_gd_corr;
-const double neff_dr_1000_gd = 0.997*0.993 - neff_dr_1000_gd_corr;
-const double f_neff_dr_800_gd_error = neff_dr_800_gd_corr/2/neff_dr_800_gd;
-const double f_neff_dr_1000_gd_error = neff_dr_1000_gd_corr/2/neff_dr_1000_gd;
+const double neff_dr_800_gd_corr_e  = neff_dr_800_gd_corr/2.;
+const double neff_dr_1000_gd_corr_e = neff_dr_1000_gd_corr/2.;
+
+const double neff_dr_800_gd_ibd =  0.991*0.993;
+const double neff_dr_1000_gd_ibd = 0.997*0.993;
+
+const double neff_dr_800_gd =  (neff_dr_800_gd_ibd  - neff_dr_800_gd_corr)*(1-neff_ne_corr);
+const double neff_dr_1000_gd = (neff_dr_1000_gd_ibd - neff_dr_1000_gd_corr)*(1-neff_ne_corr);
+
+const double f_neff_dr_800_gd_error =
+  sqrt(pow(neff_dr_800_gd_corr_e,2) + pow(neff_ne_corr_e,2))/neff_dr_800_gd;
+
+const double f_neff_dr_1000_gd_error =
+  sqrt(pow(neff_dr_1000_gd_corr_e,2) + pow(neff_ne_corr_e,2))/neff_dr_1000_gd;
 
 const double neff_dr_800_targ = neff_dr_800_gd*gd_fraction +
                                 neff_dr_800_h*(1-gd_fraction);
