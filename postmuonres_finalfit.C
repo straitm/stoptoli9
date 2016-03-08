@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include "consts.h"
 
+const double hn_e = 2.223248;
+const double gdn_e = 7.95; // good enough for these purposes
+
 TGraphAsymmErrors * eh = new TGraphAsymmErrors(),
                  * egd = new TGraphAsymmErrors(),
                   * wh = new TGraphAsymmErrors(),
@@ -34,8 +37,8 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
     " [0]/([2]*sqrt(2*TMath::Pi()))*exp(-0.5*((x-[1])/[2])**2)" // Hn
     "+[3]/([5]*sqrt(2*TMath::Pi()))*exp(-0.5*((x-[4])/[5])**2)" // Gdn
     "+[6]" // <-- flat background, non-flat bg --v
-    "+[11]*([7]*exp(-0.5*((x-[1]+2.223-0.7010498)/[8])**2)"
-    "      +[9]*exp(-0.5*((x-[1]+2.223-2.300148)/[10])**2))";
+    "+[11]*([7]*exp(-0.5*((x-[1]+2.22348-0.7010498)/[8])**2)"
+    "      +[9]*exp(-0.5*((x-[1]+2.22348-2.300148)/[10])**2))";
 
   TF1 * g =new TF1("g",  fstring, 0, 10);
   TF1 * bg=new TF1("bg", fstring, 0, 10);
@@ -52,7 +55,7 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
   const float halfw = 25;
   {
     const float emean = emin + (emax - emin)/2;
-    g->SetParameters(20, 2.223 + 0.001*emean, 0.055*2.223, 10, 8, 0.4, 0);
+    g->SetParameters(20, hn_e + 0.001*emean, 0.055*hn_e, 10, 8, 0.4, 0);
 
     g->SetParLimits(0, 1, 100);
     g->SetParLimits(3, 1, 100);
@@ -71,7 +74,7 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
     g->SetParLimits(6, 0, 10);
 
     g->SetParLimits(1, 2.2, 2.9);
-    g->SetParLimits(2, 0.03*2.223, 0.12*2.223);
+    g->SetParLimits(2, 0.03*hn_e, 0.12*hn_e);
 
     t->Draw("miche >> ehist", Form("ndecay == 0 && michd < 2000 && "
       "latennear > 0 && fq/8300 < %f && fq/8300 > %f && micht < 3000",
@@ -90,15 +93,15 @@ void postmuonres_finalfit(const double emin = 60, const double emax = 110)
     c1->Update(); c1->Modified();
     egd->SetPoint(0, emean, g->GetParameter(4));
     eh ->SetPoint(0, emean, g->GetParameter(1));
-    wgd->SetPoint(0, emean, fabs(g->GetParameter(5)/7.95));
-    wh ->SetPoint(0, emean, fabs(g->GetParameter(2)/2.223));
+    wgd->SetPoint(0, emean, fabs(g->GetParameter(5)/gdn_e));
+    wh ->SetPoint(0, emean, fabs(g->GetParameter(2)/hn_e));
 
 
     const double xerr = halfw*2/sqrt(12);
     eh ->SetPointError(0, xerr, xerr, -gMinuit->fErn[1], gMinuit->fErp[1]);
-    wh ->SetPointError(0, xerr, xerr, min(wh->GetY()[0], fabs(gMinuit->fErn[2])/2.223), gMinuit->fErp[2]/2.223);
+    wh ->SetPointError(0, xerr, xerr, min(wh->GetY()[0], fabs(gMinuit->fErn[2])/hn_e), gMinuit->fErp[2]/hn_e);
     egd->SetPointError(0, xerr, xerr, -gMinuit->fErn[4], gMinuit->fErp[4]);
-    wgd->SetPointError(0, xerr, xerr, -gMinuit->fErn[5]/7.95, gMinuit->fErp[5]/7.95);
+    wgd->SetPointError(0, xerr, xerr, -gMinuit->fErn[5]/gdn_e, gMinuit->fErp[5]/gdn_e);
 
     print();
   }

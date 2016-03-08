@@ -67,7 +67,7 @@ const double G4E = 3.759 + 0.006;
 static double paccn = 0; // replaced by find_paccn()
 static double paccn_e = 0; // ditto
 
-const double hn_e = 2.224573;
+const double hn_e = 2.223248;
 
 const double capprob12 = 1-lifetime_c12/mulife;
 const double errcapprob12 = (1-(lifetime_c12+lifetime_c12_err)/mulife)/2
@@ -891,7 +891,7 @@ void b12gamma_finalfit(const int region = 1, const int whichcorr_ = 0, double ta
                         gaus("[3]", Form("%.9f", G2E), false) + "+" +
                         gaus("[4]", Form("%.9f", G3E), false) + "+" +
                         gaus("[5]", Form("%.9f", G4E), false) + "+" + 
-                        gaus("[7]", "2.224573",false) +  // sic
+                        gaus("[7]", "2.223248",false) +  // sic
       // accidental bg and michels.  Right for the accidentals,
       // wrong for the Michels, but I think it is ok.
       "+  [6]*("
